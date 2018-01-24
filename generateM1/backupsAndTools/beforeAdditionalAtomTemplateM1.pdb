@@ -159,7 +159,6 @@ HETATM  156  O   LIG     1      16.324  12.333   9.250  1.00  0.00           O
 HETATM  157  O   LIG     1      14.226   1.780   9.251  1.00  0.00           O  
 HETATM  158  O   LIG     1       1.477  12.433   9.109  1.00  0.00           O  
 HETATM  159  O   LIG     1      12.049  15.002   9.106  1.00  0.00           O  
-HETATM  160  O   LIG     1      18.288  25.855   9.100  1.00  0.00           O  
 CONECT    1   45  146   70  108                                       
 CONECT    1  109                                                      
 CONECT    2   47  112  121                                            
@@ -190,7 +189,7 @@ CONECT   16   63
 CONECT   17  158  126   83                                            
 CONECT   18  159  134  125  122                                       
 CONECT   18   84                                                      
-CONECT   19   62   63   85  160                                          
+CONECT   19   62   63   85                                            
 CONECT   20  141  132  123   86                                       
 CONECT   21  140  119  131  122                                       
 CONECT   21   87                                                      
@@ -341,5 +340,5 @@ CONECT  156   30   26
 CONECT  157   31                                                 
 CONECT  158   11   17                                                 
 CONECT  159   12   18                                                 
-MASTER        0    0    0    0    0    0    0    0  160    0  160    0
+MASTER        0    0    0    0    0    0    0    0  159    0  159    0
 END
