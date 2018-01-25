@@ -1,17 +1,17 @@
 import mbuild as mb
 import numpy as np
+import argparse
 
 class m1_unit_cell(mb.Compound):
     # This class will contain the unit cell for manipulation and replication
-    def __init__(self, stoichiometry_dict):
+    def __init__(self, template, stoichiometry_dict):
         # Call the mb.Compound initialisation
         super().__init__()
         # Load the unit cell
-        mb.load('templateM1.pdb', compound=self)
-        # TODO: Assign the atoms based on the input stoichiometry
-        # Replacable atoms in the matrix are assigned as type 'X'
+        mb.load(template, compound=self)
+        # Replacable atoms in the matrix are assigned as type `X'
         # Note: In both Py2 and Py3, subsequent calls to keys() and values() with no
-        # intervening modifications will directly correspond \cite{Documentation}
+        # intervening modifications will directly correspond \cite{PyDocumentation}
         atom_types = list(stoichiometry_dict.keys())
         atom_ratios = np.array(list(stoichiometry_dict.values()))
         probabilities = list(atom_ratios / np.sum(atom_ratios))
@@ -20,14 +20,13 @@ class m1_unit_cell(mb.Compound):
                 # `Randomly' select an atom type based on the biases given in stoichiometry_dict
                 particle.name = np.random.choice(atom_types, p=probabilities)
         # Check all the 'X' atom_types got updated
-        assert('X' not in [particle.name for particle in self.particles()])
-        # TODO: Create ports to allow the unit cell to be repeated along each dimension (2D to start)
+        #assert('X' not in [particle.name for particle in self.particles()])
 
 
 class m1_surface(mb.Compound):
     # This class will describe the surface and consist of several m1_unit_cell instances in a specified dimension
     # Default stoichiometry found in: Nanostructured Catalysts: Selective Oxidations (Hess and Schl\"ogl, 2011, RSC)
-    def __init__(self, surface_dimensions=[1, 1], stoichiometry_dict={'Mo': 1, 'V': 0.2, 'Nb': 0.17}):
+    def __init__(self, surface_dimensions, template, stoichiometry_dict):
         # Call the mb.Compound initialisation
         super().__init__()
         # Specify some dimensions for the templateM1.pdb file that we're using (these are esimated from the atom positions
@@ -43,7 +42,8 @@ class m1_surface(mb.Compound):
             # Note: Each cell has 159 atoms in it
             previous_cell = None
             for x_repeat in range(surface_dimensions[0]):
-                current_cell = m1_unit_cell(stoichiometry_dict)
+                print("Adding " + [x_repeat, y_repeat] + " to system...\r", end=' ')
+                current_cell = m1_unit_cell(template, stoichiometry_dict)
                 current_row.append(current_cell)
                 current_cell.translate([x_repeat * x_extent, y_repeat * y_extent, 0])
                 self.add(current_cell)
@@ -79,8 +79,33 @@ class m1_surface(mb.Compound):
                     first_cell = complete_cell_matrix[x_coord][y_coord]
                     second_cell = complete_cell_matrix[x_coord + 1][y_coord + 1]
                     self.add_bond([first_cell[61], second_cell[21]])
+        print()
 
 
 if __name__ == "__main__":
-    m1Crystal = m1_surface(surface_dimensions=[2, 2])
-    m1Crystal.save('test.hoomdxml', overwrite=True)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-s", "--stoichiometry", type=lambda s: {str(key[1:-1]): float(val) for [key, val] in [splitChar for splitChar in [cell.split(':') for cell in [_ for _ in s[1:-1].split(',') if len(_) > 0]] if len(splitChar) > 0]}, default={'Mo': 1, 'V': 0.2, 'Nb': 0.17}, required=False,
+                        help='''Specify a stoichiometry for the surface.\n
+                        Atoms marked as type 'X' in the template will be replaced with atoms of the type given by the keys in the input dictionary, with probabilities determined from the ratios given by the values of the input dictionary.\n
+                        For example: -s "{'Mo': 1, 'V': 0.2, 'Nb': 0.17}" will create a surface where there are 5 Mo atoms for every V, and 0.85 Nb.\n
+                        If not specified, the default stoichiometry is set to {'Mo': 1, 'V': 0.2, 'Nb': 0.17}''')
+    parser.add_argument("-d", "--dimensions", type=lambda d: [int(_) for _ in d.split(',') if len(_) > 0], default=[1, 1], required=False,
+                       help='''Specify the number of cells to stitch into the surface (integers), along the x- and y-directions.
+                        For example: -d "6,5" will create a surface containing 30 unit cells, with 6 along the x-axis and 5 up the y-axis.
+                        If not specified, the default dimensions are a single unit cell producing a 1x1 surface.
+                       ''')
+    parser.add_argument("-t", "--template", type=str, default='templateM1.pdb', required=False,
+                       help='''Identify the unit cell file to be used to create the surface.
+                        For example: -t "templateM1.pdb".
+                        If not specified, the default ./templateM1.pdb is used.
+                       ''')
+    parser.add_argument("-o", "--output", type=str, default='output.hoomdxml', required=False,
+                       help='''Identify the location of the output file containing the final surface structure.
+                        For example: -o "output.hoomdxml".
+                        If not specified, the default ./output.hoomdxml is used.
+                       ''')
+    args = parser.parse_args()
+    m1Crystal = m1_surface(args.dimensions, args.template, args.stoichiometry)
+    print("Crystal generated. Saving as", args.output + "...")
+    m1Crystal.save(args.output, overwrite=True)
+    print("Output generated. Exitting...")
