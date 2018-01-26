@@ -33,7 +33,7 @@ class m1_unit_cell(mb.Compound):
 class m1_surface(mb.Compound):
     # This class will describe the surface and consist of several m1_unit_cell instances in a specified dimension
     # Default stoichiometry found in: Nanostructured Catalysts: Selective Oxidations (Hess and Schl\"ogl, 2011, RSC)
-    def __init__(self, surface_dimensions, template, stoichiometry_dict):
+    def __init__(self, surface_dimensions, template, stoichiometry_dict, bonds_periodic):
         # Call the mb.Compound initialisation
         super().__init__()
         # OUTER LOOP: Multiply up each x_row to create as many y repeats as specified
@@ -62,8 +62,24 @@ class m1_surface(mb.Compound):
         # Now that the cell_matrix is complete, there might be a few more bonds to add in
         # Go across all rows first
         for y_coord in range(surface_dimensions[1]):
+            # Bottom bonding to top over periodic boundary conditions
+            if bonds_periodic and y_coord == 0:
+                # Iterate over every cell in the row
+                for x_coord in range(surface_dimensions[0]):
+                    first_cell = complete_cell_matrix[surface_dimensions[1] - 1][x_coord]
+                    second_cell = complete_cell_matrix[0][x_coord]
+                    self.add_y_connecting_bonds(first_cell, second_cell)
             # Now each column
             for x_coord in range(surface_dimensions[0]):
+                # Left hand side bonding to right hand side over periodic boundary conditions
+                if bonds_periodic and x_coord == 0:
+                    print(complete_cell_matrix)
+                    for rowNo, row in enumerate(complete_cell_matrix):
+                        for colNo, column in enumerate(row):
+                            print(rowNo, colNo, column.pos)
+                    first_cell = complete_cell_matrix[y_coord][surface_dimensions[0] - 1]
+                    second_cell = complete_cell_matrix[y_coord][0]
+                    self.add_x_connecting_bonds(first_cell, second_cell)
                 # Bonds located across the diagonals (i.e. [0, 0] bonded to [1, 1]; [0, 1] bonded to [1, 2] etc.)
                 if (x_coord + 1 < surface_dimensions[0]) and (y_coord + 1 < surface_dimensions[1]):
                     first_cell = complete_cell_matrix[x_coord][y_coord]
@@ -140,22 +156,28 @@ if __name__ == "__main__":
                        help='''Assign a pysical separation (in nm) to the two planes corresponding to the top and bottom of the simulation volume within the periodic box.
                         Note that this is not the same as the z_extent, which describes the region available to ethane molecules in the simulation.
                         This value should be larger than the interaction cut-off specified in the forcefield (pair or Coulombic) to prevent the self-interaction of the surface.
-                        For example: -p 1.0
+                        For example: -p 1.0.
                         If not specified, the default value of one nanometre is used.
                        ''')
     parser.add_argument("-z", "--z_extent", type=float, default=20.0, required=False,
                        help='''Assign the z-axis extent of the simulation (in nm). This defines the region available for ethane molecules to move around in, between the two catalyst plates (region depth = z_extent - plane_separation).
                         Note that this is not the same as the plane_separation, which describes the physical separation between the two M1 crystal planes.
-                        For example: -z 20.0
+                        For example: -z 20.0.
                         If not specified, the default value of 20 nanometres is used.
+                       ''')
+    parser.add_argument("-b", "--bonds_periodic", action='store_false', default='output.hoomdxml', required=False,
+                       help='''A boolean that determines whether periodic bonds are inserted across the x-y plane that connect the left side of the system with the right side, and the top to the bottom across the simulation's periodic boundary conditions.
+                        For example: -b.
+                        The default for this parameter is 'True', but passing this flag will change it to 'False' (which makes it look prettier in VMD for outputs.
                        ''')
     args = parser.parse_args()
     print("Generating first surface (bottom)...")
-    surface1 = m1_surface(args.dimensions, args.template, args.stoichiometry)
+    surface1 = m1_surface(args.dimensions, args.template, args.stoichiometry, args.bonds_periodic)
     print("Generating second surface (top)...")
-    surface2 = m1_surface(args.dimensions, args.template, args.stoichiometry)
+    surface2 = m1_surface(args.dimensions, args.template, args.stoichiometry, args.bonds_periodic)
     print("Surface generated. Saving as", args.output + "...")
     system = m1_system(surface1, surface2, args.plane_separation)
-    system_box = mb.Box(mins = [-x_extent/2.0, -y_extent/2.0, -args.z_extent/2.0], maxs = [x_extent/2.0, y_extent/2.0, args.z_extent/2.0])
+    system_box = mb.Box(mins = [-(x_extent * args.dimensions[0])/2.0, -(y_extent * args.dimensions[1])/2.0, -args.z_extent/2.0],
+                        maxs = [(x_extent * args.dimensions[0])/2.0, (y_extent * args.dimensions[1])/2.0, args.z_extent/2.0])
     system.save(args.output, overwrite=True, box = system_box)
     print("Output generated. Exitting...")
