@@ -73,10 +73,6 @@ class m1_surface(mb.Compound):
             for x_coord in range(surface_dimensions[0]):
                 # Left hand side bonding to right hand side over periodic boundary conditions
                 if bonds_periodic and x_coord == 0:
-                    print(complete_cell_matrix)
-                    for rowNo, row in enumerate(complete_cell_matrix):
-                        for colNo, column in enumerate(row):
-                            print(rowNo, colNo, column.pos)
                     first_cell = complete_cell_matrix[y_coord][surface_dimensions[0] - 1]
                     second_cell = complete_cell_matrix[y_coord][0]
                     self.add_x_connecting_bonds(first_cell, second_cell)
@@ -130,6 +126,15 @@ class m1_system(mb.Compound):
         self.add(top_crystal)
 
 
+class mbuild_template(mb.Compound):
+    # This class will contain the mb compound for ethane
+    def __init__(self, template):
+        # Call the mb.Compound initialisation
+        super().__init__()
+        # Load the unit cell
+        mb.load(template, compound=self)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", "--stoichiometry", type=lambda s: {str(key[1:-1]): float(val) for [key, val] in [splitChar for splitChar in [cell.split(':') for cell in [_ for _ in s[1:-1].split(',') if len(_) > 0]] if len(splitChar) > 0]}, default={'Mo': 1, 'V': 0.2, 'Nb': 0.17}, required=False,
@@ -170,6 +175,12 @@ if __name__ == "__main__":
                         For example: -b.
                         The default for this parameter is 'True', but passing this flag will change it to 'False' (which makes it look prettier in VMD for outputs.
                        ''')
+    parser.add_argument("-e", "--ethanes", type=int, default=200, required=False,
+                       help='''Set the number of ethane molecules to be included in the system.
+                        Note that if the plane_separation is too high, ethane molecules might appear in between the M1 plates as mb.packing.solvate is used to place the hydrocarbons.
+                        For example: -e 200.
+                        If not specified, the default value of 200 ethane molecules is used.
+                       ''')
     args = parser.parse_args()
     print("Generating first surface (bottom)...")
     surface1 = m1_surface(args.dimensions, args.template, args.stoichiometry, args.bonds_periodic)
@@ -179,5 +190,14 @@ if __name__ == "__main__":
     system = m1_system(surface1, surface2, args.plane_separation)
     system_box = mb.Box(mins = [-(x_extent * args.dimensions[0])/2.0, -(y_extent * args.dimensions[1])/2.0, -args.z_extent/2.0],
                         maxs = [(x_extent * args.dimensions[0])/2.0, (y_extent * args.dimensions[1])/2.0, args.z_extent/2.0])
-    system.save(args.output, overwrite=True, box = system_box)
+    # Now we can populate the box with ethane
+    ethane = mbuild_template('./ethane.pdb')
+    ethene = mbuild_template('./ethene.pdb')
+    box_top = mb.Box(mins = [-(x_extent * args.dimensions[0])/2.0, -(y_extent * args.dimensions[1])/2.0, args.plane_separation/2.0],
+                        maxs = [(x_extent * args.dimensions[0])/2.0, (y_extent * args.dimensions[1])/2.0, args.z_extent/2.0])
+    box_bottom = mb.Box(mins = [-(x_extent * args.dimensions[0])/2.0, -(y_extent * args.dimensions[1])/2.0, -args.z_extent/2.0],
+                        maxs = [(x_extent * args.dimensions[0])/2.0, (y_extent * args.dimensions[1])/2.0, -args.plane_separation/2.0])
+    solvated_system = mb.packing.solvate(system, ethane, args.ethanes//2, box_top)
+    solvated_system = mb.packing.solvate(solvated_system, ethane, args.ethanes//2, box_bottom)
+    solvated_system.save(args.output, overwrite=True, box = system_box)
     print("Output generated. Exitting...")
