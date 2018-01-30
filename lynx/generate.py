@@ -165,6 +165,14 @@ def create_morphology(args):
 
 
 if __name__ == "__main__":
+    # Set the defaults for all the below arguments
+    defaults_dict = {'stoichiometry': {'Mo': 1, 'V': 0.3, 'Nb': 0.15, 'Te': 0.15},
+                     'dimensions': [1, 1, 1],
+                     'template': 'templateM1.pdb',
+                     'crystal_separation': 2.5,
+                     'z_box_size': 20.0,
+                     'bonds_periodic': True
+                     'ethanes': 200}
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", "--stoichiometry", type=lambda s: {str(key[1:-1]): float(val) for [key, val] in [splitChar for splitChar in [cell.split(':') for cell in [_ for _ in s[1:-1].split(',') if len(_) > 0]] if len(splitChar) > 0]}, default={'Mo': 1, 'V': 0.3, 'Nb': 0.15, 'Te': 0.15}, required=False,
                         help='''Specify a stoichiometry for the surface.\n
@@ -181,16 +189,6 @@ if __name__ == "__main__":
                         For example: -t "templateM1.pdb".
                         If not specified, the default ./templateM1.pdb is used.
                        ''')
-    parser.add_argument("-i", "--input_compound_dir", type=str, default='./compounds', required=False,
-                       help='''Identify the location of the output file containing the final surface structure.
-                        For example: -o "output.hoomdxml".
-                        If not specified, the default ./output.hoomdxml is used.
-                       ''')
-    #parser.add_argument("-o", "--output", type=str, default='output.hoomdxml', required=False,
-    #                   help='''Identify the location of the output file containing the final surface structure.
-    #                    For example: -o "output.hoomdxml".
-    #                    If not specified, the default ./output.hoomdxml is used.
-    #                   ''')
     parser.add_argument("-c", "--crystal_separation", type=float, default=2.5, required=False,
                        help='''Assign a pysical separation (in nm) to the bottom planes of the two crystals corresponding to the top and bottom of the simulation volume within the periodic box.
                         Note that this is not the same as the z_box_size, which describes the region available to ethane molecules in the simulation.
@@ -204,7 +202,7 @@ if __name__ == "__main__":
                         For example: -z 20.0.
                         If not specified, the default value of 20 nanometres is used.
                        ''')
-    parser.add_argument("-b", "--bonds_periodic", action='store_false', default='output.hoomdxml', required=False,
+    parser.add_argument("-b", "--bonds_periodic", action='store_false', default=True, required=False,
                        help='''A boolean that determines whether periodic bonds are inserted across the x-y plane that connect the left side of the system with the right side, and the top to the bottom across the simulation's periodic boundary conditions.
                         For example: -b.
                         The default for this parameter is 'True', but passing this flag will change it to 'False' (which makes it look prettier in VMD for outputs.
