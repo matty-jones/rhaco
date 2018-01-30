@@ -140,13 +140,37 @@ class mbuild_template(mb.Compound):
         mb.load(template, compound=self)
 
 
+def create_morphology(args):
+    print("Generating first surface (bottom)...")
+    surface1 = m1_surface(args.dimensions, args.template, args.stoichiometry, args.bonds_periodic)
+    print("Generating second surface (top)...")
+    surface2 = m1_surface(args.dimensions, args.template, args.stoichiometry, args.bonds_periodic)
+    # Now we can populate the box with ethane
+    print("Surfaces generated. Generating ethane...")
+    ethane = mbuild_template('./ethane.pdb')
+    # Define the regions that the ethane can go in, so we don't end up with ethanes in between layers
+    box_top = mb.Box(mins = [-(x_extent * args.dimensions[0])/2.0, -(y_extent * args.dimensions[1])/2.0, args.crystal_separation/2.0 + (z_extent * args.dimensions[2])],
+                        maxs = [(x_extent * args.dimensions[0])/2.0, (y_extent * args.dimensions[1])/2.0, args.z_box_size/2.0])
+    box_bottom = mb.Box(mins = [-(x_extent * args.dimensions[0])/2.0, -(y_extent * args.dimensions[1])/2.0, -args.z_box_size/2.0],
+                        maxs = [(x_extent * args.dimensions[0])/2.0, (y_extent * args.dimensions[1])/2.0, -args.crystal_separation/2.0 - (z_extent * args.dimensions[2])])
+    solvent = mb.packing.fill_region([ethane] * 2, [args.ethanes // 2] * 2, [box_bottom, box_top])
+    # Now create the system by combining the two surfaces and the solvent
+    system = m1_system(surface1, surface2, args.crystal_separation, solvent)
+    # Generate the morphology box based on the input parameters
+    system_box = mb.Box(mins = [-(x_extent * args.dimensions[0])/2.0, -(y_extent * args.dimensions[1])/2.0, -args.z_box_size/2.0],
+                        maxs = [(x_extent * args.dimensions[0])/2.0, (y_extent * args.dimensions[1])/2.0, args.z_box_size/2.0])
+    print("Morphology generated. Saving as", args.output + "...")
+    system.save(args.output, overwrite=True, box=system_box)
+    print("Output generated. Exitting...")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-s", "--stoichiometry", type=lambda s: {str(key[1:-1]): float(val) for [key, val] in [splitChar for splitChar in [cell.split(':') for cell in [_ for _ in s[1:-1].split(',') if len(_) > 0]] if len(splitChar) > 0]}, default={'Mo': 1, 'V': 0.2, 'Nb': 0.17}, required=False,
+    parser.add_argument("-s", "--stoichiometry", type=lambda s: {str(key[1:-1]): float(val) for [key, val] in [splitChar for splitChar in [cell.split(':') for cell in [_ for _ in s[1:-1].split(',') if len(_) > 0]] if len(splitChar) > 0]}, default={'Mo': 1, 'V': 0.3, 'Nb': 0.15, 'Te': 0.15}, required=False,
                         help='''Specify a stoichiometry for the surface.\n
                         Atoms marked as type 'X' in the template will be replaced with atoms of the type given by the keys in the input dictionary, with probabilities determined from the ratios given by the values of the input dictionary.\n
-                        For example: -s "{'Mo': 1, 'V': 0.2, 'Nb': 0.17}" will create a surface where there are 5 Mo atoms for every V, and 0.85 Nb.\n
-                        If not specified, the default stoichiometry is set to {'Mo': 1, 'V': 0.2, 'Nb': 0.17}''')
+                        For example: -s "{'Mo': 1, 'V': 0.3, 'Nb': 0.15, 'Te': 0.15}" will create a surface where there are 5 Mo atoms for every V, and 0.85 Nb.\n
+                        If not specified, the default stoichiometry is set to {'Mo': 1, 'V': 0.3, 'Nb': 0.15, 'Te': 0.15}''')
     parser.add_argument("-d", "--dimensions", type=lambda d: [int(_) for _ in d.split('x') if len(_) > 0], default=[1, 1, 1], required=False,
                        help='''Specify the number of cells to stitch into the surface (integers), along the x- and y-directions.
                         For example: -d 2x2x1 will create a surface containing 4 unit cells, with 2 along the x-axis, 2 along the y-axis, and one layer thick.
@@ -157,11 +181,16 @@ if __name__ == "__main__":
                         For example: -t "templateM1.pdb".
                         If not specified, the default ./templateM1.pdb is used.
                        ''')
-    parser.add_argument("-o", "--output", type=str, default='output.hoomdxml', required=False,
+    parser.add_argument("-i", "--input_compound_dir", type=str, default='./compounds', required=False,
                        help='''Identify the location of the output file containing the final surface structure.
                         For example: -o "output.hoomdxml".
                         If not specified, the default ./output.hoomdxml is used.
                        ''')
+    #parser.add_argument("-o", "--output", type=str, default='output.hoomdxml', required=False,
+    #                   help='''Identify the location of the output file containing the final surface structure.
+    #                    For example: -o "output.hoomdxml".
+    #                    If not specified, the default ./output.hoomdxml is used.
+    #                   ''')
     parser.add_argument("-c", "--crystal_separation", type=float, default=2.5, required=False,
                        help='''Assign a pysical separation (in nm) to the bottom planes of the two crystals corresponding to the top and bottom of the simulation volume within the periodic box.
                         Note that this is not the same as the z_box_size, which describes the region available to ethane molecules in the simulation.
@@ -187,24 +216,4 @@ if __name__ == "__main__":
                         If not specified, the default value of 200 ethane molecules is used.
                        ''')
     args = parser.parse_args()
-    print("Generating first surface (bottom)...")
-    surface1 = m1_surface(args.dimensions, args.template, args.stoichiometry, args.bonds_periodic)
-    print("Generating second surface (top)...")
-    surface2 = m1_surface(args.dimensions, args.template, args.stoichiometry, args.bonds_periodic)
-    # Now we can populate the box with ethane
-    print("Surfaces generated. Generating ethane...")
-    ethane = mbuild_template('./ethane.pdb')
-    # Define the regions that the ethane can go in, so we don't end up with ethanes in between layers
-    box_top = mb.Box(mins = [-(x_extent * args.dimensions[0])/2.0, -(y_extent * args.dimensions[1])/2.0, args.crystal_separation/2.0 + (z_extent * args.dimensions[2])],
-                        maxs = [(x_extent * args.dimensions[0])/2.0, (y_extent * args.dimensions[1])/2.0, args.z_box_size/2.0])
-    box_bottom = mb.Box(mins = [-(x_extent * args.dimensions[0])/2.0, -(y_extent * args.dimensions[1])/2.0, -args.z_box_size/2.0],
-                        maxs = [(x_extent * args.dimensions[0])/2.0, (y_extent * args.dimensions[1])/2.0, -args.crystal_separation/2.0 - (z_extent * args.dimensions[2])])
-    solvent = mb.packing.fill_region([ethane] * 2, [args.ethanes // 2] * 2, [box_bottom, box_top])
-    # Now create the system by combining the two surfaces and the solvent
-    system = m1_system(surface1, surface2, args.crystal_separation, solvent)
-    # Generate the morphology box based on the input parameters
-    system_box = mb.Box(mins = [-(x_extent * args.dimensions[0])/2.0, -(y_extent * args.dimensions[1])/2.0, -args.z_box_size/2.0],
-                        maxs = [(x_extent * args.dimensions[0])/2.0, (y_extent * args.dimensions[1])/2.0, args.z_box_size/2.0])
-    print("Morphology generated. Saving as", args.output + "...")
-    system.save(args.output, overwrite=True, box=system_box)
-    print("Output generated. Exitting...")
+    create_morphology(args)
