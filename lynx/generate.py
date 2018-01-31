@@ -8,6 +8,16 @@ x_extent = 2.113438
 y_extent = 2.664700
 z_extent = 1.915640
 
+# Set the defaults for all the required arguments
+defaults_dict = {'stoichiometry': {'Mo': 1, 'V': 0.3, 'Nb': 0.15, 'Te': 0.15},
+                 'dimensions': [1, 1, 1],
+                 'template': 'templateM1.pdb',
+                 'crystal_separation': 2.5,
+                 'z_box_size': 20.0,
+                 'bonds_periodic': True,
+                 'ethanes': 200}
+
+
 class m1_unit_cell(mb.Compound):
     # This class will contain the unit cell for manipulation and replication
     def __init__(self, template, stoichiometry_dict):
@@ -141,13 +151,14 @@ class mbuild_template(mb.Compound):
 
 
 def create_morphology(args):
+    output_file = create_output_file_name(args)
     print("Generating first surface (bottom)...")
     surface1 = m1_surface(args.dimensions, args.template, args.stoichiometry, args.bonds_periodic)
     print("Generating second surface (top)...")
     surface2 = m1_surface(args.dimensions, args.template, args.stoichiometry, args.bonds_periodic)
     # Now we can populate the box with ethane
     print("Surfaces generated. Generating ethane...")
-    ethane = mbuild_template('./ethane.pdb')
+    ethane = mbuild_template('compounds/ethane.pdb')
     # Define the regions that the ethane can go in, so we don't end up with ethanes in between layers
     box_top = mb.Box(mins = [-(x_extent * args.dimensions[0])/2.0, -(y_extent * args.dimensions[1])/2.0, args.crystal_separation/2.0 + (z_extent * args.dimensions[2])],
                         maxs = [(x_extent * args.dimensions[0])/2.0, (y_extent * args.dimensions[1])/2.0, args.z_box_size/2.0])
@@ -159,20 +170,33 @@ def create_morphology(args):
     # Generate the morphology box based on the input parameters
     system_box = mb.Box(mins = [-(x_extent * args.dimensions[0])/2.0, -(y_extent * args.dimensions[1])/2.0, -args.z_box_size/2.0],
                         maxs = [(x_extent * args.dimensions[0])/2.0, (y_extent * args.dimensions[1])/2.0, args.z_box_size/2.0])
-    print("Morphology generated. Saving as", args.output + "...")
-    system.save(args.output, overwrite=True, box=system_box)
+    print("Morphology generated. Saving as", output_file + "...")
+    system.save(output_file, overwrite=True, box=system_box)
     print("Output generated. Exitting...")
 
 
+def create_output_file_name(args, file_type='hoomdxml'):
+    output_file = "out"
+    for (arg_name, arg_val) in sorted(args._get_kwargs()):
+        if (arg_val == defaults_dict[arg_name]) or (arg_val == False):
+            continue
+        output_file += "_"
+        if arg_name == 'stoichiometry':
+            output_file += "S"
+            for key, val in arg_val.items():
+                output_file += str(key) + str(val)
+        elif arg_name == 'dimensions':
+            output_file += "D" + "x".join(list(map(str, arg_val)))
+        elif arg_name == 'template':
+            output_file += "T" + args.template.split('/')[-1].split('.')[0]
+        elif arg_val is True:
+            output_file += arg_name[0].upper()
+        else:
+            output_file += arg_name[0].upper() + str(arg_val)
+    return output_file + '.' + file_type
+
+
 if __name__ == "__main__":
-    # Set the defaults for all the below arguments
-    defaults_dict = {'stoichiometry': {'Mo': 1, 'V': 0.3, 'Nb': 0.15, 'Te': 0.15},
-                     'dimensions': [1, 1, 1],
-                     'template': 'templateM1.pdb',
-                     'crystal_separation': 2.5,
-                     'z_box_size': 20.0,
-                     'bonds_periodic': True
-                     'ethanes': 200}
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", "--stoichiometry", type=lambda s: {str(key[1:-1]): float(val) for [key, val] in [splitChar for splitChar in [cell.split(':') for cell in [_ for _ in s[1:-1].split(',') if len(_) > 0]] if len(splitChar) > 0]}, default={'Mo': 1, 'V': 0.3, 'Nb': 0.15, 'Te': 0.15}, required=False,
                         help='''Specify a stoichiometry for the surface.\n
@@ -184,7 +208,7 @@ if __name__ == "__main__":
                         For example: -d 2x2x1 will create a surface containing 4 unit cells, with 2 along the x-axis, 2 along the y-axis, and one layer thick.
                         If not specified, the default dimensions are a single unit cell producing a 1x1x1 surface.
                        ''')
-    parser.add_argument("-t", "--template", type=str, default='templateM1.pdb', required=False,
+    parser.add_argument("-t", "--template", type=str, default='compounds/M1UnitCell.pdb', required=False,
                        help='''Identify the unit cell file to be used to create the surface.
                         For example: -t "templateM1.pdb".
                         If not specified, the default ./templateM1.pdb is used.
