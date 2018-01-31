@@ -2,6 +2,8 @@ import mbuild as mb
 import numpy as np
 import argparse
 import copy
+import os
+from lynx.definitions import PDB_LIBRARY
 
 # The crystallographic unit cell parameters
 x_extent = 2.113438
@@ -24,7 +26,7 @@ class m1_unit_cell(mb.Compound):
         # Call the mb.Compound initialisation
         super().__init__()
         # Load the unit cell
-        mb.load(template, compound=self)
+        mb.load(os.path.join(PDB_LIBRARY, template), compound=self)
         # Replacable atoms in the matrix are assigned as type `X'
         # Note: In both Py2 and Py3, subsequent calls to keys() and values() with no
         # intervening modifications will directly correspond \cite{PyDocumentation}
@@ -147,7 +149,7 @@ class mbuild_template(mb.Compound):
         # Call the mb.Compound initialisation
         super().__init__()
         # Load the unit cell
-        mb.load(template, compound=self)
+        mb.load(os.path.join(PDB_LIBRARY, template), compound=self)
 
 
 def create_morphology(args):
@@ -158,7 +160,7 @@ def create_morphology(args):
     surface2 = m1_surface(args.dimensions, args.template, args.stoichiometry, args.bonds_periodic)
     # Now we can populate the box with ethane
     print("Surfaces generated. Generating ethane...")
-    ethane = mbuild_template('compounds/ethane.pdb')
+    ethane = mbuild_template('ethane.pdb')
     # Define the regions that the ethane can go in, so we don't end up with ethanes in between layers
     box_top = mb.Box(mins = [-(x_extent * args.dimensions[0])/2.0, -(y_extent * args.dimensions[1])/2.0, args.crystal_separation/2.0 + (z_extent * args.dimensions[2])],
                         maxs = [(x_extent * args.dimensions[0])/2.0, (y_extent * args.dimensions[1])/2.0, args.z_box_size/2.0])
@@ -208,10 +210,10 @@ def main():
                         For example: -d 2x2x1 will create a surface containing 4 unit cells, with 2 along the x-axis, 2 along the y-axis, and one layer thick.
                         If not specified, the default dimensions are a single unit cell producing a 1x1x1 surface.
                        ''')
-    parser.add_argument("-t", "--template", type=str, default='compounds/M1UnitCell.pdb', required=False,
+    parser.add_argument("-t", "--template", type=str, default='M1UnitCell.pdb', required=False,
                        help='''Identify the unit cell file to be used to create the surface.
-                        For example: -t "templateM1.pdb".
-                        If not specified, the default ./templateM1.pdb is used.
+                        For example: -t "M1UnitCell.pdb".
+                        If not specified, the default ./M1UnitCell.pdb is used.
                        ''')
     parser.add_argument("-c", "--crystal_separation", type=float, default=2.5, required=False,
                        help='''Assign a pysical separation (in nm) to the bottom planes of the two crystals corresponding to the top and bottom of the simulation volume within the periodic box.
