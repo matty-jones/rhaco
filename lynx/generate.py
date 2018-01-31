@@ -196,7 +196,7 @@ def create_output_file_name(args, file_type='hoomdxml'):
     return output_file + '.' + file_type
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", "--stoichiometry", type=lambda s: {str(key[1:-1]): float(val) for [key, val] in [splitChar for splitChar in [cell.split(':') for cell in [_ for _ in s[1:-1].split(',') if len(_) > 0]] if len(splitChar) > 0]}, default={'Mo': 1, 'V': 0.3, 'Nb': 0.15, 'Te': 0.15}, required=False,
                         help='''Specify a stoichiometry for the surface.\n
