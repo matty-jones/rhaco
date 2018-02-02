@@ -6,9 +6,10 @@ import os
 from lynx.definitions import PDB_LIBRARY
 
 # The crystallographic unit cell parameters
-x_extent = 2.113438
-y_extent = 2.664700
-z_extent = 1.915640
+# Taken from Desanto2006 (10.1007/s11244-006-0068-8)
+x_extent = 2.148490
+y_extent = 2.664721
+z_extent = 0.400321
 
 # Set the defaults for all the required arguments
 defaults_dict = {'stoichiometry': {'Mo': 1, 'V': 0.3, 'Nb': 0.15, 'Te': 0.15},
