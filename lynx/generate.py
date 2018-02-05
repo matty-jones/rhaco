@@ -141,7 +141,9 @@ class m1_system(mb.Compound):
         # Add both crystal planes to the system
         self.add(bottom_crystal)
         self.add(top_crystal)
-        self.add(solvent)
+        # Finally, add the solvent
+        if solvent is not None:
+            self.add(solvent)
 
 
 class mbuild_template(mb.Compound):
@@ -159,15 +161,18 @@ def create_morphology(args):
     surface1 = m1_surface(args.dimensions, args.template, args.stoichiometry, args.bonds_periodic)
     print("Generating second surface (top)...")
     surface2 = m1_surface(args.dimensions, args.template, args.stoichiometry, args.bonds_periodic)
-    # Now we can populate the box with ethane
-    print("Surfaces generated. Generating ethane...")
-    ethane = mbuild_template('ethane.pdb')
-    # Define the regions that the ethane can go in, so we don't end up with ethanes in between layers
-    box_top = mb.Box(mins = [-(x_extent * args.dimensions[0])/2.0, -(y_extent * args.dimensions[1])/2.0, args.crystal_separation/2.0 + (z_extent * args.dimensions[2])],
-                        maxs = [(x_extent * args.dimensions[0])/2.0, (y_extent * args.dimensions[1])/2.0, args.z_box_size/2.0])
-    box_bottom = mb.Box(mins = [-(x_extent * args.dimensions[0])/2.0, -(y_extent * args.dimensions[1])/2.0, -args.z_box_size/2.0],
-                        maxs = [(x_extent * args.dimensions[0])/2.0, (y_extent * args.dimensions[1])/2.0, -args.crystal_separation/2.0 - (z_extent * args.dimensions[2])])
-    solvent = mb.packing.fill_region([ethane] * 2, [args.ethanes // 2] * 2, [box_bottom, box_top])
+    if args.ethanes > 0:
+        # Now we can populate the box with ethane
+        print("Surfaces generated. Generating ethane...")
+        ethane = mbuild_template('ethane.pdb')
+        # Define the regions that the ethane can go in, so we don't end up with ethanes in between layers
+        box_top = mb.Box(mins = [-(x_extent * args.dimensions[0])/2.0, -(y_extent * args.dimensions[1])/2.0, args.crystal_separation/2.0 + (z_extent * args.dimensions[2])],
+                            maxs = [(x_extent * args.dimensions[0])/2.0, (y_extent * args.dimensions[1])/2.0, args.z_box_size/2.0])
+        box_bottom = mb.Box(mins = [-(x_extent * args.dimensions[0])/2.0, -(y_extent * args.dimensions[1])/2.0, -args.z_box_size/2.0],
+                            maxs = [(x_extent * args.dimensions[0])/2.0, (y_extent * args.dimensions[1])/2.0, -args.crystal_separation/2.0 - (z_extent * args.dimensions[2])])
+        solvent = mb.packing.fill_region([ethane] * 2, [args.ethanes // 2] * 2, [box_bottom, box_top])
+    else:
+        solvent = None
     # Now create the system by combining the two surfaces and the solvent
     system = m1_system(surface1, surface2, args.crystal_separation, solvent)
     # Generate the morphology box based on the input parameters
