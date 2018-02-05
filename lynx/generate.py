@@ -48,10 +48,10 @@ class m1_surface(mb.Compound):
     def __init__(self, surface_dimensions, template, stoichiometry_dict):
         # Call the mb.Compound initialisation
         super().__init__()
-        complete_cell_matrix = []  # This is required for new bonds across diagonal elements
         # OUTER LOOP: Create multiple layers based on the input dimensions
         for z_repeat in range(surface_dimensions[2]):
             # MIDDLE LOOP: Multiply up each x_row to create as many y repeats as specified
+            complete_cell_matrix = []  # This is required for new bonds across diagonal elements
             previous_row = None
             for y_repeat in range(surface_dimensions[1]):
                 current_row = []
