@@ -183,7 +183,10 @@ def create_morphology(args):
     system_box = mb.Box(mins = [-(x_extent * args.dimensions[0])/2.0, -(y_extent * args.dimensions[1])/2.0, -args.z_box_size/2.0],
                         maxs = [(x_extent * args.dimensions[0])/2.0, (y_extent * args.dimensions[1])/2.0, args.z_box_size/2.0])
     print("Morphology generated. Saving as", output_file + "...")
-    system.save(output_file, overwrite=True, box=system_box)
+    if args.forcefield is not None:
+        system.save(output_file, overwrite=True, box=system_box, forcefield_name=args.forcefield)
+    else:
+        system.save(output_file, overwrite=True, box=system_box)
     print("Output generated. Exitting...")
 
 
@@ -246,6 +249,12 @@ def main():
                         Note that if the plane_separation is too high, ethane molecules might appear in between the M1 plates as mb.packing.solvate is used to place the hydrocarbons.
                         For example: -e 200.
                         If not specified, the default value of 200 ethane molecules is used.
+                       ''')
+    parser.add_argument("-f", "--forcefield", type=str, default=None, required=False,
+                       help='''Set the Foyer forcefield to use when running the simulation.
+                        Note that the default location for foyer forcefields is located in your Foyer install directory: foyer/forcefields/.
+                        For example: -f oplsaa.
+                        If not specified, the compound will be saved without forcefield information.
                        ''')
     args = parser.parse_args()
     create_morphology(args)
