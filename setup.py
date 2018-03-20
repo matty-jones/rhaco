@@ -101,6 +101,7 @@ setup(
     entry_points={
         'console_scripts': [
             "lynx-create-morph=lynx.generate:main",
+            "lynx-run-hoomd=lynx.simulate:main",
         ],
     },
 )
