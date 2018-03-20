@@ -3,7 +3,7 @@ import numpy as np
 import argparse
 import copy
 import os
-from lynx.definitions import PDB_LIBRARY
+from lynx.definitions import PDB_LIBRARY, FF_LIBRARY
 
 # The crystallographic unit cell parameters
 # Taken from Desanto2006 (10.1007/s11244-006-0068-8)
@@ -18,7 +18,9 @@ defaults_dict = {'stoichiometry': {'Mo': 1, 'V': 0.3, 'Nb': 0.15, 'Te': 0.15},
                  'crystal_separation': 2.5,
                  'z_box_size': 20.0,
                  'bonds_periodic': True,
-                 'ethanes': 200}
+                 'ethanes': 200,
+                 'forcefield': 'FF_opls_uff.xml'
+                }
 
 
 class m1_unit_cell(mb.Compound):
@@ -43,8 +45,10 @@ class m1_unit_cell(mb.Compound):
 
 
 class m1_surface(mb.Compound):
-    # This class will describe the surface and consist of several m1_unit_cell instances in a specified dimension
-    # Default stoichiometry found in: Nanostructured Catalysts: Selective Oxidations (Hess and Schl\"ogl, 2011, RSC)
+    # This class will describe the surface and consist of several m1_unit_cell instances in a
+    # specified dimension
+    # Default stoichiometry found in: Nanostructured Catalysts: Selective Oxidations
+    # (Hess and Schl\"ogl, 2011, RSC)
     def __init__(self, surface_dimensions, template, stoichiometry_dict):
         # Call the mb.Compound initialisation
         super().__init__()
@@ -59,10 +63,13 @@ class m1_surface(mb.Compound):
                 # Note: Each cell has 159 atoms in it
                 previous_cell = None
                 for x_repeat in range(surface_dimensions[0]):
-                    print("\rAdding " + repr([x_repeat, y_repeat, z_repeat]) + " to system...", end=' ')
+                    print("\rAdding " + repr([x_repeat, y_repeat, z_repeat])\
+                          + " to system...", end=' ')
                     current_cell = m1_unit_cell(template, stoichiometry_dict)
                     current_row.append(current_cell)
-                    current_cell.translate([x_repeat * x_extent, y_repeat * y_extent, z_repeat * z_extent])
+                    current_cell.translate([x_repeat * x_extent,
+                                            y_repeat * y_extent,
+                                            z_repeat * z_extent])
                     self.add(current_cell)
                     if previous_cell is not None:
                         self.add_x_connecting_bonds(previous_cell, current_cell)
@@ -73,7 +80,8 @@ class m1_surface(mb.Compound):
                         self.add_y_connecting_bonds(previous_cell_y, current_cell_y)
                 complete_cell_matrix.append(current_row)
                 previous_row = current_row
-            # Now that the cell_matrix is complete for this layer, there might be a few more bonds to add in
+            # Now that the cell_matrix is complete for this layer, there might be a few
+            # more bonds to add in
             # Go across all rows first
             for y_coord in range(surface_dimensions[1]):
                 ## Skip creating periodic bonds because I'm pretty sure this isn't correct
@@ -94,7 +102,8 @@ class m1_surface(mb.Compound):
                     #    second_cell = complete_cell_matrix[y_coord][0]
                     #    print('X_connecting_bonds for', [x_coord, y_coord, z_repeat])
                     #    self.add_x_connecting_bonds(first_cell, second_cell)
-                    # Bonds located across the diagonals (i.e. [0, 0] bonded to [1, 1]; [0, 1] bonded to [1, 2] etc.)
+                    # Bonds located across the diagonals (i.e. [0, 0] bonded to [1, 1];
+                    # [0, 1] bonded to [1, 2] etc.)
                     if (x_coord + 1 < surface_dimensions[0]) and (y_coord + 1 < surface_dimensions[1]):
                         first_cell = complete_cell_matrix[x_coord][y_coord]
                         second_cell = complete_cell_matrix[x_coord + 1][y_coord + 1]
@@ -126,20 +135,26 @@ class m1_surface(mb.Compound):
 
 
 class m1_system(mb.Compound):
-    # This class will describe the surface and consist of several m1_unit_cell instances in a specified dimension
-    # Default stoichiometry found in: Nanostructured Catalysts: Selective Oxidations (Hess and Schl\"ogl, 2011, RSC)
+    # This class will describe the surface and consist of several m1_unit_cell
+    # instances in a specified dimension
+    # Default stoichiometry found in: Nanostructured Catalysts: Selective Oxidations
+    # (Hess and Schl\"ogl, 2011, RSC)
     def __init__(self, bottom_crystal, top_crystal, crystal_separation, solvent):
         # Call the mb.Compound initialisation
         super().__init__()
-        # Firstly, get the current COM positions for each plane. This will be important later
+        # Firstly, get the current COM positions for each plane. This will be
+        # important later
         top_COM = copy.deepcopy(top_crystal.pos)
         bottom_COM = copy.deepcopy(bottom_crystal.pos)
-        # Then, center both crystals according to their center of geometry (we don't care about masses here)
+        # Then, center both crystals according to their center of geometry
+        # (we don't care about masses here)
         top_crystal.translate(-top_crystal.pos)
         bottom_crystal.translate(-bottom_crystal.pos)
-        # Now the top crystal is centered at the origin, we have no issues flipping it around
+        # Now the top crystal is centered at the origin, we have no issues
+        # flipping it around
         top_crystal.rotate(np.pi, [1, 0, 0])
-        # Now shift both crystals in the z-direction away from each other by the (crystal_separation + previous COM)
+        # Now shift both crystals in the z-direction away from each other by the
+        # (crystal_separation + previous COM)
         bottom_crystal.translate([0, 0, (crystal_separation/2.0 + bottom_COM[2])])
         top_crystal.translate([0, 0, -(crystal_separation/2.0 + top_COM[2])])
         # Add both crystal planes to the system
@@ -170,23 +185,45 @@ def create_morphology(args):
         print("Surfaces generated. Generating ethane...")
         ethane = mbuild_template('ethane.pdb')
         # Define the regions that the ethane can go in, so we don't end up with ethanes in between layers
-        box_top = mb.Box(mins = [-(x_extent * args.dimensions[0])/2.0, -(y_extent * args.dimensions[1])/2.0, args.crystal_separation/2.0 + (z_extent * args.dimensions[2])],
-                            maxs = [(x_extent * args.dimensions[0])/2.0, (y_extent * args.dimensions[1])/2.0, args.z_box_size/2.0])
-        box_bottom = mb.Box(mins = [-(x_extent * args.dimensions[0])/2.0, -(y_extent * args.dimensions[1])/2.0, -args.z_box_size/2.0],
-                            maxs = [(x_extent * args.dimensions[0])/2.0, (y_extent * args.dimensions[1])/2.0, -args.crystal_separation/2.0 - (z_extent * args.dimensions[2])])
+        box_top = mb.Box(mins = [-(x_extent * args.dimensions[0])/2.0,
+                                 -(y_extent * args.dimensions[1])/2.0,
+                                 args.crystal_separation/2.0 + (z_extent * args.dimensions[2])],
+                            maxs = [(x_extent * args.dimensions[0])/2.0,
+                                    (y_extent * args.dimensions[1])/2.0,
+                                    args.z_box_size/2.0])
+        box_bottom = mb.Box(mins = [-(x_extent * args.dimensions[0])/2.0,
+                                    -(y_extent * args.dimensions[1])/2.0,
+                                    -args.z_box_size/2.0],
+                            maxs = [(x_extent * args.dimensions[0])/2.0,
+                                    (y_extent * args.dimensions[1])/2.0,
+                                    -args.crystal_separation/2.0 - (z_extent * args.dimensions[2])])
         solvent = mb.packing.fill_region([ethane] * 2, [args.ethanes // 2] * 2, [box_bottom, box_top])
     else:
         solvent = None
     # Now create the system by combining the two surfaces and the solvent
     system = m1_system(surface1, surface2, args.crystal_separation, solvent)
     # Generate the morphology box based on the input parameters
-    system_box = mb.Box(mins = [-(x_extent * args.dimensions[0])/2.0, -(y_extent * args.dimensions[1])/2.0, -args.z_box_size/2.0],
-                        maxs = [(x_extent * args.dimensions[0])/2.0, (y_extent * args.dimensions[1])/2.0, args.z_box_size/2.0])
+    system_box = mb.Box(mins = [-(x_extent * args.dimensions[0])/2.0,
+                                -(y_extent * args.dimensions[1])/2.0,
+                                -args.z_box_size/2.0],
+                        maxs = [(x_extent * args.dimensions[0])/2.0,
+                                (y_extent * args.dimensions[1])/2.0,
+                                args.z_box_size/2.0])
     print("Morphology generated. Saving as", output_file + "...")
     if args.forcefield is not None:
-        system.save(output_file, overwrite=True, box=system_box, forcefield_name=args.forcefield)
+        try:
+            # Check the FF library first
+            forcefield_file = os.path.join(FF_LIBRARY, args.forcefield)
+            with open(forcefield_file, 'r') as file_handle:
+                pass
+        except FileNotFoundError:
+            # Otherwise use the cwd
+            forcefield_file = args.forcefield
+        mbuild.formats.gsdwriter.write_gsd(system, output_file, overwrite=True, box=system_box,
+                                           forcefield_name=forcefield_file)
     else:
-        system.save(output_file, overwrite=True, box=system_box)
+        system.save(output_file, overwrite=True, box=system_box,
+                    forcefield_files=os.path.join(FF_LIBRARY, defaults_dict['forcefield']))
     print("Output generated. Exitting...")
 
 
@@ -216,45 +253,89 @@ def create_output_file_name(args, file_type='hoomdxml'):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-s", "--stoichiometry", type=lambda s: {str(key[1:-1]): float(val) for [key, val] in [splitChar for splitChar in [cell.split(':') for cell in [_ for _ in s[1:-1].split(',') if len(_) > 0]] if len(splitChar) > 0]}, default={'Mo': 1, 'V': 0.3, 'Nb': 0.15, 'Te': 0.15}, required=False,
+    parser.add_argument("-s", "--stoichiometry",
+                        type=lambda s: {str(key[1:-1]): float(val) for [key, val] in [
+                            splitChar for splitChar in [cell.split(':') for cell in [
+                                _ for _ in s[1:-1].split(',') if len(_) > 0]]\
+                            if len(splitChar) > 0]},
+                        default={'Mo': 1, 'V': 0.3, 'Nb': 0.15, 'Te': 0.15},
+                        required=False,
                         help='''Specify a stoichiometry for the surface.\n
-                        Atoms marked as type 'X' in the template will be replaced with atoms of the type given by the keys in the input dictionary, with probabilities determined from the ratios given by the values of the input dictionary.\n
-                        For example: -s "{'Mo': 1, 'V': 0.3, 'Nb': 0.15, 'Te': 0.15}" will create a surface where there are 5 Mo atoms for every V, and 0.85 Nb.\n
-                        If not specified, the default stoichiometry is set to {'Mo': 1, 'V': 0.3, 'Nb': 0.15, 'Te': 0.15}''')
-    parser.add_argument("-d", "--dimensions", type=lambda d: [int(_) for _ in d.split('x') if len(_) > 0], default=[1, 1, 1], required=False,
-                       help='''Specify the number of cells to stitch into the surface (integers), along the x- and y-directions.
-                        For example: -d 2x2x1 will create a surface containing 4 unit cells, with 2 along the x-axis, 2 along the y-axis, and one layer thick.
-                        If not specified, the default dimensions are a single unit cell producing a 1x1x1 surface.
+                        Atoms marked as type 'X' in the template will be replaced with atoms of the
+                        type given by the keys in the input dictionary, with probabilities determined
+                        from the ratios given by the values of the input dictionary.\n
+                        For example: -s "{'Mo': 1, 'V': 0.3, 'Nb': 0.15, 'Te': 0.15}" will create a
+                        surface where there are 5 Mo atoms for every V, and 0.85 Nb.\n
+                        If not specified, the default stoichiometry is set to {'Mo': 1, 'V': 0.3,
+                        'Nb': 0.15, 'Te': 0.15}''')
+    parser.add_argument("-d", "--dimensions",
+                        type=lambda d: [int(_) for _ in d.split('x') if len(_) > 0],
+                        default=[1, 1, 1],
+                        required=False,
+                        help='''Specify the number of cells to stitch into the surface (integers),
+                        along the x- and y-directions.\n
+                        For example: -d 2x2x1 will create a surface containing 4 unit cells, with 2
+                        along the x-axis, 2 along the y-axis, and one layer thick.\n
+                        If not specified, the default dimensions are a single unit cell producing a
+                        1x1x1 surface.
                        ''')
-    parser.add_argument("-t", "--template", type=str, default='M1UnitCell.pdb', required=False,
-                       help='''Identify the unit cell file to be used to create the surface.
-                        For example: -t "M1UnitCell.pdb".
+    parser.add_argument("-t", "--template",
+                        type=str,
+                        default='M1UnitCell.pdb',
+                        required=False,
+                        help='''Identify the unit cell file to be used to create the surface.\n
+                        Note the unit cells are located in the PDB_LIBRARY directory, which defaults
+                        to lynx/compounds.\n
+                        For example: -t "M1UnitCell.pdb".\n
                         If not specified, the default ./M1UnitCell.pdb is used.
                        ''')
-    parser.add_argument("-c", "--crystal_separation", type=float, default=2.5, required=False,
-                       help='''Assign a pysical separation (in nm) to the bottom planes of the two crystals corresponding to the top and bottom of the simulation volume within the periodic box.
-                        Note that this is not the same as the z_box_size, which describes the region available to ethane molecules in the simulation.
-                        This value should be larger than the interaction cut-off specified in the forcefield (pair or Coulombic) to prevent the self-interaction of the two surfaces.
+    parser.add_argument("-c", "--crystal_separation",
+                        type=float,
+                        default=2.5,
+                        required=False,
+                        help='''Assign a pysical separation (in nm) to the bottom planes of the two
+                        crystals corresponding to the top and bottom of the simulation volume within
+                        the periodic box.\n
+                        Note that this is not the same as the z_box_size, which describes the region
+                        available to ethane molecules in the simulation.\n
+                        This value should be larger than the interaction cut-off specified in the
+                        forcefield (pair or Coulombic) to prevent the self-interaction of the two
+                        surfaces.\n
                         For example: -c 2.5.
                         If not specified, the default value of 2.5 nanometres is used.
                        ''')
-    parser.add_argument("-z", "--z_box_size", type=float, default=20.0, required=False,
-                       help='''Assign the z-axis size of the simulation (in nm). This defines the region available for ethane molecules to move around in, between the two catalyst plates (region depth = z_box_size - plane_separation - (z_extent * dimension[2])).
-                        Note that this is not the same as the plane_separation, which describes the physical separation between the bottom layers of the two flipped M1 crystals.
-                        For example: -z 20.0.
+    parser.add_argument("-z", "--z_box_size",
+                        type=float,
+                        default=20.0,
+                        required=False,
+                        help='''Assign the z-axis size of the simulation (in nm).\n
+                        This defines the region available for ethane molecules to move around in,
+                        between the two catalyst plates (region depth = z_box_size
+                        - plane_separation - (z_extent * dimension[2])).\n
+                        Note that this is not the same as the plane_separation, which describes the
+                        physical separation between the bottom layers of the two flipped M1 crystals.\n
+                        For example: -z 20.0.\n
                         If not specified, the default value of 20 nanometres is used.
                        ''')
-    parser.add_argument("-e", "--ethanes", type=int, default=200, required=False,
-                       help='''Set the number of ethane molecules to be included in the system.
-                        Note that if the plane_separation is too high, ethane molecules might appear in between the M1 plates as mb.packing.solvate is used to place the hydrocarbons.
-                        For example: -e 200.
+    parser.add_argument("-e", "--ethanes",
+                        type=int,
+                        default=200,
+                        required=False,
+                        help='''Set the number of ethane molecules to be included in the system.\n
+                        Note that if the plane_separation is too high, ethane molecules might appear
+                        in between the M1 plates as mb.packing.solvate is used to place the hydrocarbons.\n
+                        For example: -e 200.\n
                         If not specified, the default value of 200 ethane molecules is used.
                        ''')
-    parser.add_argument("-f", "--forcefield", type=str, default=None, required=False,
-                       help='''Set the Foyer forcefield to use when running the simulation.
-                        Note that the default location for foyer forcefields is located in your Foyer install directory: foyer/forcefields/.
-                        For example: -f oplsaa.
-                        If not specified, the compound will be saved without forcefield information.
+    parser.add_argument("-f", "--forcefield",
+                        type=str,
+                        default=None,
+                        required=False,
+                        help='''Use Foyer to set the forcefield to use when running the simulation.\n
+                        Note the forcefields are located in the FF_LIBRARY directory, which defaults to
+                        lynx/forcefields.\n
+                        For example: -f FF_opls_uff.\n
+                        If not specified, the compound will use the FF_opls_uff forcefield as default.
                        ''')
     args = parser.parse_args()
     create_morphology(args)
