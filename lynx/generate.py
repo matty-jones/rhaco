@@ -217,14 +217,13 @@ def create_morphology(args):
     if args.forcefield is not None:
         try:
             # Check the FF library first
-            forcefield_file = os.path.join(FF_LIBRARY, args.forcefield)
-            with open(forcefield_file, 'r') as file_handle:
+            forcefield_loc = os.path.join(FF_LIBRARY, args.forcefield)
+            with open(forcefield_loc, 'r') as file_handle:
                 pass
         except FileNotFoundError:
             # Otherwise use the cwd
-            forcefield_file = args.forcefield
-        mb.formats.gsdwriter.write_gsd(system, output_file, overwrite=True, box=system_box,
-                                           forcefield_name=forcefield_file)
+            forcefield_loc = args.forcefield
+        system.save(output_file, overwrite=True, box=system_box, forcefield_files=forcefield_loc)
     else:
         system.save(output_file, overwrite=True, box=system_box)
     print("Output generated. Exitting...")
