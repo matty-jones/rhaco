@@ -16,7 +16,7 @@ defaults_dict = {'stoichiometry': {'Mo': 1, 'V': 0.3, 'Nb': 0.15, 'Te': 0.15},
                  'dimensions': [1, 1, 1],
                  'template': 'templateM1.pdb',
                  'organic': 'ethane.pdb',
-                 'crystal_separation': 2.5,
+                 'crystal_separation': 25.0,
                  'z_box_size': 20.0,
                  'bonds_periodic': True,
                  'number_of_organic_mols': 200,
@@ -155,9 +155,10 @@ class m1_system(mb.Compound):
         # flipping it around
         top_crystal.rotate(np.pi, [1, 0, 0])
         # Now shift both crystals in the z-direction away from each other by the
-        # (crystal_separation + previous COM)
-        bottom_crystal.translate([0, 0, (crystal_separation/2.0 + bottom_COM[2])])
-        top_crystal.translate([0, 0, -(crystal_separation/2.0 + top_COM[2])])
+        # (crystal_separation/2.0)
+        # Note that crystal_separation is given in Angstroems but currently in nm
+        bottom_crystal.translate([0, 0, crystal_separation/20.0])
+        top_crystal.translate([0, 0, -crystal_separation/20.0])
         # Add both crystal planes to the system
         self.add(bottom_crystal)
         self.add(top_crystal)
@@ -189,7 +190,7 @@ def create_morphology(args):
         # them between layers
         box_top = mb.Box(mins = [-(x_extent * args.dimensions[0])/2.0,
                                  -(y_extent * args.dimensions[1])/2.0,
-                                 args.crystal_separation/2.0 + (z_extent * args.dimensions[2])],
+                                 args.crystal_separation/20.0 + (z_extent * args.dimensions[2])],
                             maxs = [(x_extent * args.dimensions[0])/2.0,
                                     (y_extent * args.dimensions[1])/2.0,
                                     args.z_box_size/2.0])
@@ -198,7 +199,7 @@ def create_morphology(args):
                                     -args.z_box_size/2.0],
                             maxs = [(x_extent * args.dimensions[0])/2.0,
                                     (y_extent * args.dimensions[1])/2.0,
-                                    -args.crystal_separation/2.0 - (z_extent * args.dimensions[2])])
+                                    -args.crystal_separation/20.0 - (z_extent * args.dimensions[2])])
         solvent = mb.packing.fill_region([hydrocarbon] * 2, [args.number_of_organic_mols // 2] * 2,
                                          [box_bottom, box_top])
     else:
@@ -293,17 +294,17 @@ def main():
                        ''')
     parser.add_argument("-c", "--crystal_separation",
                         type=float,
-                        default=2.5,
+                        default=25.0,
                         required=False,
-                        help='''Assign a pysical separation (in nm) to the bottom planes of the two
-                        crystals corresponding to the top and bottom of the simulation volume within
-                        the periodic box.\n
+                        help='''Assign a pysical separation (in Angstroems) to the bottom planes of
+                        the two crystals corresponding to the top and bottom of the simulation volume
+                        within the periodic box.\n
                         Note that this is not the same as the z_box_size, which describes the region
                         available to hydrocarbon molecules in the simulation.\n
                         This value should be larger than the interaction cut-off specified in the
                         forcefield (pair or Coulombic) to prevent the self-interaction of the two
                         surfaces.\n
-                        For example: -c 2.5.
+                        For example: -c 25.0.
                         If not specified, the default value of 2.5 nanometres is used.
                        ''')
     parser.add_argument("-z", "--z_box_size",
