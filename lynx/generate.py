@@ -225,8 +225,7 @@ def create_morphology(args):
         mbuild.formats.gsdwriter.write_gsd(system, output_file, overwrite=True, box=system_box,
                                            forcefield_name=forcefield_file)
     else:
-        system.save(output_file, overwrite=True, box=system_box,
-                    forcefield_files=os.path.join(FF_LIBRARY, defaults_dict['forcefield']))
+        system.save(output_file, overwrite=True, box=system_box)
     print("Output generated. Exitting...")
 
 
@@ -335,8 +334,6 @@ def main():
                         default=200,
                         required=False,
                         help='''Set the number of organic hydrocarbons to be included in the system.\n
-                        Note that if the plane_separation is too high, hydrocarbons might appear
-                        in between the M1 plates as mb.packing.solvate is used to place the hydrocarbons.\n
                         For example: -n 200.\n
                         If not specified, the default value of 200 hydrocarbons is used.
                        ''')
@@ -348,7 +345,7 @@ def main():
                         Note the forcefields are located in the FF_LIBRARY directory, which defaults to
                         lynx/forcefields.\n
                         For example: -f FF_opls_uff.\n
-                        If not specified, the compound will use the FF_opls_uff forcefield as default.
+                        If not specified, the compound will not be saved with forcefield information.
                        ''')
     args = parser.parse_args()
     create_morphology(args)
