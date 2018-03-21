@@ -15,10 +15,11 @@ z_extent = 0.400321
 defaults_dict = {'stoichiometry': {'Mo': 1, 'V': 0.3, 'Nb': 0.15, 'Te': 0.15},
                  'dimensions': [1, 1, 1],
                  'template': 'templateM1.pdb',
+                 'organic': 'ethane.pdb',
                  'crystal_separation': 2.5,
                  'z_box_size': 20.0,
                  'bonds_periodic': True,
-                 'ethanes': 200,
+                 'number_of_organic_mols': 200,
                  'forcefield': 'FF_opls_uff.xml'
                 }
 
@@ -166,7 +167,7 @@ class m1_system(mb.Compound):
 
 
 class mbuild_template(mb.Compound):
-    # This class will contain the mb compound for ethane
+    # This class will contain the mb compound for hydrocarbon
     def __init__(self, template):
         # Call the mb.Compound initialisation
         super().__init__()
@@ -180,11 +181,12 @@ def create_morphology(args):
     surface1 = m1_surface(args.dimensions, args.template, args.stoichiometry)
     print("Generating second surface (top)...")
     surface2 = m1_surface(args.dimensions, args.template, args.stoichiometry)
-    if args.ethanes > 0:
-        # Now we can populate the box with ethane
-        print("Surfaces generated. Generating ethane...")
-        ethane = mbuild_template('ethane.pdb')
-        # Define the regions that the ethane can go in, so we don't end up with ethanes in between layers
+    if args.number_of_organic_mols > 0:
+        # Now we can populate the box with hydrocarbons
+        print("Surfaces generated. Generating hydrocarbons...")
+        hydrocarbon = mbuild_template(args.organic)
+        # Define the regions that the hydrocarbons can go in, so we don't end up with
+        # them between layers
         box_top = mb.Box(mins = [-(x_extent * args.dimensions[0])/2.0,
                                  -(y_extent * args.dimensions[1])/2.0,
                                  args.crystal_separation/2.0 + (z_extent * args.dimensions[2])],
@@ -197,7 +199,8 @@ def create_morphology(args):
                             maxs = [(x_extent * args.dimensions[0])/2.0,
                                     (y_extent * args.dimensions[1])/2.0,
                                     -args.crystal_separation/2.0 - (z_extent * args.dimensions[2])])
-        solvent = mb.packing.fill_region([ethane] * 2, [args.ethanes // 2] * 2, [box_bottom, box_top])
+        solvent = mb.packing.fill_region([hydrocarbon] * 2, [args.number_of_organic_mols // 2] * 2,
+                                         [box_bottom, box_top])
     else:
         solvent = None
     # Now create the system by combining the two surfaces and the solvent
@@ -267,7 +270,7 @@ def main():
                         For example: -s "{'Mo': 1, 'V': 0.3, 'Nb': 0.15, 'Te': 0.15}" will create a
                         surface where there are 5 Mo atoms for every V, and 0.85 Nb.\n
                         If not specified, the default stoichiometry is set to {'Mo': 1, 'V': 0.3,
-                        'Nb': 0.15, 'Te': 0.15}''')
+                        ' b': 0.15, 'Te': 0.15}''')
     parser.add_argument("-d", "--dimensions",
                         type=lambda d: [int(_) for _ in d.split('x') if len(_) > 0],
                         default=[1, 1, 1],
@@ -287,7 +290,7 @@ def main():
                         Note the unit cells are located in the PDB_LIBRARY directory, which defaults
                         to lynx/compounds.\n
                         For example: -t "M1UnitCell.pdb".\n
-                        If not specified, the default ./M1UnitCell.pdb is used.
+                        If not specified, the default PDB_LIBRARY/M1UnitCell.pdb is used.
                        ''')
     parser.add_argument("-c", "--crystal_separation",
                         type=float,
@@ -297,7 +300,7 @@ def main():
                         crystals corresponding to the top and bottom of the simulation volume within
                         the periodic box.\n
                         Note that this is not the same as the z_box_size, which describes the region
-                        available to ethane molecules in the simulation.\n
+                        available to hydrocarbon molecules in the simulation.\n
                         This value should be larger than the interaction cut-off specified in the
                         forcefield (pair or Coulombic) to prevent the self-interaction of the two
                         surfaces.\n
@@ -309,7 +312,7 @@ def main():
                         default=20.0,
                         required=False,
                         help='''Assign the z-axis size of the simulation (in nm).\n
-                        This defines the region available for ethane molecules to move around in,
+                        This defines the region available for hydrocarbons to move around in,
                         between the two catalyst plates (region depth = z_box_size
                         - plane_separation - (z_extent * dimension[2])).\n
                         Note that this is not the same as the plane_separation, which describes the
@@ -317,15 +320,25 @@ def main():
                         For example: -z 20.0.\n
                         If not specified, the default value of 20 nanometres is used.
                        ''')
-    parser.add_argument("-e", "--ethanes",
+    parser.add_argument("-o", "--organic",
+                        type=str,
+                        default='ethane.pdb',
+                        required=False,
+                        help='''Set the hydrocarbon file to use in the simulation.\n
+                        Note that the hydrocarbon files should be located in the PDB_LIBRARY directory,
+                        which defaults to lynx/compounds.\n
+                        For example: -o "ethane.pdb".\n
+                        If not specified, the default PDB_LIBRARY/ethane.pdb is used.
+                       ''')
+    parser.add_argument("-n", "--number_of_organic_mols",
                         type=int,
                         default=200,
                         required=False,
-                        help='''Set the number of ethane molecules to be included in the system.\n
-                        Note that if the plane_separation is too high, ethane molecules might appear
+                        help='''Set the number of organic hydrocarbons to be included in the system.\n
+                        Note that if the plane_separation is too high, hydrocarbons might appear
                         in between the M1 plates as mb.packing.solvate is used to place the hydrocarbons.\n
-                        For example: -e 200.\n
-                        If not specified, the default value of 200 ethane molecules is used.
+                        For example: -n 200.\n
+                        If not specified, the default value of 200 hydrocarbons is used.
                        ''')
     parser.add_argument("-f", "--forcefield",
                         type=str,
