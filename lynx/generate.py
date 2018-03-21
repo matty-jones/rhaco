@@ -223,7 +223,7 @@ def create_morphology(args):
         except FileNotFoundError:
             # Otherwise use the cwd
             forcefield_file = args.forcefield
-        mbuild.formats.gsdwriter.write_gsd(system, output_file, overwrite=True, box=system_box,
+        mb.formats.gsdwriter.write_gsd(system, output_file, overwrite=True, box=system_box,
                                            forcefield_name=forcefield_file)
     else:
         system.save(output_file, overwrite=True, box=system_box)
