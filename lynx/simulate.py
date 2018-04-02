@@ -3,9 +3,14 @@ import numpy as np
 import hoomd
 import hoomd.md
 import hoomd.deprecated
+import xml.etree.cElementTree as ET
 
 
-def set_coeffs():
+def set_coeffs(file_name):
+    '''
+    Read in the molecular dynamics coefficients exported by Foyer
+    '''
+    get_coeffs(file_name)
     # Perylene: Sigma = 3.8 Ang, Epsilon = 0.1217 kCal/mol
     ljnl = hoomd.md.nlist.cell()
     lj = hoomd.md.pair.lj(r_cut=2.5, nlist=ljnl)
@@ -25,6 +30,21 @@ def set_coeffs():
     #harmonic_dihedral.dihedral_coeff.set('CP-CP-CP-CP', k1=0.0, k2=50.0, k3=0.0, k4=0.0)
 
 
+def get_coeffs(file_name):
+    coeff_dictionary = {}
+    constraint_types = ['pair', 'bond', 'angle', 'dihedral']
+    with open(file_name, 'r') as xml_file:
+        xml_data = ET.parse(xml_file)
+    for constraint_type in constraint_types:
+        data = xml_data.find(constraint_type + '_coeffs').text
+        print(data)
+        exit()
+
+    #atomDictionary[key] = [list(map(int, x.split(' '))) for x in morphologyConfig.find(key).text.split('\n')[1:-1]]
+
+
+
+
 def initialize_velocities(snapshot, temperature):
     v = np.random.random((len(snapshot.particles.velocity), 3))
     v -= 0.5
@@ -42,12 +62,22 @@ def initialize_velocities(snapshot, temperature):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-t", "--temperature", type=float, required=True, help="The temperature of the system")
+    parser.add_argument('-t', '--temperature',
+                        type=float,
+                        default=290,
+                        required=False,
+                        help='''The desired temperature of the simulation in kelvin.\n
+                        If unspecified, the temperature is set to the default value of
+                        290 K.
+                        ''')
+    parser.add_argument('-r', '--run_time',
+                        type=float,
+                        default=1e7,
+                        required=False,
+                        help='''The number of timesteps to run the MD simulation for.\n
+                        If unspecified, the default runtime of 1e7 will be used.
+                        ''')
     args, file_list = parser.parse_known_args()
-
-    #charges = {'CP': 3.880, 'CN': -5.820}
-    masses = {'Mo': 1.000, 'Te': 1.000, 'Nb': 1.000, 'V': 1.000, 'C': 1.000, 'H': 1.000}
-    run_time = 1e7
 
     for file_name in file_list:
         hoomd.context.initialize("")
@@ -58,11 +88,11 @@ def main():
 
         snapshot = system.take_snapshot()
         # Assign the required velocities based on the requested temperature
-        initialised_snapshot = initializeVelocities(snapshot, args.temperature)
+        initialized_snapshot = initialize_velocities(snapshot, args.temperature)
         # Finally, restore the snapshot
-        system.restore_snapshot(initialised_snapshot)
+        system.restore_snapshot(initialized_snapshot)
 
-        set_coeffs()
+        set_coeffs(file_name)
 
         hoomd.md.integrate.mode_standard(dt=0.001);
         carbons = hoomd.group.type('C')
@@ -71,12 +101,13 @@ def main():
         integrator = hoomd.md.integrate.nvt(group=hydrocarbons, tau=0.1, kT=args.temperature)
         #hoomd.md.nlist.reset_exclusions(exclusions = ['bond', 'angle', 'dihedral', 'body'])
 
-        hoomd.dump.gsd(filename=".".join(file_name.split(".")[:-1]) + "_traj.gsd", period=int(run_time/500), overwrite=True)
+        hoomd.dump.gsd(filename=".".join(file_name.split(".")[:-1]) + "_traj.gsd", period=int(args.run_time/500),
+                       overwrite=True)
         logQuantities = ['temperature', 'pressure', 'volume', 'potential_energy', 'kinetic_energy',
                          'pair_lj_energy', 'pair_ewald_energy', 'pppm_energy', 'bond_harmonic_energy',
                          'angle_harmonic_energy', 'dihedral_opls_energy']
         hoomd.analyze.log(filename=fileName.split('.')[0] + ".log", quantities=logQuantities,
-                            period=int(run_time/10000), header_prefix='#', overwrite=True)
+                            period=int(args.run_time/10000), header_prefix='#', overwrite=True)
         ## Now incrementally ramp the charges
         #for chargePhase in range(chargeIncrements + 1):
         #    print("Incrementing charge phase", chargePhase, "of", chargeIncrements + 1)
@@ -86,4 +117,4 @@ def main():
         #    hoomd.run(chargeTimesteps)
 
         # Get the initial box size dynamically
-        hoomd.run_upto(run_time)
+        hoomd.run_upto(args.run_time)
