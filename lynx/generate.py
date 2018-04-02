@@ -20,7 +20,7 @@ defaults_dict = {'stoichiometry': {'Mo': 1, 'V': 0.3, 'Nb': 0.15, 'Te': 0.15},
                  'z_box_size': 20.0,
                  'bonds_periodic': True,
                  'number_of_organic_mols': 200,
-                 'forcefield': 'FF_opls_uff.xml'
+                 'forcefield': None
                 }
 
 
