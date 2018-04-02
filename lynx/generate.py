@@ -4,6 +4,10 @@ import argparse
 import copy
 import os
 from lynx.definitions import PDB_LIBRARY, FF_LIBRARY
+#from lxml import etree as ET
+import xml.etree.cElementTree as ET
+from collections import OrderedDict
+
 
 # The crystallographic unit cell parameters
 # Taken from Desanto2006 (10.1007/s11244-006-0068-8)
@@ -217,16 +221,170 @@ def create_morphology(args):
     if args.forcefield is not None:
         try:
             # Check the FF library first
-            forcefield_loc = os.path.join(FF_LIBRARY, args.forcefield)
+            forcefield_loc = os.path.join(FF_LIBRARY, args.forcefield) + '.xml'
             with open(forcefield_loc, 'r') as file_handle:
                 pass
         except FileNotFoundError:
             # Otherwise use the cwd
-            forcefield_loc = args.forcefield
+            forcefield_loc = args.forcefield + '.xml'
         system.save(output_file, overwrite=True, box=system_box, forcefield_files=forcefield_loc)
     else:
         system.save(output_file, overwrite=True, box=system_box)
+    # Finally, fix the images because mbuild doesn't set them correctly
+    fix_images(output_file)
     print("Output generated. Exitting...")
+
+
+def check_bonds(morphology, bond_dict, box_dims):
+    for bond in morphology['bond_text']:
+        posn1 = np.array(list(map(float, morphology['position_text'][int(bond[1])])))
+        + (np.array(list(map(float, morphology['image_text'][int(bond[1])])))
+           * box_dims)
+        posn2 = np.array(list(map(float, morphology['position_text'][int(bond[2])])))
+        + (np.array(list(map(float, morphology['image_text'][int(bond[2])])))
+           * box_dims)
+        delta_position = posn1 - posn2
+        out_of_range = [np.abs(delta_position[axis]) > box_dims[axis] / 2.0 for axis in range(3)]
+        if any(out_of_range):
+            print("Periodic bond found:", bond, "because delta_position =",
+                  delta_position, ">=", box_dims, "/ 2.0")
+            morphology = move_bonded_atoms(bond[1], morphology, bond_dict, box_dims)
+    return morphology
+
+
+def zero_out_images(morphology):
+    morphology['image_text'] = [['0', '0', '0']] * len(morphology['position_text'])
+    morphology['image_attrib'] = morphology['position_attrib']
+    return morphology
+
+
+def get_bond_dict(morphology):
+    bond_dict = {atom_id: [] for atom_id, atom_type in
+                 enumerate(morphology['type_text'])}
+    for bond in morphology['bond_text']:
+        bond_dict[int(bond[1])].append(int(bond[2]))
+        bond_dict[int(bond[2])].append(int(bond[1]))
+    return bond_dict
+
+
+def move_bonded_atoms(central_atom, morphology, bond_dict, box_dims):
+    for bonded_atom in bond_dict[central_atom]:
+        posn1 = np.array(list(map(float, morphology['position_text'][central_atom])))
+        posn2 = np.array(list(map(float, morphology['position_text'][bonded_atom])))
+        delta_position = posn1 - posn2
+        moved = False
+        for axis, value in enumerate(delta_position):
+            if value > box_dims[axis] / 2.0:
+                morphology['position_text'][bonded_atom][axis] = str(posn2[axis] + box_dims[axis])
+                moved = True
+            if value < -box_dims[axis] / 2.0:
+                morphology['position_text'][bonded_atom][axis] = str(posn2[axis] - box_dims[axis])
+                moved = True
+        if moved:
+            morphology = move_bonded_atoms(bonded_atom, morphology, bond_dict, box_dims)
+    return morphology
+
+
+def load_morphology_xml(xml_file_name):
+    morphology_dictionary = OrderedDict()
+    with open(xml_file_name, 'r') as xml_file:
+        xml_tree = ET.parse(xml_file)
+    root = xml_tree.getroot()
+    morphology_dictionary['root_tag'] = root.tag
+    morphology_dictionary['root_attrib'] = root.attrib
+    morphology_dictionary['root_text'] = root.text
+    for config in root:
+        morphology_dictionary['config_tag'] = config.tag
+        morphology_dictionary['config_attrib'] = config.attrib
+        morphology_dictionary['config_text'] = config.text
+        for child in config:
+            if len(child.attrib) > 0:
+                morphology_dictionary[child.tag + '_attrib'] = {key.lower(): val for key, val in child.attrib.items()}
+            else:
+                morphology_dictionary[child.tag + '_attrib'] = {}
+            if child.text is not None:
+                morphology_dictionary[child.tag + '_text'] = [x.split() for x in child.text.split('\n') if len(x) > 0]
+            else:
+                morphology_dictionary[child.tag + '_text'] = []
+    return morphology_dictionary
+
+
+def check_wrapped_positions(input_dictionary):
+    box_dims = [float(input_dictionary['box_attrib'][axis]) for axis in ['lx', 'ly', 'lz']]
+    atom_positions = np.array([np.array(list(map(float, _))) for _ in input_dictionary['position_text']])
+    atom_images = np.array([np.array(list(map(int, _))) for _ in input_dictionary['image_text']])
+    xhi = box_dims[0] / 2.0
+    xlo = -box_dims[0] / 2.0
+    yhi = box_dims[1] / 2.0
+    ylo = -box_dims[1] / 2.0
+    zhi = box_dims[2] / 2.0
+    zlo = -box_dims[2] / 2.0
+    for atom_ID in range(len(atom_positions)):
+        while atom_positions[atom_ID][0] > xhi:
+            atom_positions[atom_ID][0] -= box_dims[0]
+            atom_images[atom_ID][0] += 1
+        while atom_positions[atom_ID][0] < xlo:
+            atom_positions[atom_ID][0] += box_dims[0]
+            atom_images[atom_ID][0] -= 1
+        while atom_positions[atom_ID][1] > yhi:
+            atom_positions[atom_ID][1] -= box_dims[1]
+            atom_images[atom_ID][1] += 1
+        while atom_positions[atom_ID][1] < ylo:
+            atom_positions[atom_ID][1] += box_dims[1]
+            atom_images[atom_ID][1] -= 1
+        while atom_positions[atom_ID][2] > zhi:
+            atom_positions[atom_ID][2] -= box_dims[2]
+            atom_images[atom_ID][2] += 1
+        while atom_positions[atom_ID][2] < zlo:
+            atom_positions[atom_ID][2] += box_dims[2]
+            atom_images[atom_ID][2] -= 1
+    input_dictionary['position'] = list([list(map(str, _)) for _ in atom_positions])
+    input_dictionary['image'] = list([list(map(str, _)) for _ in atom_images])
+    return input_dictionary
+
+
+def write_morphology_xml(morphology_dictionary, output_file_name):
+    # morphology_dictionary is a bunch of keys with the tagnames given for both attributes
+    # and text: tag + '_attrib', tag + '_text'
+    # The only boilerplate bits are the 'root_tag', 'root_attrib', and 'root_text', which
+    # is (obviously) the outmost layer of the xml.
+    # Immediately inside are the 'config_tag', 'config_attrib', and 'config_text'.
+    # Everything else is a child of config.
+    morphology_dictionary = check_wrapped_positions(morphology_dictionary)
+    # Build the xml tree.
+    root = ET.Element(morphology_dictionary['root_tag'], **morphology_dictionary['root_attrib'])
+    root.text = morphology_dictionary['root_text']
+    config = ET.Element(morphology_dictionary['config_tag'], **morphology_dictionary['config_attrib'])
+    config.text = morphology_dictionary['config_text']
+    # Find the remaining elements to make (set is easier here, but a disordered structure,
+    # so instead we use lists to keep the order consistent with reading in).
+    all_child_tags = ['_'.join(key.split('_')[:-1]) for key in morphology_dictionary.keys() if '_'.join(key.split('_')[:-1]) not in ['root', 'config']]
+    child_tags = []
+    for tag in all_child_tags:
+        # The list comprehension makes two blank entries for some reason and I can't work
+        # out why. This will just skip those two entries, as well as make the set.
+        if (tag not in child_tags) and (len(tag) > 0):
+            child_tags.append(tag)
+    for child_tag in child_tags:
+        child = ET.Element(child_tag, **morphology_dictionary[child_tag + '_attrib'])
+        data_to_write = '\n'.join(['\t'.join(el) for el in morphology_dictionary[child_tag + '_text']])
+        if len(data_to_write) > 0:
+            child.text = '\n' + data_to_write + '\n'
+        config.append(child)
+    root.insert(0, config)
+    tree = ET.ElementTree(root)
+    tree.write('TEST_' + output_file_name, xml_declaration=True, encoding='UTF-8')
+    print("XML file written to", str(output_file_name) + "!")
+
+
+def fix_images(file_name):
+    print("Fixing the images for", file_name + "...")
+    morphology = load_morphology_xml(file_name)
+    morphology = zero_out_images(morphology)
+    bond_dict = get_bond_dict(morphology)
+    box_dims = [float(morphology['box_attrib'][axis]) for axis in ['lx', 'ly', 'lz']]
+    morphology = check_bonds(morphology, bond_dict, box_dims)
+    write_morphology_xml(morphology, file_name)
 
 
 def create_output_file_name(args, file_type='hoomdxml'):
@@ -338,7 +496,7 @@ def main():
                         If not specified, the default value of 200 hydrocarbons is used.
                        ''')
     parser.add_argument("-f", "--forcefield",
-                        type=str,
+                        type=lambda f: f.split('.xml')[0],
                         default=None,
                         required=False,
                         help='''Use Foyer to set the forcefield to use when running the simulation.\n
