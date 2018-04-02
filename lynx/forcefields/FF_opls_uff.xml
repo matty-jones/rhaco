@@ -20,15 +20,10 @@
  <NonbondedForce coulomb14scale="0.5" lj14scale="0.5">
   <Atom type="C" charge="-0.18" sigma="0.3500" epsilon="0.276144"/>
   <Atom type="H" charge="0.06" sigma="0.2500" epsilon="0.12552"/>
- </NonbondedForce>
- <CustomNonbondedForce energy="4*(epsilon1*epsilon2)^0.5*(-2(((sigma1*sigma2)^0.5)/r)^6+((sigma1*sigma2)^0.5)/r)^12)"/>
-  <PerParticleParameter name="charge"\>
-  <PerParticleParameter name="sigma"\>
-  <PerParticleParameter name="epsilon"\>
-  <Atom type="O" charge="0.00" sigma="0.3500" epsilon="0.062760"/>
-  <Atom type="Te" charge="0.00" sigma="0.4470" epsilon="0.416308"/>
-  <Atom type="Nb" charge="0.00" sigma="0.3165" epsilon="0.061714"/>
-  <Atom type="Mo" charge="0.00" sigma="0.3052" epsilon="0.058576"/>
-  <Atom type="V" charge="0.00" sigma="0.3144" epsilon="0.016736"/>
+  <Atom type="O" charge="0.00" sigma="0.3115" epsilon="0.25104"/>
+  <Atom type="Te" charge="0.00" sigma="0.3980" epsilon="1.665232"/>
+  <Atom type="Nb" charge="0.00" sigma="0.2817" epsilon="0.246856"/>
+  <Atom type="Mo" charge="0.00" sigma="0.2716" epsilon="0.234304"/>
+  <Atom type="V" charge="0.00" sigma="0.2798" epsilon="0.066944"/>
  </NonbondedForce>
 </ForceField>
