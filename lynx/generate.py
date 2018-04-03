@@ -370,6 +370,7 @@ def write_morphology_xml(morphology_dictionary, output_file_name):
         data_to_write = '\n'.join(['\t'.join(el) for el in morphology_dictionary[child_tag + '_text']])
         if len(data_to_write) > 0:
             child.text = '\n' + data_to_write + '\n'
+        child.tail = '\n'
         config.append(child)
     root.insert(0, config)
     tree = ET.ElementTree(root)
