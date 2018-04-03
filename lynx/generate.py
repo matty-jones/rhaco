@@ -464,8 +464,8 @@ def main():
                         If not specified, the default stoichiometry is set to
                         {'Mo': 1, 'V': 0.3, ' b': 0.15, 'Te': 0.15}''')
     parser.add_argument("-d", "--dimensions",
-                        type=lambda d: [int(_) for _ in
-                                        d.split('x') if len(_) > 0],
+                        type=lambda d: [int(dim) for dim in
+                                        d.split('x') if len(dim) > 0],
                         default=[1, 1, 1],
                         required=False,
                         help='''Specify the number of cells to stitch into the
