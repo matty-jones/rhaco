@@ -10,6 +10,7 @@
  </AtomTypes>
  <HarmonicBondForce>
   <Bond class1="CT" class2="HC" length="0.109" k="284512.0"/>
+  <Bond class1="CT" class2="CT" length="0.1529" k="224262.4"/>
  </HarmonicBondForce>
  <HarmonicAngleForce>
   <Angle class1="HC" class2="CT" class3="HC" angle="1.88146493365" k="276.144"/>
