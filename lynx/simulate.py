@@ -8,7 +8,9 @@ import numpy as np
 
 AVOGADRO = 6.022140857E23
 BOLTZMANN = 1.38064852E-23
-J_KCAL = 4.184E-3
+KCAL_TO_J = 4.184E3
+AMU_TO_KG = 1.6605E-27
+ANG_TO_M = 1E-10
 
 def set_coeffs(file_name, system):
     '''
@@ -94,21 +96,29 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-t', '--temperature',
                         type=float,
-                        default=290,
+                        default=633,
                         required=False,
                         help='''The desired temperature of the simulation in
                         kelvin (this will be rescaled to produce a reduced
                         temperature that conforms with Foyer's default
                         units (kcal/mol and angstroems).\n
                         If unspecified, the temperature is set to the default
-                        value of 290 K.''')
+                        value of 633 K.''')
     parser.add_argument('-r', '--run_time',
                         type=float,
-                        default=1e7,
+                        default=1E7,
                         required=False,
                         help='''The number of timesteps to run the MD
                         simulation for.\n
                         If unspecified, the default runtime of 1e7 will be
+                        used.''')
+    parser.add_argument('-s', '--timestep',
+                        type=float,
+                        default=1E-3,
+                        required=False,
+                        help='''The integration timestep to use when running
+                        the NVT MD simulation.\n
+                        If unspecified, the default timestep of 1E-3 will be
                         used.''')
     args, file_list = parser.parse_known_args()
 
@@ -116,31 +126,34 @@ def main():
     # for distances. Convert these to reduced units for HOOMD using the
     # following conversion, and print a string to inform the user it has been
     # done.
-    reduced_temperature = args.temperature * BOLTZMANN * J_KCAL * AVOGADRO
-    print("Using the Foyer default units of <DISTANCE> = 1 Angstroem and"
-          " <ENERGY> = 1 kcal/mol, the input temperature of ",
-          args.temperature, "corresponds to", reduced_temperature, "in"
-          " dimensionless HOOMD kT units.")
+    reduced_temperature = args.temperature * BOLTZMANN * AVOGADRO / KCAL_TO_J
+    timestep_SI = args.timestep * np.sqrt(AMU_TO_KG * ANG_TO_M**2 * AVOGADRO
+                                          / KCAL_TO_J)
+    print("Using the Foyer default units of <DISTANCE> = 1 Angstroem,"
+          " <ENERGY> = 1 kcal/mol, and <MASS> = 1 amu, the input temperature"
+          " of", args.temperature, "K corresponds to"
+          " {:.2E}".format(reduced_temperature),
+          "in dimensionless HOOMD kT units, and the input timestep",
+          args.timestep, "corresponds to {:.2E} s.".format(timestep_SI))
 
     for file_name in file_list:
         hoomd.context.initialize("")
         system = hoomd.deprecated.init.read_xml(filename=file_name)
         snapshot = system.take_snapshot()
         # Assign the required velocities based on the requested temperature
-        initialized_snapshot = something_else(snapshot,
-                                              reduced_temperature)
+        initialized_snapshot = initialize_velocities(snapshot,
+                                                     reduced_temperature)
         # Finally, restore the snapshot
         system.restore_snapshot(initialized_snapshot)
         system = set_coeffs(file_name, system)
 
-        hoomd.md.integrate.mode_standard(dt=0.001);
+        hoomd.md.integrate.mode_standard(dt=args.timestep);
         carbons = hoomd.group.type(name='carbons', type='C')
         hydrogens = hoomd.group.type(name='hydrogens', type='H')
         hydrocarbons = hoomd.group.union(name='hydrocarbons', a=carbons,
                                          b=hydrogens)
         integrator = hoomd.md.integrate.nvt(group=hydrocarbons, tau=0.1,
                                             kT=reduced_temperature)
-        #hoomd.md.nlist.reset_exclusions(exclusions = ['bond', 'angle', 'dihedral', 'body'])
 
         hoomd.dump.gsd(filename=".".join(file_name.split(".")[:-1])
                        + "_traj.gsd", period=max([int(args.run_time/500), 1]),
@@ -155,10 +168,12 @@ def main():
                           header_prefix='#', overwrite=True)
         ## Now incrementally ramp the charges
         #for chargePhase in range(chargeIncrements + 1):
-        #    print("Incrementing charge phase", chargePhase, "of", chargeIncrements + 1)
+        #    print("Incrementing charge phase", chargePhase, "of",
+        #          chargeIncrements + 1)
         #    for atom in system.particles:
         #        oldCharge = copy.deepcopy(atom.charge)
-        #        atom.charge = charges[atom.type] * (chargePhase / float(chargeIncrements))
+        #        atom.charge = charges[atom.type] * (chargePhase /
+        #                                            float(chargeIncrements))
         #    hoomd.run(chargeTimesteps)
 
         # Get the initial box size dynamically
