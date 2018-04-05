@@ -3,7 +3,8 @@ import numpy as np
 import argparse
 import copy
 import os
-from lynx.definitions import PDB_LIBRARY, FF_LIBRARY
+import re
+from lynx.definitions import PDB_LIBRARY, FF_LIBRARY, ATOM_MASSES
 import xml.etree.cElementTree as ET
 from collections import OrderedDict
 
@@ -18,11 +19,11 @@ z_extent = 0.400321
 defaults_dict = {'stoichiometry': {'Mo': 1, 'V': 0.3, 'Nb': 0.15, 'Te': 0.15},
                  'dimensions': [1, 1, 1],
                  'template': 'templateM1.pdb',
-                 'organic': 'ethane.pdb',
+                 'gas_composition': {'C2H6': 3, 'O2': 2, 'He': 5},
                  'crystal_separation': 25.0,
                  'z_box_size': 20.0,
                  'bonds_periodic': True,
-                 'number_of_organic_mols': 200,
+                 'number_of_gas_mols': 1000,
                  'forcefield': None}
 
 
@@ -37,14 +38,12 @@ class m1_unit_cell(mb.Compound):
         # Note: In both Py2 and Py3, subsequent calls to keys() and values()
         # with no intervening modifications will directly correspond
         # \cite{PyDocumentation}
-        atom_types = list(stoichiometry_dict.keys())
-        atom_ratios = np.array(list(stoichiometry_dict.values()))
-        probabilities = list(atom_ratios / np.sum(atom_ratios))
+        atom_types, atom_probs = calculate_probabilities(stoichiometry_dict)
         for particle in self.particles():
             if particle.name == 'X':
                 # `Randomly' select an atom type based on the biases given in
                 # stoichiometry_dict
-                particle.name = np.random.choice(atom_types, p=probabilities)
+                particle.name = np.random.choice(atom_types, p=atom_probs)
         # # Check all the 'X' atom_types got updated
         # assert('X' not in [particle.name for particle in self.particles()])
 
@@ -171,7 +170,9 @@ class mbuild_template(mb.Compound):
         # Call the mb.Compound initialisation
         super().__init__()
         # Load the unit cell
-        mb.load(os.path.join(PDB_LIBRARY, template), compound=self)
+        mb.load(os.path.join(PDB_LIBRARY,
+                             ''.join(template.split('.pdb')) + '.pdb'),
+                             compound=self)
 
 
 def create_morphology(args):
@@ -180,10 +181,11 @@ def create_morphology(args):
     surface1 = m1_surface(args.dimensions, args.template, args.stoichiometry)
     print("Generating second surface (top)...")
     surface2 = m1_surface(args.dimensions, args.template, args.stoichiometry)
-    if args.number_of_organic_mols > 0:
-        # Now we can populate the box with hydrocarbons
-        print("Surfaces generated. Generating hydrocarbons...")
-        hydrocarbon = mbuild_template(args.organic)
+    if args.number_of_gas_mols > 0:
+        # Now we can populate the box with gas
+        print("Surfaces generated. Generating input fluence...")
+        gas_components, gas_probs = calculate_probabilities(
+            args.gas_composition, ratio_type='mass')
         # Define the regions that the hydrocarbons can go in, so we don't end
         # up with them between layers
         box_top = mb.Box(mins=[-(x_extent * args.dimensions[0]) / 2.0,
@@ -200,10 +202,11 @@ def create_morphology(args):
                                   (y_extent * args.dimensions[1]) / 2.0,
                                   -args.crystal_separation / 20.0
                                   - (z_extent * args.dimensions[2])])
-        solvent = mb.packing.fill_region([hydrocarbon] * 2,
-                                         [args.number_of_organic_mols // 2]
-                                         * 2,
-                                         [box_bottom, box_top])
+        gas_compounds = []
+        for gas_molecule in range(args.number_of_gas_mols):
+            gas_compounds.append(mbuild_template(np.random.choice(
+                gas_components, p=gas_probs)))
+        solvent = mb.packing.fill_region(gas_compounds, [1] * len(gas_compounds), list(np.random.choice([box_bottom, box_top], len(gas_compounds))))
     else:
         solvent = None
     # Now create the system by combining the two surfaces and the solvent
@@ -416,6 +419,46 @@ def fix_images(file_name):
     write_morphology_xml(morphology, file_name)
 
 
+def calculate_probabilities(input_dictionary, ratio_type='number'):
+    '''
+    This function takes an input dictionary corresponding to the relative
+    ratios of some parameter, then returns normalized probabilities for each
+    option that can be used to make choices with appropriate bias.
+    '''
+    if ratio_type == 'number':
+        choices = list(input_dictionary.keys())
+        number_ratios = np.array(list(input_dictionary.values()))
+    if ratio_type == 'mass':
+        choices, number_ratios = convert_to_masses(input_dictionary)
+    probabilities = list(number_ratios / np.sum(number_ratios))
+    return choices, probabilities
+
+
+def convert_to_masses(input_dictionary):
+    number_ratio = {}
+    # First split out the key names into atoms
+    for atomic_composition, mass_ratio in input_dictionary.items():
+        split_atoms = re.findall(r'[A-Za-z]+|\d+', atomic_composition)
+        # split_atoms is now a list where the odd elements describe the atom
+        # types, and the even elements are the number of atoms of that type.
+        # Create a list of atoms that make up the compound.
+        atom_list = []
+        for component in split_atoms:
+            try:
+                quantity = int(component) - 1
+                atom_list += [atom_list[-1]] * quantity
+            except ValueError:
+                atom_list.append(component)
+        # Consult the mass lookup table
+        total_mass = np.sum([ATOM_MASSES[atom_type]
+                             for atom_type in atom_list])
+        # Get the number ratios by dividing the mass ratio by the total mass
+        # of the component
+        number_ratio[atomic_composition] = mass_ratio / float(total_mass)
+    # Return dictionary of number ratios
+    return list(number_ratio.keys()), np.array(list(number_ratio.values()))
+
+
 def create_output_file_name(args, file_type='hoomdxml'):
     output_file = "out"
     for (arg_name, arg_val) in sorted(args._get_kwargs()):
@@ -520,26 +563,38 @@ def main():
                         For example: -z 20.0.\n
                         If not specified, the default value of 20 nanometres
                         is used.''')
-    parser.add_argument("-o", "--organic",
-                        type=str,
-                        default='ethane.pdb',
+    parser.add_argument("-g", "--gas_composition",
+                        type=lambda s: {str(key[1:-1]): float(val)
+                                        for [key, val] in
+                                        [splitChar for splitChar
+                                         in [cell.split(':') for cell in [
+                                             _ for _ in s[1:-1].split(',')
+                                             if len(_) > 0]]
+                                         if len(splitChar) > 0]},
+                        default={'C2H6': 3, 'O2': 2, 'He': 5},
                         required=False,
-                        help='''Set the hydrocarbon file to use in the
-                        simulation.\n
-                        Note that the hydrocarbon files should be located in
-                        the PDB_LIBRARY directory, which defaults to
-                        lynx/compounds.\n
-                        For example: -o "ethane.pdb".\n
-                        If not specified, the default PDB_LIBRARY/ethane.pdb
-                        is used.''')
-    parser.add_argument("-n", "--number_of_organic_mols",
+                        help='''Specify a gas composition.\n
+                        The input proportions are assumed to be by mass, and
+                        will be normalized and used to create the gas, which
+                        is incident on the catalyst as it flows into the
+                        reactor.\n
+                        For example: -g "{'C2H6': 3, 'O2': 2, 'He': 5}" will
+                        set a relative gas proportion to 0.6:0.4:1 respectively
+                        by mass.\n
+                        Note that keys in the dictionary must be the same as
+                        the pdb files located in the PDB_LIBRARY of Lynx, and
+                        the corresponding values are interpreted as the
+                        proportion BY MASS.\n
+                        If not specified, the default gas composition is set to
+                        {'C2H6': 3, 'O2': 2, 'He': 5}''')
+    parser.add_argument("-n", "--number_of_gas_mols",
                         type=int,
-                        default=200,
+                        default=1000,
                         required=False,
-                        help='''Set the number of organic hydrocarbons to be
+                        help='''Set the number of gas component molecules to be
                         included in the system.\n
-                        For example: -n 200.\n
-                        If not specified, the default value of 200 hydrocarbons
+                        For example: -n 1000.\n
+                        If not specified, the default value of 1000 molecules
                         is used.''')
     parser.add_argument("-f", "--forcefield",
                         type=lambda f: f.split('.xml')[0],
