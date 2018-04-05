@@ -135,8 +135,7 @@ class m1_system(mb.Compound):
     # instances in a specified dimension
     # Default stoichiometry found in: Nanostructured Catalysts: Selective
     # Oxidations (Hess and Schl\"ogl, 2011, RSC)
-    def __init__(self, bottom_crystal, top_crystal, crystal_separation,
-                 solvent):
+    def __init__(self, bottom_crystal, top_crystal, crystal_separation):
         # Call the mb.Compound initialisation
         super().__init__()
         # Firstly, get the current COM positions for each plane. This will be
@@ -159,9 +158,6 @@ class m1_system(mb.Compound):
         # Add both crystal planes to the system
         self.add(bottom_crystal)
         self.add(top_crystal)
-        # Finally, add the solvent
-        if solvent is not None:
-            self.add(solvent)
 
 
 class mbuild_template(mb.Compound):
@@ -181,6 +177,8 @@ def create_morphology(args):
     surface1 = m1_surface(args.dimensions, args.template, args.stoichiometry)
     print("Generating second surface (top)...")
     surface2 = m1_surface(args.dimensions, args.template, args.stoichiometry)
+    # Now create the system by combining the two surfaces
+    system = m1_system(surface1, surface2, args.crystal_separation)
     if args.number_of_gas_mols > 0:
         # Now we can populate the box with gas
         print("Surfaces generated. Generating input fluence...")
@@ -203,14 +201,16 @@ def create_morphology(args):
                                   -args.crystal_separation / 20.0
                                   - (z_extent * args.dimensions[2])])
         gas_compounds = []
-        for gas_molecule in range(args.number_of_gas_mols):
-            gas_compounds.append(mbuild_template(np.random.choice(
-                gas_components, p=gas_probs)))
-        solvent = mb.packing.fill_region(gas_compounds, [1] * len(gas_compounds), list(np.random.choice([box_bottom, box_top], len(gas_compounds))))
-    else:
-        solvent = None
-    # Now create the system by combining the two surfaces and the solvent
-    system = m1_system(surface1, surface2, args.crystal_separation, solvent)
+        n_compounds = []
+        for compound_index, gas_molecule in enumerate(gas_components):
+            gas_compounds.append(mbuild_template(gas_molecule))
+            n_compounds.append(int(np.round(np.round(
+                gas_probs[compound_index] * args.number_of_gas_mols)/2.0)))
+        gas_top = mb.packing.fill_region(gas_compounds, n_compounds, box_top)
+        gas_bottom = mb.packing.fill_region(gas_compounds, n_compounds,
+                box_bottom)
+        system.add(gas_top)
+        system.add(gas_bottom)
     # Generate the morphology box based on the input parameters
     system_box = mb.Box(mins=[-(x_extent * args.dimensions[0]) / 2.0,
                               -(y_extent * args.dimensions[1]) / 2.0,
