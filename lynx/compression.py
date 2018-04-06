@@ -8,3 +8,5 @@ encoded = base64.encodestring(zlib.compress(a))
 print(encoded)
 decoded = zlib.decompress(base64.decodestring(encoded))
 #print(decoded)
+
+# pyLZMA
