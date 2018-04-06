@@ -4,6 +4,8 @@ import argparse
 import copy
 import os
 import re
+import zlib
+import base64
 from lynx.definitions import PDB_LIBRARY, FF_LIBRARY, ATOM_MASSES
 import xml.etree.cElementTree as ET
 from collections import OrderedDict
@@ -599,6 +601,9 @@ def main():
                         For example: -n 1000.\n
                         If not specified, the default value of 1000 molecules
                         is used.''')
+    parser.add_argument("--meow",
+                        action='store_true',
+                        help=argparse.SUPPRESS)
     parser.add_argument("-f", "--forcefield",
                         type=lambda f: f.split('.xml')[0],
                         default=None,
@@ -611,4 +616,12 @@ def main():
                         If not specified, the compound will not be saved with
                         forcefield information.''')
     args = parser.parse_args()
+    if args.meow:
+        print(zlib.decompress(base64.decodebytes(
+            b'''eJx9kEtuxiAMhPc5heVNQcKTZaO4J+gZItEbcILevWNIq4T8qmUTGH1+xCK0Ql/
+            ikg7Rfilmjowaj4xiqAJRtRLKijeFicomLWSv8p8tZDaQZD7MDEBh/WFAJFdVj1aqyi
+            NnVkZk9ZCI0+NNlTxqzximTnwL73FxjBwouy/XqRyhO4FB/OLfZ9f9Rv/hF5ae5Jxyo
+            oOnfkR1wTB3l9e1A28MPY6vYUla6i0E/mB3aTvpq8IBeuH0hBtJv0nqfV/t1RjSZrrz
+            zgQc8uTBBe6zmrH2BTxGrxkf/KNJ9MDjnDauta5mehNTqvW9fz5/AI2vbiM='''))
+            .decode('utf-8'))
     create_morphology(args)
