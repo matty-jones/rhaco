@@ -11,6 +11,11 @@ import xml.etree.cElementTree as ET
 from collections import OrderedDict
 
 
+# Conversion factors
+G_TO_AMU = 6.0222E23
+CM_TO_NM = 1.0000E07
+
+
 # The crystallographic unit cell parameters
 # Taken from Desanto2006 (10.1007/s11244-006-0068-8)
 x_extent = 2.148490
@@ -25,7 +30,8 @@ defaults_dict = {'stoichiometry': {'Mo': 1, 'V': 0.3, 'Nb': 0.15, 'Te': 0.15},
                  'crystal_separation': 25.0,
                  'z_box_size': 20.0,
                  'bonds_periodic': True,
-                 'number_of_gas_mols': 1000,
+                 'gas_num_mol': None,
+                 'gas_density': None,
                  'forcefield': None}
 
 
@@ -40,7 +46,7 @@ class m1_unit_cell(mb.Compound):
         # Note: In both Py2 and Py3, subsequent calls to keys() and values()
         # with no intervening modifications will directly correspond
         # \cite{PyDocumentation}
-        atom_types, atom_probs = calculate_probabilities(stoichiometry_dict)
+        atom_types, atom_probs, _ = calculate_probabilities(stoichiometry_dict)
         for particle in self.particles():
             if particle.name == 'X':
                 # `Randomly' select an atom type based on the biases given in
@@ -181,41 +187,58 @@ def create_morphology(args):
     surface2 = m1_surface(args.dimensions, args.template, args.stoichiometry)
     # Now create the system by combining the two surfaces
     system = m1_system(surface1, surface2, args.crystal_separation)
-    if args.number_of_gas_mols > 0:
-        # Now we can populate the box with gas
-        print("Surfaces generated. Generating input fluence...")
-        gas_components, gas_probs = calculate_probabilities(
-            args.gas_composition, ratio_type='mass')
-        # Define the regions that the hydrocarbons can go in, so we don't end
-        # up with them between layers
-        box_top = mb.Box(mins=[-(x_extent * args.dimensions[0]) / 2.0,
-                               -(y_extent * args.dimensions[1]) / 2.0,
-                               args.crystal_separation / 20.0
-                               + (z_extent * args.dimensions[2])],
-                         maxs=[(x_extent * args.dimensions[0]) / 2.0,
-                               (y_extent * args.dimensions[1]) / 2.0,
-                               args.z_box_size / 2.0])
-        box_bottom = mb.Box(mins=[-(x_extent * args.dimensions[0]) / 2.0,
-                                  -(y_extent * args.dimensions[1]) / 2.0,
-                                  -args.z_box_size / 2.0],
-                            maxs=[(x_extent * args.dimensions[0]) / 2.0,
-                                  (y_extent * args.dimensions[1]) / 2.0,
-                                  -args.crystal_separation / 20.0
-                                  - (z_extent * args.dimensions[2])])
-        box_top_vol = np.prod(box_top.maxs - box_top.mins)
-        box_bottom_vol = np.prod(box_bottom.maxs - box_bottom.mins)
-        reactor_vol = box_top_vol + box_bottom_vol
-        gas_compounds = []
-        n_compounds = []
-        for compound_index, gas_molecule in enumerate(gas_components):
-            gas_compounds.append(mbuild_template(gas_molecule))
-            n_compounds.append(int(np.round(np.round(
-                gas_probs[compound_index] * args.number_of_gas_mols)/2.0)))
-        gas_top = mb.packing.fill_box(gas_compounds, n_compounds, box_top)
-        gas_bottom = mb.packing.fill_box(gas_compounds, n_compounds,
-                box_bottom)
-        system.add(gas_top)
-        system.add(gas_bottom)
+    # Now we can populate the box with gas
+    print("Surfaces generated. Generating input fluence...")
+    gas_components, gas_probs, gas_masses = calculate_probabilities(
+        args.gas_composition, ratio_type='mass')
+    # Define the regions that the hydrocarbons can go in, so we don't end
+    # up with them between layers
+    box_top = mb.Box(mins=[-(x_extent * args.dimensions[0]) / 2.0,
+                           -(y_extent * args.dimensions[1]) / 2.0,
+                           args.crystal_separation / 20.0
+                           + (z_extent * args.dimensions[2])],
+                     maxs=[(x_extent * args.dimensions[0]) / 2.0,
+                           (y_extent * args.dimensions[1]) / 2.0,
+                           args.z_box_size / 2.0])
+    box_bottom = mb.Box(mins=[-(x_extent * args.dimensions[0]) / 2.0,
+                              -(y_extent * args.dimensions[1]) / 2.0,
+                              -args.z_box_size / 2.0],
+                        maxs=[(x_extent * args.dimensions[0]) / 2.0,
+                              (y_extent * args.dimensions[1]) / 2.0,
+                              -args.crystal_separation / 20.0
+                              - (z_extent * args.dimensions[2])])
+    box_top_vol = np.prod(box_top.maxs - box_top.mins)
+    box_bottom_vol = np.prod(box_bottom.maxs - box_bottom.mins)
+    reactor_vol = box_top_vol + box_bottom_vol
+
+    if (args.gas_density is None) and (
+        # Number specified and not density
+        args.gas_num_mol is not None):
+        number_of_gas_mols = args.gas_num_mol
+    elif (args.gas_density is not None) and (
+        args.gas_num_mol is None):
+        # Density specified but not numbers
+        # Work backwards to come up with how many gas molecules are needed
+        # to get the specified density.
+        # Get the average mass for each molecule based on gas probabilities
+        mass_per_n = np.sum([gas_masses[key] * gas_probs[index] for index,
+                             key in enumerate(gas_components)])
+        # Given the reactor volume and the specified gas density, calculate
+        # the total number of gas molecules needed.
+        # Need to convert from CGS (g/cm^{3} -> AMU/nm^{3})
+        gas_density_conv = args.gas_density * G_TO_AMU / (CM_TO_NM**3)
+        number_of_gas_mols = int(gas_density_conv * reactor_vol / mass_per_n)
+    gas_compounds = []
+    n_compounds = []
+    for compound_index, gas_molecule in enumerate(gas_components):
+        gas_compounds.append(mbuild_template(gas_molecule))
+        n_compounds.append(int(np.round(np.round(
+            gas_probs[compound_index] * number_of_gas_mols)/2.0)))
+    gas_top = mb.packing.fill_box(gas_compounds, n_compounds, box_top)
+    gas_bottom = mb.packing.fill_box(gas_compounds, n_compounds,
+            box_bottom)
+    system.add(gas_top)
+    system.add(gas_bottom)
     # Generate the morphology box based on the input parameters
     system_box = mb.Box(mins=[-(x_extent * args.dimensions[0]) / 2.0,
                               -(y_extent * args.dimensions[1]) / 2.0,
@@ -433,14 +456,16 @@ def calculate_probabilities(input_dictionary, ratio_type='number'):
     if ratio_type == 'number':
         choices = list(input_dictionary.keys())
         number_ratios = np.array(list(input_dictionary.values()))
+        mass_dict = None
     if ratio_type == 'mass':
-        choices, number_ratios = convert_to_masses(input_dictionary)
+        choices, number_ratios, mass_dict = convert_to_masses(input_dictionary)
     probabilities = list(number_ratios / np.sum(number_ratios))
-    return choices, probabilities
+    return choices, probabilities, mass_dict
 
 
 def convert_to_masses(input_dictionary):
     number_ratio = {}
+    mass_dict = {}
     # First split out the key names into atoms
     for atomic_composition, mass_ratio in input_dictionary.items():
         split_atoms = re.findall(r'[A-Za-z]+|\d+', atomic_composition)
@@ -457,18 +482,22 @@ def convert_to_masses(input_dictionary):
         # Consult the mass lookup table
         total_mass = np.sum([ATOM_MASSES[atom_type]
                              for atom_type in atom_list])
+        mass_dict[atomic_composition] = total_mass
         # Get the number ratios by dividing the mass ratio by the total mass
         # of the component
         number_ratio[atomic_composition] = mass_ratio / float(total_mass)
     # Return dictionary of number ratios
-    return list(number_ratio.keys()), np.array(list(number_ratio.values()))
+    return list(number_ratio.keys()), np.array(list(number_ratio.values())),\
+            mass_dict
 
 
 def create_output_file_name(args, file_type='hoomdxml'):
     output_file = "out"
     for (arg_name, arg_val) in sorted(args._get_kwargs()):
-        print(arg_name, arg_val)
-        if (arg_val == defaults_dict[arg_name]):
+        try:
+            if (arg_val == defaults_dict[arg_name]):
+                continue
+        except KeyError:
             continue
         output_file += "_"
         if arg_name == 'stoichiometry':
@@ -568,7 +597,7 @@ def main():
                         For example: -z 20.0.\n
                         If not specified, the default value of 20 nanometres
                         is used.''')
-    parser.add_argument("-g", "--gas_composition",
+    parser.add_argument("-gc", "--gas_composition",
                         type=lambda s: {str(key[1:-1]): float(val)
                                         for [key, val] in
                                         [splitChar for splitChar
@@ -592,15 +621,25 @@ def main():
                         proportion BY MASS.\n
                         If not specified, the default gas composition is set to
                         {'C2H6': 3, 'O2': 2, 'He': 5}''')
-    parser.add_argument("-n", "--number_of_gas_mols",
-                        type=int,
-                        default=1000,
-                        required=False,
-                        help='''Set the number of gas component molecules to be
-                        included in the system.\n
-                        For example: -n 1000.\n
-                        If not specified, the default value of 1000 molecules
-                        is used.''')
+    gas_amount_group = parser.add_mutually_exclusive_group(required=True)
+    gas_amount_group.add_argument("-gn", "--gas_num_mol",
+                                  type=int,
+                                  default=None,
+                                  help='''Set the number of gas component
+                                  molecules to be included in the system.\n
+                                  For example: -gn 1000.\n
+                                  In order to specify the reactor gas input,
+                                  either --gas_num_mol or --gas_density
+                                  must be specified.\n''')
+    gas_amount_group.add_argument("-gd", "--gas_density",
+                                  type=float,
+                                  default=None,
+                                  help='''Set the density of the reactor
+                                  fluence in g/cm^{3}.\n
+                                  For example: -n 0.05.\n
+                                  In order to specify the reactor gas input,
+                                  either --gas_num_mol or --gas_density
+                                  must be specified.\n''')
     parser.add_argument("--meow",
                         action='store_true',
                         help=argparse.SUPPRESS)
