@@ -200,14 +200,17 @@ def create_morphology(args):
                                   (y_extent * args.dimensions[1]) / 2.0,
                                   -args.crystal_separation / 20.0
                                   - (z_extent * args.dimensions[2])])
+        box_top_vol = np.prod(box_top.maxs - box_top.mins)
+        box_bottom_vol = np.prod(box_bottom.maxs - box_bottom.mins)
+        reactor_vol = box_top_vol + box_bottom_vol
         gas_compounds = []
         n_compounds = []
         for compound_index, gas_molecule in enumerate(gas_components):
             gas_compounds.append(mbuild_template(gas_molecule))
             n_compounds.append(int(np.round(np.round(
                 gas_probs[compound_index] * args.number_of_gas_mols)/2.0)))
-        gas_top = mb.packing.fill_region(gas_compounds, n_compounds, box_top)
-        gas_bottom = mb.packing.fill_region(gas_compounds, n_compounds,
+        gas_top = mb.packing.fill_box(gas_compounds, n_compounds, box_top)
+        gas_bottom = mb.packing.fill_box(gas_compounds, n_compounds,
                 box_bottom)
         system.add(gas_top)
         system.add(gas_bottom)
