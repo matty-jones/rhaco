@@ -28,7 +28,7 @@ defaults_dict = {'stoichiometry': {'Mo': 1, 'V': 0.3, 'Nb': 0.15, 'Te': 0.15},
                  'template': 'templateM1.pdb',
                  'gas_composition': {'C2H6': 3, 'O2': 2, 'He': 5},
                  'crystal_separation': 25.0,
-                 'z_box_size': 20.0,
+                 'z_reactor_size': 20.0,
                  'bonds_periodic': True,
                  'gas_num_mol': None,
                  'gas_density': None,
@@ -199,10 +199,10 @@ def create_morphology(args):
                            + (z_extent * args.dimensions[2])],
                      maxs=[(x_extent * args.dimensions[0]) / 2.0,
                            (y_extent * args.dimensions[1]) / 2.0,
-                           args.z_box_size / 2.0])
+                           args.z_reactor_size / 2.0])
     box_bottom = mb.Box(mins=[-(x_extent * args.dimensions[0]) / 2.0,
                               -(y_extent * args.dimensions[1]) / 2.0,
-                              -args.z_box_size / 2.0],
+                              -args.z_reactor_size / 2.0],
                         maxs=[(x_extent * args.dimensions[0]) / 2.0,
                               (y_extent * args.dimensions[1]) / 2.0,
                               -args.crystal_separation / 20.0
@@ -242,10 +242,10 @@ def create_morphology(args):
     # Generate the morphology box based on the input parameters
     system_box = mb.Box(mins=[-(x_extent * args.dimensions[0]) / 2.0,
                               -(y_extent * args.dimensions[1]) / 2.0,
-                              -args.z_box_size / 2.0],
+                              -args.z_reactor_size / 2.0],
                         maxs=[(x_extent * args.dimensions[0]) / 2.0,
                               (y_extent * args.dimensions[1]) / 2.0,
-                              args.z_box_size / 2.0])
+                              args.z_reactor_size / 2.0])
     print("Morphology generated. Applying forcefield and simulation box...")
     if args.forcefield is not None:
         try:
@@ -571,7 +571,7 @@ def main():
                         the bottom planes of the two crystals corresponding to
                         the top and bottom of the simulation volume within the
                         periodic box.\n
-                        Note that this is not the same as the z_box_size, which
+                        Note that this is not the same as the z_reactor_size, which
                         describes the region available to hydrocarbon molecules
                         in the simulation.\n
                         This value should be larger than the interaction
@@ -581,7 +581,7 @@ def main():
                         For example: -c 25.0.
                         If not specified, the default value of 2.5 nanometres
                         is used.''')
-    parser.add_argument("-z", "--z_box_size",
+    parser.add_argument("-z", "--z_reactor_size",
                         type=float,
                         default=20.0,
                         required=False,
@@ -589,7 +589,7 @@ def main():
                         (in nm).\n
                         This defines the region available for hydrocarbons to
                         move around in, between the two catalyst plates
-                        (region depth = z_box_size - plane_separation -
+                        (region depth = z_reactor_size - plane_separation -
                         (z_extent * dimension[2])).\n
                         Note that this is not the same as the plane_separation,
                         which describes the physical separation between the
