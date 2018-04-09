@@ -77,6 +77,40 @@ def get_coeffs(file_name):
     return coeff_dictionary
 
 
+def rename_types(snapshot):
+    '''
+    This function splits the system into atoms to integrate over and atoms to
+    not integrate over, based on the specified atom types ('X_<ATOM TYPE>')
+    means the atom is part of the catalyst and should not be integrated over.
+
+    Additionally, it removes the X_ from all the atom types so the forcefield
+    can be interpreted correctly.
+    '''
+    # Attempt 1: Just rename the types in snapshot.particles.types so that X_A
+    # is renamed to just A.
+    # Attempt 1.5: This can't be done on an index-by-index basis - the particle
+    # types need to be assigned all in one go, so create a new list then update
+    # the types data.
+    catalyst_type_IDs = []
+    new_types = []
+    for type_index, atom_type in enumerate(snapshot.particles.types):
+        if atom_type[:2] == 'X_':
+            new_types.append(atom_type[2:])
+            catalyst_type_IDs.append(type_index)
+        else:
+            new_types.append(atom_type)
+    snapshot.particles.types = new_types
+    catalyst_atom_IDs = []
+    for atom_index, type_ID in enumerate(snapshot.particles.typeid):
+        if type_ID in catalyst_type_IDs:
+            catalyst_atom_IDs.append(atom_index)
+    catalyst = hoomd.group.tag_list(name='catalyst', tags=catalyst_atom_IDs)
+    gas = hoomd.group.difference(name='gas', a=hoomd.group.all(), b=catalyst)
+    print("The catalyst group is", catalyst)
+    print("The gas group is", gas)
+    return snapshot, catalyst, gas
+
+
 def initialize_velocities(snapshot, temperature):
     v = np.random.random((len(snapshot.particles.velocity), 3))
     v -= 0.5
@@ -140,19 +174,18 @@ def main():
         hoomd.context.initialize("")
         system = hoomd.deprecated.init.read_xml(filename=file_name)
         snapshot = system.take_snapshot()
+        # Get the integration groups by ignoring anything that has the X_
+        # prefix to the atom type, and rename the types for the forcefield
+        renamed_snapshot, catalyst, gas = rename_types(snapshot)
         # Assign the required velocities based on the requested temperature
-        initialized_snapshot = initialize_velocities(snapshot,
+        initialized_snapshot = initialize_velocities(renamed_snapshot,
                                                      reduced_temperature)
         # Finally, restore the snapshot
         system.restore_snapshot(initialized_snapshot)
         system = set_coeffs(file_name, system)
 
         hoomd.md.integrate.mode_standard(dt=args.timestep);
-        carbons = hoomd.group.type(name='carbons', type='C')
-        hydrogens = hoomd.group.type(name='hydrogens', type='H')
-        hydrocarbons = hoomd.group.union(name='hydrocarbons', a=carbons,
-                                         b=hydrogens)
-        integrator = hoomd.md.integrate.nvt(group=hydrocarbons, tau=0.1,
+        integrator = hoomd.md.integrate.nvt(group=gas, tau=0.1,
                                             kT=reduced_temperature)
 
         hoomd.dump.gsd(filename=".".join(file_name.split(".")[:-1])
