@@ -7,7 +7,7 @@ channels:
 - defaults
 dependencies:
 - python=3.5
-- hoomd=2.2
+- hoomd_dybond
 - mbuild=0.8.0
 - scipy=0.19.1
 - matplotlib=2.0.2
