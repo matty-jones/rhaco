@@ -29,10 +29,10 @@ defaults_dict = {'stoichiometry': {'Mo': 1, 'V': 0.3, 'Nb': 0.15, 'Te': 0.15},
                  'gas_composition': {'C2H6': 3, 'O2': 2, 'He': 5},
                  'crystal_separation': 25.0,
                  'z_reactor_size': 20.0,
-                 'bonds_periodic': True,
                  'gas_num_mol': None,
                  'gas_density': None,
-                 'forcefield': None}
+                 'forcefield': None,
+                 'integrate_crystal': False}
 
 
 class m1_unit_cell(mb.Compound):
@@ -187,6 +187,9 @@ def create_morphology(args):
     surface2 = m1_surface(args.dimensions, args.template, args.stoichiometry)
     # Now create the system by combining the two surfaces
     system = m1_system(surface1, surface2, args.crystal_separation)
+    # Get the crystal IDs because we're going to need them later so that HOOMD
+    # knows not to integrate them.
+    crystal_IDs = range(system.n_particles)
     # Now we can populate the box with gas
     print("Surfaces generated. Generating input fluence...")
     gas_components, gas_probs, gas_masses = calculate_probabilities(
@@ -239,6 +242,16 @@ def create_morphology(args):
             box_bottom)
     system.add(gas_top)
     system.add(gas_bottom)
+
+    # Check the separation of crystal and gas that we will use later is correct
+    # Get the set of atom types that produce the crystal (and don't include the
+    # base atom type, which we asusme to be oxygen).
+    names = [particle.name for particle_ID, particle in
+             enumerate(system.particles()) if (particle_ID in crystal_IDs)
+            and (particle.name != 'O')]
+    # Ensure that this is the same as the stoichiometry dictionary keys
+    assert(np.array_equal(args.stoichiometry.keys(), set(names)))
+
     # Generate the morphology box based on the input parameters
     system_box = mb.Box(mins=[-(x_extent * args.dimensions[0]) / 2.0,
                               -(y_extent * args.dimensions[1]) / 2.0,
@@ -260,8 +273,13 @@ def create_morphology(args):
                     forcefield_files=forcefield_loc)
     else:
         system.save(output_file, overwrite=True, box=system_box)
-    # Finally, fix the images because mbuild doesn't set them correctly
-    fix_images(output_file)
+    # Fix the images because mbuild doesn't set them correctly
+    morphology = fix_images(output_file)
+    # Identify the crystal atoms in the system by renaming their type to
+    # X_<PREVIOUS ATOM TYPE> so we know not to integrate them in HOOMD
+    if args.integrate_crystal is False:
+        morphology = rename_crystal_types(morphology, crystal_IDs)
+    write_morphology_xml(morphology, output_file)
     print("Output generated. Exitting...")
 
 
@@ -435,6 +453,13 @@ def write_morphology_xml(morphology_dictionary, output_file_name):
     print("XML file written to", str(output_file_name) + "!")
 
 
+def rename_crystal_types(input_dictionary, AAIDs):
+    for atom_index in AAIDs:
+        previous_type = input_dictionary['type_text'][atom_index][0]
+        input_dictionary['type_text'][atom_index] = ['X_' + previous_type]
+    return input_dictionary
+
+
 def fix_images(file_name):
     print("Fixing the images to ensure everything is wrapped within"
           "the box...")
@@ -444,7 +469,7 @@ def fix_images(file_name):
     box_dims = [float(morphology['box_attrib'][axis]) for axis in
                 ['lx', 'ly', 'lz']]
     morphology = check_bonds(morphology, bond_dict, box_dims)
-    write_morphology_xml(morphology, file_name)
+    return morphology
 
 
 def calculate_probabilities(input_dictionary, ratio_type='number'):
@@ -499,21 +524,27 @@ def create_output_file_name(args, file_type='hoomdxml'):
                 continue
         except KeyError:
             continue
-        output_file += "_"
+        output_file += "-"
         if arg_name == 'stoichiometry':
-            output_file += "S"
+            output_file += "S_"
             for key, val in arg_val.items():
-                output_file += str(key) + str(val)
+                output_file += str(key) + ':' + str(val) + '_'
+            output_file = output_file[:-1]
+        elif arg_name == 'gas_composition':
+            output_file += "GC_"
+            for key, val in arg_val.items():
+                output_file += str(key) + ':' + str(val) + '_'
+            output_file = output_file[:-1]
         elif arg_name == 'dimensions':
-            output_file += "D" + "x".join(list(map(str, arg_val)))
+            output_file += "D_" + "x".join(list(map(str, arg_val)))
         elif arg_name == 'template':
-            output_file += "T" + args.template.split('/')[-1].split('.')[0]
+            output_file += "T_" + args.template.split('/')[-1].split('.')[0]
         elif arg_val is False:
-            output_file += arg_name[0].upper() + "Off"
+            output_file += arg_name[0].upper() + "_Off"
         elif arg_val is True:
-            output_file += arg_name[0].upper() + "On"
+            output_file += arg_name[0].upper() + "_On"
         else:
-            output_file += arg_name[0].upper() + str(arg_val)
+            output_file += arg_name[0].upper() + "_" + str(arg_val)
     return output_file + '.' + file_type
 
 
@@ -654,6 +685,22 @@ def main():
                         For example: -f FF_opls_uff.\n
                         If not specified, the compound will not be saved with
                         forcefield information.''')
+    parser.add_argument("-i", "--integrate_crystal",
+                        action='store_true',
+                        help='''Use HOOMD to integrate the crystal atoms during
+                        the molecular dynamics simulation.\n
+                        By default, HOOMD will not update the positions and
+                        velocities of the crystal atoms during the MD phase
+                        (recommended - adding in bond, angle, and dihedral
+                        constraints to the crystal surface will dramatically
+                        reduce computational efficiency).\n
+                        This parameter can be set to allow HOOMD to update the
+                        crystal atom positions, providing their behaviour is
+                        defined in the forcefield.\n
+                        For example: -i.\n
+                        If this flag is not passed, the crystal will remain
+                        static, but still influence the motion of nearby
+                        simulation elements.''')
     args = parser.parse_args()
     if args.meow:
         print(zlib.decompress(base64.decodebytes(
