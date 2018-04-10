@@ -462,7 +462,7 @@ def rename_crystal_types(input_dictionary, AAIDs):
 
 def fix_images(file_name):
     print("Fixing the images to ensure everything is wrapped within"
-          "the box...")
+          " the box...")
     morphology = load_morphology_xml(file_name)
     morphology = zero_out_images(morphology)
     bond_dict = get_bond_dict(morphology)
