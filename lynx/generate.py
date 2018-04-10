@@ -517,35 +517,38 @@ def convert_to_masses(input_dictionary):
 
 
 def create_output_file_name(args, file_type='hoomdxml'):
-    output_file = "out"
-    for (arg_name, arg_val) in sorted(args._get_kwargs()):
-        try:
-            if (arg_val == defaults_dict[arg_name]):
+    if args.signac is True:
+        return 'output.hoomdxml'
+    else:
+        output_file = "out"
+        for (arg_name, arg_val) in sorted(args._get_kwargs()):
+            try:
+                if (arg_val == defaults_dict[arg_name]):
+                    continue
+            except KeyError:
                 continue
-        except KeyError:
-            continue
-        output_file += "-"
-        if arg_name == 'stoichiometry':
-            output_file += "S_"
-            for key, val in arg_val.items():
-                output_file += str(key) + ':' + str(val) + '_'
-            output_file = output_file[:-1]
-        elif arg_name == 'gas_composition':
-            output_file += "GC_"
-            for key, val in arg_val.items():
-                output_file += str(key) + ':' + str(val) + '_'
-            output_file = output_file[:-1]
-        elif arg_name == 'dimensions':
-            output_file += "D_" + "x".join(list(map(str, arg_val)))
-        elif arg_name == 'template':
-            output_file += "T_" + args.template.split('/')[-1].split('.')[0]
-        elif arg_val is False:
-            output_file += arg_name[0].upper() + "_Off"
-        elif arg_val is True:
-            output_file += arg_name[0].upper() + "_On"
-        else:
-            output_file += arg_name[0].upper() + "_" + str(arg_val)
-    return output_file + '.' + file_type
+            output_file += "-"
+            if arg_name == 'stoichiometry':
+                output_file += "S_"
+                for key, val in arg_val.items():
+                    output_file += str(key) + ':' + str(val) + '_'
+                output_file = output_file[:-1]
+            elif arg_name == 'gas_composition':
+                output_file += "GC_"
+                for key, val in arg_val.items():
+                    output_file += str(key) + ':' + str(val) + '_'
+                output_file = output_file[:-1]
+            elif arg_name == 'dimensions':
+                output_file += "D_" + "x".join(list(map(str, arg_val)))
+            elif arg_name == 'template':
+                output_file += "T_" + args.template.split('/')[-1].split('.')[0]
+            elif arg_val is False:
+                output_file += arg_name[0].upper() + "_Off"
+            elif arg_val is True:
+                output_file += arg_name[0].upper() + "_On"
+            else:
+                output_file += arg_name[0].upper() + "_" + str(arg_val)
+        return output_file + '.' + file_type
 
 
 def main():
@@ -701,6 +704,19 @@ def main():
                         If this flag is not passed, the crystal will remain
                         static, but still influence the motion of nearby
                         simulation elements.''')
+    parser.add_argument("-sig", "--signac",
+                        action='store_true',
+                        help='''Change the naming nomenclature to be more
+                        specific if signac-flow is not being used (via
+                        lynx-flow).\n
+                        By default, output files will be named based on the
+                        input parameters used to generate them.\n
+                        However, this is not useful when using the signac
+                        infrastructure provided by lynx-flow.\n
+                        In this case, signac does the heavy lifting of
+                        determining which parameters were used to generate each
+                        file, and so only an output.hoomdxml is created.
+                        For example: -sig.\n''')
     args = parser.parse_args()
     if args.meow:
         print(zlib.decompress(base64.decodebytes(
