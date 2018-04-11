@@ -22,3 +22,5 @@ http://pubs.acs.org/doi/suppl/10.1021/jacs.5b07073/suppl_file/ja5b07073_si_001.p
 
 Link to paper with Ethylene coordinates
 http://www.emsl.pnl.gov/docs/tms/abinitio/tables/appendixa.pdf
+
+Lynx has been released under a GPL3 license (please see LICENSE.TXT for conditions).
