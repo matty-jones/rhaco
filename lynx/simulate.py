@@ -127,7 +127,9 @@ def initialize_velocities(snapshot, temperature):
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(prog='lynx-run-hoomd',
+                                    formatter_class=argparse.
+                                    ArgumentDefaultsHelpFormatter)
     parser.add_argument('-t', '--temperature',
                         type=float,
                         default=633,
@@ -135,25 +137,19 @@ def main():
                         help='''The desired temperature of the simulation in
                         kelvin (this will be rescaled to produce a reduced
                         temperature that conforms with Foyer's default
-                        units (kcal/mol and angstroems).\n
-                        If unspecified, the temperature is set to the default
-                        value of 633 K.''')
+                        units (kcal/mol and angstroems).\n''')
     parser.add_argument('-r', '--run_time',
                         type=float,
                         default=1E7,
                         required=False,
                         help='''The number of timesteps to run the MD
-                        simulation for.\n
-                        If unspecified, the default runtime of 1e7 will be
-                        used.''')
+                        simulation for.\n''')
     parser.add_argument('-s', '--timestep',
                         type=float,
                         default=1E-3,
                         required=False,
                         help='''The integration timestep to use when running
-                        the NVT MD simulation.\n
-                        If unspecified, the default timestep of 1E-3 will be
-                        used.''')
+                        the NVT MD simulation.\n''')
     args, file_list = parser.parse_known_args()
 
     # Foyer gives parameters in terms of kcal/mol for energies and angstroems
