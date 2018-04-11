@@ -552,7 +552,9 @@ def create_output_file_name(args, file_type='hoomdxml'):
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(prog='lynx-create-morph',
+                                     formatter_class=argparse.
+                                     ArgumentDefaultsHelpFormatter)
     parser.add_argument("-s", "--stoichiometry",
                         type=lambda s: {str(key[1:-1]): float(val)
                                         for [key, val] in
@@ -571,9 +573,7 @@ def main():
                         dictionary.\n
                         For example: -s "{'Mo': 1, 'V': 0.3, 'Nb': 0.15,
                         'Te': 0.15}" will create a surface where there are 5
-                        Mo atoms for every V, and 0.85 Nb.\n
-                        If not specified, the default stoichiometry is set to
-                        {'Mo': 1, 'V': 0.3, ' b': 0.15, 'Te': 0.15}''')
+                        Mo atoms for every V, and 0.85 Nb.\n''')
     parser.add_argument("-d", "--dimensions",
                         type=lambda d: [int(dim) for dim in
                                         d.split('x') if len(dim) > 0],
@@ -583,9 +583,7 @@ def main():
                         surface (integers), along the x- and y-directions.\n
                         For example: -d 2x2x1 will create a surface containing
                         4 unit cells, with 2 along the x-axis, 2 along the
-                        y-axis, and one layer thick.\n
-                        If not specified, the default dimensions are a single
-                        unit cell producing a 1x1x1 surface.''')
+                        y-axis, and one layer thick.\n''')
     parser.add_argument("-t", "--template",
                         type=str,
                         default='M1UnitCell.pdb',
@@ -612,9 +610,7 @@ def main():
                         cut-off specified in the forcefield (pair or Coulombic)
                         to prevent the self-interaction of the two
                         surfaces.\n
-                        For example: -c 25.0.
-                        If not specified, the default value of 2.5 nanometres
-                        is used.''')
+                        For example: -c 25.0.''')
     parser.add_argument("-z", "--z_reactor_size",
                         type=float,
                         default=20.0,
@@ -628,9 +624,7 @@ def main():
                         Note that this is not the same as the plane_separation,
                         which describes the physical separation between the
                         bottom layers of the two flipped M1 crystals.\n
-                        For example: -z 20.0.\n
-                        If not specified, the default value of 20 nanometres
-                        is used.''')
+                        For example: -z 20.0.\n''')
     parser.add_argument("-gc", "--gas_composition",
                         type=lambda s: {str(key[1:-1]): float(val)
                                         for [key, val] in
@@ -652,9 +646,7 @@ def main():
                         Note that keys in the dictionary must be the same as
                         the pdb files located in the PDB_LIBRARY of Lynx, and
                         the corresponding values are interpreted as the
-                        proportion BY MASS.\n
-                        If not specified, the default gas composition is set to
-                        {'C2H6': 3, 'O2': 2, 'He': 5}''')
+                        proportion BY MASS.\n''')
     gas_amount_group = parser.add_mutually_exclusive_group(required=True)
     gas_amount_group.add_argument("-gn", "--gas_num_mol",
                                   type=int,
