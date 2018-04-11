@@ -2,7 +2,7 @@
 
 1) Make sure conda is installed and active on your system (miniconda recommended from https://conda.io/miniconda.html)
 
-2) Make the lynx conda environment using the specified prerequisites: `conda env create -f lynx.yml`
+2) Make the lynx conda environment using the specified prerequisites: `conda env create -f environment.yml`
 
 3) Activate the new conda environment with: `source activate lynx`
 
