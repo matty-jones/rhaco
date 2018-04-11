@@ -260,7 +260,9 @@ def create_morphology(args):
                               (y_extent * args.dimensions[1]) / 2.0,
                               args.z_reactor_size / 2.0])
     print("Morphology generated. Applying forcefield and simulation box...")
-    if args.forcefield is not None:
+    # Note this logic means a user cannot specify their own FF with the same
+    # name as one in our libary!
+    if args.forcefield is "None": # Ugly hack for passing in None
         try:
             # Check the FF library first
             forcefield_loc = os.path.join(FF_LIBRARY, args.forcefield) + '.xml'
@@ -671,14 +673,13 @@ def main():
                         help=argparse.SUPPRESS)
     parser.add_argument("-f", "--forcefield",
                         type=lambda f: f.split('.xml')[0],
-                        default=None,
-                        required=False,
+                        required=True,
                         help='''Use Foyer to set the forcefield to use when
                         running the simulation.\n
                         Note the forcefields are located in the FF_LIBRARY
                         directory, which defaults to lynx/forcefields.\n
                         For example: -f FF_opls_uff.\n
-                        If not specified, the compound will not be saved with
+                        If 'None' specified, the compound will not be saved with
                         forcefield information.''')
     parser.add_argument("-i", "--integrate_crystal",
                         action='store_true',
