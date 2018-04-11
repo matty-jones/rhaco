@@ -262,7 +262,7 @@ def create_morphology(args):
     print("Morphology generated.")
     # Note this logic means a user cannot specify their own FF with the same
     # name as one in our libary!
-    if args.forcefield is "None": # Ugly hack for passing in None
+    if args.forcefield != "None": # Ugly hack for passing in None
         try:
             # Check the FF library first
             forcefield_loc = os.path.join(FF_LIBRARY, args.forcefield) + '.xml'
