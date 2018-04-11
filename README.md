@@ -8,10 +8,6 @@
 
 4) From the lynx root directory install lynx using `pip install -e .`
 
-Note that the lynx environment included here is only intended to get started with. 
-HOOMD 2 is included, but the Glotzer conda channel only includes a version of HOOMD 2 that has been compiled with double precision and without GPU support.
-This therefore makes it unsuitable for large simulations, where an alternative version of HOOMD must be installed on your machine (recommended: single-precision with GPU).
-
 ## Included Command-Line Programs
 
 1) lynx-create-morph: Used to create the initial conditions for the simulation based on several input parameters (`lynx-create-morph -h` for more details)
