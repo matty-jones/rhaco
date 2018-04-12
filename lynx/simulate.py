@@ -17,9 +17,8 @@ def set_coeffs(file_name, system):
     Read in the molecular dynamics coefficients exported by Foyer
     '''
     coeffs_dict = get_coeffs(file_name)
-    # Perylene: Sigma = 3.8 Ang, Epsilon = 0.1217 kCal/mol
     ljnl = hoomd.md.nlist.cell()
-    lj = hoomd.md.pair.lj(r_cut=2.5, nlist=ljnl)
+    lj = hoomd.md.pair.lj(r_cut=10.0, nlist=ljnl)
     for type1 in coeffs_dict['pair_coeffs']:
         for type2 in coeffs_dict['pair_coeffs']:
             lj.pair_coeff.set(type1[0], type2[0],
