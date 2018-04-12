@@ -207,3 +207,6 @@ def main():
 
         # Get the initial box size dynamically
         hoomd.run_upto(args.run_time)
+        hoomd.dump.gsd(filename=".".join(file_name.split(".")[:-1])
+                       + "_final.gsd", period=None,
+                       group=hoomd.group.all(), overwrite=True)
