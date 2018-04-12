@@ -19,6 +19,7 @@ def set_coeffs(file_name, system):
     coeffs_dict = get_coeffs(file_name)
     ljnl = hoomd.md.nlist.cell()
     lj = hoomd.md.pair.lj(r_cut=10.0, nlist=ljnl)
+    lj.set_params(mode="xplor")
     for type1 in coeffs_dict['pair_coeffs']:
         for type2 in coeffs_dict['pair_coeffs']:
             lj.pair_coeff.set(type1[0], type2[0],
