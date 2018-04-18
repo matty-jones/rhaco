@@ -237,9 +237,11 @@ def create_morphology(args):
         gas_compounds.append(mbuild_template(gas_molecule))
         n_compounds.append(int(np.round(np.round(
             gas_probs[compound_index] * number_of_gas_mols)/2.0)))
-    gas_top = mb.packing.fill_box(gas_compounds, n_compounds, box_top)
+    gas_top = mb.packing.fill_box(gas_compounds, n_compounds, box_top,
+                                  seed=np.random.randint(0, 2**31 - 1))
     gas_bottom = mb.packing.fill_box(gas_compounds, n_compounds,
-            box_bottom)
+                                     box_bottom,
+                                     seed=np.random.randint(0, 2**31 - 1))
     system.add(gas_top)
     system.add(gas_bottom)
 
