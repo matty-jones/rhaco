@@ -11,5 +11,6 @@ dependencies:
 - mbuild=0.8.0
 - scipy=0.19.1
 - matplotlib=2.0.2
-- signac
-- signac-flow
+- freud=0.8.0
+- signac=0.9.2
+- signac-flow=0.5.6
