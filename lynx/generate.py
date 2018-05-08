@@ -608,9 +608,9 @@ def main():
                         the bottom planes of the two crystals corresponding to
                         the top and bottom of the simulation volume within the
                         periodic box.\n
-                        Note that this is not the same as the z_reactor_size, which
-                        describes the region available to hydrocarbon molecules
-                        in the simulation.\n
+                        Note that this is not the same as the z_reactor_size,
+                        which describes the region available to hydrocarbon
+                        molecules in the simulation.\n
                         This value should be larger than the interaction
                         cut-off specified in the forcefield (pair or Coulombic)
                         to prevent the self-interaction of the two
@@ -722,4 +722,5 @@ def main():
             oOnfkR1wTB3l9e1A28MPY6vYUla6i0E/mB3aTvpq8IBeuH0hBtJv0nqfV/t1RjSZrrz
             zgQc8uTBBe6zmrH2BTxGrxkf/KNJ9MDjnDauta5mehNTqvW9fz5/AI2vbiM='''))
             .decode('utf-8'))
+        exit()
     create_morphology(args)
