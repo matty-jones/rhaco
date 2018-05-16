@@ -35,7 +35,7 @@ defaults_dict = {'stoichiometry': {'Mo': 1, 'V': 0.3, 'Nb': 0.15, 'Te': 0.15},
                  'integrate_crystal': False}
 
 
-class m1_unit_cell(mb.Compound):
+class crystal_unit_cell(mb.Compound):
     # This class will contain the unit cell for manipulation and replication
     def __init__(self, template, stoichiometry_dict):
         # Call the mb.Compound initialisation
@@ -56,12 +56,13 @@ class m1_unit_cell(mb.Compound):
         # assert('X' not in [particle.name for particle in self.particles()])
 
 
-class m1_surface(mb.Compound):
-    # This class will describe the surface and consist of several m1_unit_cell
-    # instances in a specified dimension
+class crystal_surface(mb.Compound):
+    # This class will describe the surface and consist of several
+    # crystal_unit_cell instances in a specified dimension
     # Default stoichiometry found in: Nanostructured Catalysts: Selective
     # Oxidations (Hess and Schl\"ogl, 2011, RSC)
-    def __init__(self, surface_dimensions, template, stoichiometry_dict):
+    def __init__(self, surface_dimensions, template, stoichiometry_dict,
+                 crystal_bonds):
         # Call the mb.Compound initialisation
         super().__init__()
         # OUTER LOOP: Create multiple layers based on the input dimensions
@@ -80,7 +81,8 @@ class m1_surface(mb.Compound):
                 for x_repeat in range(surface_dimensions[0]):
                     print("\rAdding " + repr([x_repeat, y_repeat, z_repeat])
                           + " to system...", end=" ")
-                    current_cell = m1_unit_cell(template, stoichiometry_dict)
+                    current_cell = crystal_unit_cell(template,
+                                                     stoichiometry_dict)
                     current_row.append(current_cell)
                     current_cell.translate([x_repeat * x_extent,
                                             y_repeat * y_extent,
@@ -138,9 +140,9 @@ class m1_surface(mb.Compound):
         self.add_bond([cell1[61], cell2[21]])
 
 
-class m1_system(mb.Compound):
-    # This class will describe the surface and consist of several m1_unit_cell
-    # instances in a specified dimension
+class crystal_system(mb.Compound):
+    # This class will describe the surface and consist of several
+    # crystal_unit_cell instances in a specified dimension
     # Default stoichiometry found in: Nanostructured Catalysts: Selective
     # Oxidations (Hess and Schl\"ogl, 2011, RSC)
     def __init__(self, bottom_crystal, top_crystal, crystal_separation):
@@ -176,17 +178,19 @@ class mbuild_template(mb.Compound):
         # Load the unit cell
         mb.load(os.path.join(PDB_LIBRARY,
                              ''.join(template.split('.pdb')) + '.pdb'),
-                             compound=self)
+                compound=self)
 
 
 def create_morphology(args):
     output_file = create_output_file_name(args)
     print("Generating first surface (bottom)...")
-    surface1 = m1_surface(args.dimensions, args.template, args.stoichiometry)
+    surface1 = crystal_surface(args.dimensions, args.template,
+                               args.stoichiometry, args.crystal_bonds)
     print("Generating second surface (top)...")
-    surface2 = m1_surface(args.dimensions, args.template, args.stoichiometry)
+    surface2 = crystal_surface(args.dimensions, args.template,
+                               args.stoichiometry, args.crystal_bonds)
     # Now create the system by combining the two surfaces
-    system = m1_system(surface1, surface2, args.crystal_separation)
+    system = crystal_system(surface1, surface2, args.crystal_separation)
     # Get the crystal IDs because we're going to need them later so that HOOMD
     # knows not to integrate them.
     crystal_IDs = range(system.n_particles)
@@ -214,13 +218,11 @@ def create_morphology(args):
     box_bottom_vol = np.prod(box_bottom.maxs - box_bottom.mins)
     reactor_vol = box_top_vol + box_bottom_vol
 
-    if (args.gas_density is None) and (
-        # Number specified and not density
-        args.gas_num_mol is not None):
+    # Number specified and not density
+    if (args.gas_density is None) and (args.gas_num_mol is not None):
         number_of_gas_mols = args.gas_num_mol
-    elif (args.gas_density is not None) and (
-        args.gas_num_mol is None):
-        # Density specified but not numbers
+    # Density specified but not numbers
+    elif (args.gas_density is not None) and (args.gas_num_mol is None):
         # Work backwards to come up with how many gas molecules are needed
         # to get the specified density.
         # Get the average mass for each molecule based on gas probabilities
@@ -231,26 +233,27 @@ def create_morphology(args):
         # Need to convert from CGS (g/cm^{3} -> AMU/nm^{3})
         gas_density_conv = args.gas_density * G_TO_AMU / (CM_TO_NM**3)
         number_of_gas_mols = int(gas_density_conv * reactor_vol / mass_per_n)
-    gas_compounds = []
-    n_compounds = []
-    for compound_index, gas_molecule in enumerate(gas_components):
-        gas_compounds.append(mbuild_template(gas_molecule))
-        n_compounds.append(int(np.round(np.round(
-            gas_probs[compound_index] * number_of_gas_mols)/2.0)))
-    gas_top = mb.packing.fill_box(gas_compounds, n_compounds, box_top,
-                                  seed=np.random.randint(0, 2**31 - 1))
-    gas_bottom = mb.packing.fill_box(gas_compounds, n_compounds,
-                                     box_bottom,
-                                     seed=np.random.randint(0, 2**31 - 1))
-    system.add(gas_top)
-    system.add(gas_bottom)
+    if number_of_gas_mols > 0:
+        gas_compounds = []
+        n_compounds = []
+        for compound_index, gas_molecule in enumerate(gas_components):
+            gas_compounds.append(mbuild_template(gas_molecule))
+            n_compounds.append(int(np.round(np.round(
+                gas_probs[compound_index] * number_of_gas_mols) / 2.0)))
+        gas_top = mb.packing.fill_box(gas_compounds, n_compounds, box_top,
+                                      seed=np.random.randint(0, 2**31 - 1))
+        gas_bottom = mb.packing.fill_box(gas_compounds, n_compounds,
+                                         box_bottom,
+                                         seed=np.random.randint(0, 2**31 - 1))
+        system.add(gas_top)
+        system.add(gas_bottom)
 
     # Check the separation of crystal and gas that we will use later is correct
     # Get the set of atom types that produce the crystal (and don't include the
     # base atom type, which we asusme to be oxygen).
     names = [particle.name for particle_ID, particle in
              enumerate(system.particles()) if (particle_ID in crystal_IDs)
-            and (particle.name != 'O')]
+             and (particle.name != 'O')]
     # Ensure that this is the same as the stoichiometry dictionary keys
     assert(np.array_equal(args.stoichiometry.keys(), set(names)))
 
@@ -264,7 +267,7 @@ def create_morphology(args):
     print("Morphology generated.")
     # Note this logic means a user cannot specify their own FF with the same
     # name as one in our libary!
-    if args.forcefield != "None": # Ugly hack for passing in None
+    if args.forcefield != "None":  # Ugly hack for passing in None
         try:
             # Check the FF library first
             forcefield_loc = os.path.join(FF_LIBRARY, args.forcefield) + '.xml'
@@ -518,7 +521,7 @@ def convert_to_masses(input_dictionary):
         number_ratio[atomic_composition] = mass_ratio / float(total_mass)
     # Return dictionary of number ratios
     return list(number_ratio.keys()), np.array(list(number_ratio.values())),\
-            mass_dict
+        mass_dict
 
 
 def create_output_file_name(args, file_type='hoomdxml'):
@@ -546,7 +549,8 @@ def create_output_file_name(args, file_type='hoomdxml'):
             elif arg_name == 'dimensions':
                 output_file += "D_" + "x".join(list(map(str, arg_val)))
             elif arg_name == 'template':
-                output_file += "T_" + args.template.split('/')[-1].split('.')[0]
+                output_file += "T_" + args.template.split('/')[-1].split(
+                    '.')[0]
             elif arg_val is False:
                 output_file += arg_name[0].upper() + "_Off"
             elif arg_val is True:
@@ -616,6 +620,20 @@ def main():
                         to prevent the self-interaction of the two
                         surfaces.\n
                         For example: -c 25.0.''')
+    parser.add_argument("-b", "--crystal_bonds",
+                        action='store_true',
+                        required=False,
+                        help='''Enable the creation of bonds between unit cells
+                        of the crystal. This is useful for visualisation, and
+                        required when bonds are to be simulated with MD further
+                        down the line.\n
+                        Note that these bonds are current hard-coded in
+                        lynx/generate.py for the M1 crystal structure. The user
+                        can modify these manually if so desired (to place
+                        custom bonds), or the user can contact the repository
+                        maintainers to express their interest in having an
+                        input file that describes the locations of the bonds.
+                        ''')
     parser.add_argument("-z", "--z_reactor_size",
                         type=float,
                         default=20.0,
@@ -682,8 +700,8 @@ def main():
                         Note the forcefields are located in the FF_LIBRARY
                         directory, which defaults to lynx/forcefields.\n
                         For example: -f FF_opls_uff.\n
-                        If 'None' specified, the compound will not be saved with
-                        forcefield information.''')
+                        If 'None' specified, the compound will not be saved
+                        with forcefield information.''')
     parser.add_argument("-i", "--integrate_crystal",
                         action='store_true',
                         help='''Use HOOMD to integrate the crystal atoms during
