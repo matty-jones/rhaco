@@ -11,8 +11,8 @@
  <RBTorsionForce>
  </RBTorsionForce>
  <NonbondedForce coulomb14scale="0.5" lj14scale="0.5">
-  <Atom type="Mn" charge="0.00" sigma="0.3011" epsilon="0.054392"/>
-  <Atom type="Ni" charge="0.00" sigma="0.3146" epsilon="0.06276"/>
-  <Atom type="Ga" charge="0.00" sigma="0.2034" epsilon="1.73636"/>
+  <Atom type="Mn" charge="0.00" sigma="0.2635" epsilon="0.054392"/>
+  <Atom type="Ni" charge="0.00" sigma="0.2522" epsilon="0.06276"/>
+  <Atom type="Ga" charge="0.00" sigma="0.3901" epsilon="1.73636"/>
  </NonbondedForce>
 </ForceField>
