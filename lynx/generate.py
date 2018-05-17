@@ -88,11 +88,11 @@ class crystal_surface(mb.Compound):
                                             y_repeat * y_extent,
                                             z_repeat * z_extent])
                     self.add(current_cell)
-                    if previous_cell is not None:
+                    if crystal_bonds and (previous_cell is not None):
                         self.add_x_connecting_bonds(previous_cell,
                                                     current_cell)
                     previous_cell = current_cell
-                if previous_row is not None:
+                if crystal_bonds and (previous_row is not None):
                     for cell_ID, current_cell_y in enumerate(current_row):
                         previous_cell_y = previous_row[cell_ID]
                         self.add_y_connecting_bonds(previous_cell_y,
@@ -107,7 +107,7 @@ class crystal_surface(mb.Compound):
                 for x_coord in range(surface_dimensions[0]):
                     # Bonds located across the diagonals (i.e. [0, 0] bonded
                     # to [1, 1]; [0, 1] bonded to [1, 2] etc.)
-                    if (x_coord + 1 < surface_dimensions[0])\
+                    if crystal_bonds and (x_coord + 1 < surface_dimensions[0])\
                        and (y_coord + 1 < surface_dimensions[1]):
                         first_cell = complete_cell_matrix[x_coord][y_coord]
                         second_cell = complete_cell_matrix[
@@ -248,14 +248,15 @@ def create_morphology(args):
         system.add(gas_top)
         system.add(gas_bottom)
 
-    # Check the separation of crystal and gas that we will use later is correct
-    # Get the set of atom types that produce the crystal (and don't include the
-    # base atom type, which we asusme to be oxygen).
-    names = [particle.name for particle_ID, particle in
-             enumerate(system.particles()) if (particle_ID in crystal_IDs)
-             and (particle.name != 'O')]
-    # Ensure that this is the same as the stoichiometry dictionary keys
-    assert(np.array_equal(args.stoichiometry.keys(), set(names)))
+    if "M1UnitCell.pdb" in args.template:
+        # Check the separation of crystal and gas that we will use later is
+        # correct. Get the set of atom types that produce the crystal (and
+        # don't include the base atom type, which we asusme to be oxygen).
+        names = [particle.name for particle_ID, particle in
+                 enumerate(system.particles()) if (particle_ID in crystal_IDs)
+                 and (particle.name != 'O')]
+        # Ensure that this is the same as the stoichiometry dictionary keys
+        assert(np.array_equal(args.stoichiometry.keys(), set(names)))
 
     # Generate the morphology box based on the input parameters
     system_box = mb.Box(mins=[-(x_extent * args.dimensions[0]) / 2.0,
