@@ -26,19 +26,23 @@ def set_coeffs(file_name, system):
                               epsilon=np.sqrt(type1[1] * type2[1]),
                               sigma=np.sqrt(type1[2] * type2[2]))
 
-    harmonic_bond = hoomd.md.bond.harmonic()
-    for bond in coeffs_dict['bond_coeffs']:
-        harmonic_bond.bond_coeff.set(bond[0], k=bond[1], r0=bond[2])
+    if len(coeffs_dict['bond_coeffs']) != 0:
+        harmonic_bond = hoomd.md.bond.harmonic()
+        for bond in coeffs_dict['bond_coeffs']:
+            harmonic_bond.bond_coeff.set(bond[0], k=bond[1], r0=bond[2])
 
-    harmonic_angle = hoomd.md.angle.harmonic()
-    for angle in coeffs_dict['angle_coeffs']:
-        harmonic_angle.angle_coeff.set(angle[0], k=angle[1], t0=angle[2])
+    if len(coeffs_dict['angle_coeffs']) != 0:
+        harmonic_angle = hoomd.md.angle.harmonic()
+        for angle in coeffs_dict['angle_coeffs']:
+            harmonic_angle.angle_coeff.set(angle[0], k=angle[1], t0=angle[2])
 
-    harmonic_dihedral = hoomd.md.dihedral.opls()
-    for dihedral in coeffs_dict['dihedral_coeffs']:
-        harmonic_dihedral.dihedral_coeff.set(dihedral[0], k1=dihedral[1],
-                                             k2=dihedral[2], k3=dihedral[3],
-                                             k4=dihedral[4])
+    if len(coeffs_dict['dihedral_coeffs']) != 0:
+        harmonic_dihedral = hoomd.md.dihedral.opls()
+        for dihedral in coeffs_dict['dihedral_coeffs']:
+            harmonic_dihedral.dihedral_coeff.set(dihedral[0], k1=dihedral[1],
+                                                 k2=dihedral[2],
+                                                 k3=dihedral[3],
+                                                 k4=dihedral[4])
 
     for atomID, atom in enumerate(system.particles):
         atom.mass = coeffs_dict['mass'][atomID]
@@ -67,6 +71,8 @@ def get_coeffs(file_name):
                                             len(mass) > 0]
             # Now the other coefficients
             elif child.tag in coeff_dictionary.keys():
+                if child.text is None:
+                    continue
                 for line in child.text.split('\n'):
                     if len(line) == 0:
                         continue
