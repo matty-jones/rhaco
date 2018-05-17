@@ -16,12 +16,6 @@ G_TO_AMU = 6.0222E23
 CM_TO_NM = 1.0000E07
 
 
-# The crystallographic unit cell parameters
-# Taken from Desanto2006 (10.1007/s11244-006-0068-8)
-x_extent = 2.148490
-y_extent = 2.664721
-z_extent = 0.400321
-
 # Set the defaults for all the required arguments
 defaults_dict = {'stoichiometry': {'Mo': 1, 'V': 0.3, 'Nb': 0.15, 'Te': 0.15},
                  'dimensions': [1, 1, 1],
@@ -62,7 +56,7 @@ class crystal_surface(mb.Compound):
     # Default stoichiometry found in: Nanostructured Catalysts: Selective
     # Oxidations (Hess and Schl\"ogl, 2011, RSC)
     def __init__(self, surface_dimensions, template, stoichiometry_dict,
-                 crystal_bonds):
+                 crystal_bonds, x_extent, y_extent, z_extent):
         # Call the mb.Compound initialisation
         super().__init__()
         # OUTER LOOP: Create multiple layers based on the input dimensions
@@ -185,10 +179,12 @@ def create_morphology(args):
     output_file = create_output_file_name(args)
     print("Generating first surface (bottom)...")
     surface1 = crystal_surface(args.dimensions, args.template,
-                               args.stoichiometry, args.crystal_bonds)
+                               args.stoichiometry, args.crystal_bonds,
+                               args.crystal_x, args.crystal_y, args.crystal_z)
     print("Generating second surface (top)...")
     surface2 = crystal_surface(args.dimensions, args.template,
-                               args.stoichiometry, args.crystal_bonds)
+                               args.stoichiometry, args.crystal_bonds,
+                               args.crystal_x, args.crystal_y, args.crystal_z)
     # Now create the system by combining the two surfaces
     system = crystal_system(surface1, surface2, args.crystal_separation)
     # Get the crystal IDs because we're going to need them later so that HOOMD
@@ -609,7 +605,7 @@ def main():
                         type=float,
                         default=25.0,
                         required=False,
-                        help='''Assign a pysical separation (in Angstroems) to
+                        help='''Assign a physical separation (in Angstroems) to
                         the bottom planes of the two crystals corresponding to
                         the top and bottom of the simulation volume within the
                         periodic box.\n
@@ -732,6 +728,42 @@ def main():
                         determining which parameters were used to generate each
                         file, and so only an output.hoomdxml is created.
                         For example: -sig.\n''')
+    parser.add_argument("-xx", "--crystal_x",
+                        type=float,
+                        default=2.148490,
+                        required=False,
+                        help='''Assign the periodicity of the crystal unit cell
+                        in the x direction.\n
+                        This defines the 'a' axis spacing between the unit
+                        cells in the crystal in nm.\n
+                        If unspecified this uses the default for M1 which is
+                        2.148490 nm. (Taken from Desanto2006
+                        (10.1007/s11244-006-0068-8))\n
+                        For example: -xx 2.148490.\n''')
+    parser.add_argument("-xy", "--crystal_y",
+                        type=float,
+                        default=2.664721,
+                        required=False,
+                        help='''Assign the periodicity of the crystal unit cell
+                        in the y direction.\n
+                        This defines the 'b' axis spacing between the unit
+                        cells in the crystal in nm.\n
+                        If unspecified this uses the default for M1 which is
+                        2.664721 nm. (Taken from Desanto2006
+                        (10.1007/s11244-006-0068-8))\n
+                        For example: -xy 2.664721.\n''')
+    parser.add_argument("-xz", "--crystal_z",
+                        type=float,
+                        default=0.400321,
+                        required=False,
+                        help='''Assign the periodicity of the crystal unit cell
+                        in the z direction.\n
+                        This defines the 'c' axis spacing between the unit
+                        cells in the crystal in nm.\n
+                        If unspecified this uses the default for M1 which is
+                        0.400321 nm. (Taken from Desanto2006
+                        (10.1007/s11244-006-0068-8))\n
+                        For example: -xz 0.400321.\n''')
     args = parser.parse_args()
     if args.meow:
         print(zlib.decompress(base64.decodebytes(
