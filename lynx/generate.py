@@ -196,20 +196,20 @@ def create_morphology(args):
         args.gas_composition, ratio_type='mass')
     # Define the regions that the hydrocarbons can go in, so we don't end
     # up with them between layers
-    box_top = mb.Box(mins=[-(x_extent * args.dimensions[0]) / 2.0,
-                           -(y_extent * args.dimensions[1]) / 2.0,
+    box_top = mb.Box(mins=[-(args.crystal_x * args.dimensions[0]) / 2.0,
+                           -(args.crystal_y * args.dimensions[1]) / 2.0,
                            args.crystal_separation / 20.0
-                           + (z_extent * args.dimensions[2])],
-                     maxs=[(x_extent * args.dimensions[0]) / 2.0,
-                           (y_extent * args.dimensions[1]) / 2.0,
+                           + (args.crystal_z * args.dimensions[2])],
+                     maxs=[(args.crystal_x * args.dimensions[0]) / 2.0,
+                           (args.crystal_y * args.dimensions[1]) / 2.0,
                            args.z_reactor_size / 2.0])
-    box_bottom = mb.Box(mins=[-(x_extent * args.dimensions[0]) / 2.0,
-                              -(y_extent * args.dimensions[1]) / 2.0,
+    box_bottom = mb.Box(mins=[-(args.crystal_x * args.dimensions[0]) / 2.0,
+                              -(args.crystal_y * args.dimensions[1]) / 2.0,
                               -args.z_reactor_size / 2.0],
-                        maxs=[(x_extent * args.dimensions[0]) / 2.0,
-                              (y_extent * args.dimensions[1]) / 2.0,
+                        maxs=[(args.crystal_x * args.dimensions[0]) / 2.0,
+                              (args.crystal_y * args.dimensions[1]) / 2.0,
                               -args.crystal_separation / 20.0
-                              - (z_extent * args.dimensions[2])])
+                              - (args.crystal_z * args.dimensions[2])])
     box_top_vol = np.prod(box_top.maxs - box_top.mins)
     box_bottom_vol = np.prod(box_bottom.maxs - box_bottom.mins)
     reactor_vol = box_top_vol + box_bottom_vol
@@ -255,11 +255,11 @@ def create_morphology(args):
         assert(np.array_equal(args.stoichiometry.keys(), set(names)))
 
     # Generate the morphology box based on the input parameters
-    system_box = mb.Box(mins=[-(x_extent * args.dimensions[0]) / 2.0,
-                              -(y_extent * args.dimensions[1]) / 2.0,
+    system_box = mb.Box(mins=[-(args.crystal_x * args.dimensions[0]) / 2.0,
+                              -(args.crystal_y * args.dimensions[1]) / 2.0,
                               -args.z_reactor_size / 2.0],
-                        maxs=[(x_extent * args.dimensions[0]) / 2.0,
-                              (y_extent * args.dimensions[1]) / 2.0,
+                        maxs=[(args.crystal_x * args.dimensions[0]) / 2.0,
+                              (args.crystal_y * args.dimensions[1]) / 2.0,
                               args.z_reactor_size / 2.0])
     print("Morphology generated.")
     # Note this logic means a user cannot specify their own FF with the same
