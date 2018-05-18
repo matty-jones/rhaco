@@ -5,21 +5,21 @@
   <Type name="Ga" class="GA" element="Ga" mass="69.723"  def="Ga" desc="uff_Ga: Tetrahedral Ga3+" doi="10.1021/ja00051a040"/>
   <Type name="Si" class="SI" element="Si" mass="28.0855" def="Si" desc="opls/amber_Si: Si all geometries" doi="10.1021/ma00094a01"/>
   <Type name="O" class="O" element="O" mass="15.999"  def="O" desc="opls/amber_O: O all geometries" doi="10.1021/ma00094a011"/>
-  <Type name="CH3" class="CH3" element="CH3" mass="15.035"  def="CH3" desc="opls/amber_CH3: CH3 all geometries" doi="10.1021/ma00094a011"/>
+  <Type name="C" class="C" element="C" mass="15.035"  def="C" desc="opls/amber_CH3: CH3 all geometries" doi="10.1021/ma00094a011"/>
  </AtomTypes>
  <HarmonicBondForce>
-    <Bond class1="SI" class2="O" length="1.647" k=""/>
-    <Bond class1="SI" class2="CH3" length="1.866" k=""/>
+    <Bond class1="SI" class2="O" length="1.647" k="0.0000"/>
+    <Bond class1="SI" class2="C" length="1.866" k="0.0000"/>
  </HarmonicBondForce>
  <HarmonicAngleForce>
-    <Angle class1="SI" class2="O" class3="SI" anle="2.54688889" k=""/>
-    <Angle class1="O" class2="SI" class3="O" anle="2.07588889" k=""/>
-    <Angle class1="CH3" class2="SI" class3="CH3" anle="1.84387778" k=""/>
-    <Angle class1="O" class2="SI" class3="CH3" anle="1.87527778" k=""/>
+    <Angle class1="SI" class2="O" class3="SI" anle="2.54688889" k="0.0000"/>
+    <Angle class1="O" class2="SI" class3="O" anle="2.07588889" k="0.0000"/>
+    <Angle class1="C" class2="SI" class3="C" anle="1.84387778" k="0.0000"/>
+    <Angle class1="O" class2="SI" class3="C" anle="1.87527778" k="0.0000"/>
  </HarmonicAngleForce>
  <RBTorsionForce>
-    <Proper class1="SI" class2="O" class3="SI" class4="O" c0="" c1="" c2=""/>
-    <Proper class1="SI" class2="O" class3="SI" class4="CH3" c0="" c1="" c2=""/>
+    <Proper class1="SI" class2="O" class3="SI" class4="O" c0="0.0000" c1="0.0000" c2="0.0000"/>
+    <Proper class1="SI" class2="O" class3="SI" class4="C" c0="0.0000" c1="0.0000" c2="0.0000"/>
  </RBTorsionForce>
  <NonbondedForce coulomb14scale="0.5" lj14scale="0.5">
   <Atom type="Mn" charge="0.00" sigma="0.2635" epsilon="0.054392"/>
@@ -27,6 +27,6 @@
   <Atom type="Ga" charge="0.00" sigma="0.3901" epsilon="1.73636"/>
   <Atom type="Si" charge="0.30" sigma="0.2634" epsilon="2.4480"/>
   <Atom type="O" charge="-0.30" sigma="0.3017" epsilon="0.8493"/>
-  <Atom type="CH3" charge="0.00" sigma="0.2355" epsilon="0.7532"/>
+  <Atom type="C" charge="0.00" sigma="0.2355" epsilon="0.7532"/>
  </NonbondedForce>
 </ForceField>
