@@ -12,10 +12,10 @@
     <Bond class1="SI" class2="C" length="1.866" k="79337.0"/>
  </HarmonicBondForce>
  <HarmonicAngleForce>
-    <Angle class1="SI" class2="O" class3="SI" anle="2.54688889" k="59.162"/>
-    <Angle class1="O" class2="SI" class3="O" anle="2.07588889" k="395.388"/>
-    <Angle class1="C" class2="SI" class3="C" anle="1.84387778" k="209.074"/>
-    <Angle class1="O" class2="SI" class3="C" anle="1.87527778" k="209.074"/>
+    <Angle class1="SI" class2="O" class3="SI" angle="2.54688889" k="59.162"/>
+    <Angle class1="O" class2="SI" class3="O" angle="2.07588889" k="395.388"/>
+    <Angle class1="C" class2="SI" class3="C" angle="1.84387778" k="209.074"/>
+    <Angle class1="O" class2="SI" class3="C" angle="1.87527778" k="209.074"/>
  </HarmonicAngleForce>
  <RBTorsionForce>
     <Proper class1="SI" class2="O" class3="SI" class4="O" c0="1.8828" c1="0.0000" c2="0.0000"/>
