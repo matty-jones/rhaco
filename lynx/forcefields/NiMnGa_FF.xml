@@ -8,18 +8,18 @@
   <Type name="C" class="C" element="C" mass="15.035"  def="C" desc="opls/amber_CH3: CH3 all geometries" doi="10.1021/ma00094a011"/>
  </AtomTypes>
  <HarmonicBondForce>
-    <Bond class1="SI" class2="O" length="1.647" k="0.0000"/>
-    <Bond class1="SI" class2="C" length="1.866" k="0.0000"/>
+    <Bond class1="SI" class2="O" length="1.647" k="146490.2"/>
+    <Bond class1="SI" class2="C" length="1.866" k="79337.0"/>
  </HarmonicBondForce>
  <HarmonicAngleForce>
-    <Angle class1="SI" class2="O" class3="SI" anle="2.54688889" k="0.0000"/>
-    <Angle class1="O" class2="SI" class3="O" anle="2.07588889" k="0.0000"/>
-    <Angle class1="C" class2="SI" class3="C" anle="1.84387778" k="0.0000"/>
-    <Angle class1="O" class2="SI" class3="C" anle="1.87527778" k="0.0000"/>
+    <Angle class1="SI" class2="O" class3="SI" anle="2.54688889" k="59.162"/>
+    <Angle class1="O" class2="SI" class3="O" anle="2.07588889" k="395.388"/>
+    <Angle class1="C" class2="SI" class3="C" anle="1.84387778" k="209.074"/>
+    <Angle class1="O" class2="SI" class3="C" anle="1.87527778" k="209.074"/>
  </HarmonicAngleForce>
  <RBTorsionForce>
-    <Proper class1="SI" class2="O" class3="SI" class4="O" c0="0.0000" c1="0.0000" c2="0.0000"/>
-    <Proper class1="SI" class2="O" class3="SI" class4="C" c0="0.0000" c1="0.0000" c2="0.0000"/>
+    <Proper class1="SI" class2="O" class3="SI" class4="O" c0="1.8828" c1="0.0000" c2="0.0000"/>
+    <Proper class1="SI" class2="O" class3="SI" class4="C" c0="0.08368" c1="0.0000" c2="0.0000"/>
  </RBTorsionForce>
  <NonbondedForce coulomb14scale="0.5" lj14scale="0.5">
   <Atom type="Mn" charge="0.00" sigma="0.2635" epsilon="0.054392"/>
