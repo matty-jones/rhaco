@@ -20,11 +20,11 @@ CM_TO_NM = 1.0000E07
 defaults_dict = {'stoichiometry': {'Mo': 1, 'V': 0.3, 'Nb': 0.15, 'Te': 0.15},
                  'dimensions': [1, 1, 1],
                  'template': 'templateM1.pdb',
-                 'gas_composition': {'C2H6': 3, 'O2': 2, 'He': 5},
+                 'reactant_composition': {'C2H6': 3, 'O2': 2, 'He': 5},
                  'crystal_separation': 25.0,
                  'z_reactor_size': 20.0,
-                 'gas_num_mol': None,
-                 'gas_density': None,
+                 'reactant_num_mol': None,
+                 'reactant_density': None,
                  'forcefield': None,
                  'integrate_crystal': False}
 
@@ -165,7 +165,7 @@ class crystal_system(mb.Compound):
 
 
 class mbuild_template(mb.Compound):
-    # This class will contain the mb compound for hydrocarbon
+    # This class will contain the mb compound for the reactant
     def __init__(self, template):
         # Call the mb.Compound initialisation
         super().__init__()
@@ -173,6 +173,22 @@ class mbuild_template(mb.Compound):
         mb.load(os.path.join(PDB_LIBRARY,
                              ''.join(template.split('.pdb')) + '.pdb'),
                 compound=self)
+        atom_types = [atom_type.split('[')[0] for atom_type in
+                      self.labels.keys() if '[' in atom_type]
+        self.mass = self.get_mass(atom_types)
+
+    def get_mass(self, atom_types):
+        mass = 0.0
+        for atom_type in set(atom_types):
+            try:
+                type_mass = ATOM_MASSES[atom_type]
+            except KeyError:
+                print("Type", atom_type, "not found in definitions.py."
+                      " Assuming a mass of 1.0 AMU (the density specified by"
+                      " -rd can no longer be trusted!)")
+                type_mass = 1.0
+            mass += type_mass * atom_types.count(atom_type)
+        return mass
 
 
 def create_morphology(args):
@@ -190,10 +206,10 @@ def create_morphology(args):
     # Get the crystal IDs because we're going to need them later so that HOOMD
     # knows not to integrate them.
     crystal_IDs = range(system.n_particles)
-    # Now we can populate the box with gas
+    # Now we can populate the box with reactant
     print("Surfaces generated. Generating input fluence...")
-    gas_components, gas_probs, gas_masses = calculate_probabilities(
-        args.gas_composition, ratio_type='mass')
+    reactant_components, reactant_probs, reactant_masses = calculate_probabilities(
+        args.reactant_composition, ratio_type='number')
     # Define the regions that the hydrocarbons can go in, so we don't end
     # up with them between layers
     box_top = mb.Box(mins=[-(args.crystal_x * args.dimensions[0]) / 2.0,
@@ -215,37 +231,37 @@ def create_morphology(args):
     reactor_vol = box_top_vol + box_bottom_vol
 
     # Number specified and not density
-    if (args.gas_density is None) and (args.gas_num_mol is not None):
-        number_of_gas_mols = args.gas_num_mol
+    if (args.reactant_density is None) and (args.reactant_num_mol is not None):
+        number_of_reactant_mols = args.reactant_num_mol
     # Density specified but not numbers
-    elif (args.gas_density is not None) and (args.gas_num_mol is None):
-        # Work backwards to come up with how many gas molecules are needed
+    elif (args.reactant_density is not None) and (args.reactant_num_mol is None):
+        # Work backwards to come up with how many reactant molecules are needed
         # to get the specified density.
-        # Get the average mass for each molecule based on gas probabilities
-        mass_per_n = np.sum([gas_masses[key] * gas_probs[index] for index,
-                             key in enumerate(gas_components)])
-        # Given the reactor volume and the specified gas density, calculate
-        # the total number of gas molecules needed.
+        # Get the average mass for each molecule based on reactant probabilities
+        mass_per_n = np.sum([reactant_masses[key] * reactant_probs[index] for index,
+                             key in enumerate(reactant_components)])
+        # Given the reactor volume and the specified reactant density, calculate
+        # the total number of reactant molecules needed.
         # Need to convert from CGS (g/cm^{3} -> AMU/nm^{3})
-        gas_density_conv = args.gas_density * G_TO_AMU / (CM_TO_NM**3)
-        number_of_gas_mols = int(gas_density_conv * reactor_vol / mass_per_n)
-    if number_of_gas_mols > 0:
-        gas_compounds = []
+        reactant_density_conv = args.reactant_density * G_TO_AMU / (CM_TO_NM**3)
+        number_of_reactant_mols = int(reactant_density_conv * reactor_vol / mass_per_n)
+    if number_of_reactant_mols > 0:
+        reactant_compounds = []
         n_compounds = []
-        for compound_index, gas_molecule in enumerate(gas_components):
-            gas_compounds.append(mbuild_template(gas_molecule))
+        for compound_index, reactant_molecule in enumerate(reactant_components):
+            reactant_compounds.append(mbuild_template(reactant_molecule))
             n_compounds.append(int(np.round(np.round(
-                gas_probs[compound_index] * number_of_gas_mols) / 2.0)))
-        gas_top = mb.packing.fill_box(gas_compounds, n_compounds, box_top,
+                reactant_probs[compound_index] * number_of_reactant_mols) / 2.0)))
+        reactant_top = mb.packing.fill_box(reactant_compounds, n_compounds, box_top,
                                       seed=np.random.randint(0, 2**31 - 1))
-        gas_bottom = mb.packing.fill_box(gas_compounds, n_compounds,
+        reactant_bottom = mb.packing.fill_box(reactant_compounds, n_compounds,
                                          box_bottom,
                                          seed=np.random.randint(0, 2**31 - 1))
-        system.add(gas_top)
-        system.add(gas_bottom)
+        system.add(reactant_top)
+        system.add(reactant_bottom)
 
     if "M1UnitCell.pdb" in args.template:
-        # Check the separation of crystal and gas that we will use later is
+        # Check the separation of crystal and reactant that we will use later is
         # correct. Get the set of atom types that produce the crystal (and
         # don't include the base atom type, which we asusme to be oxygen).
         names = [particle.name for particle_ID, particle in
@@ -477,48 +493,31 @@ def fix_images(file_name):
     return morphology
 
 
-def calculate_probabilities(input_dictionary, ratio_type='number'):
+def calculate_probabilities(input_dictionary, ratio_type='stoic'):
     '''
     This function takes an input dictionary corresponding to the relative
     ratios of some parameter, then returns normalized probabilities for each
     option that can be used to make choices with appropriate bias.
     '''
+    choices = list(input_dictionary.keys())
+    number_ratios = np.array(list(input_dictionary.values()))
+    mass_dict = None
     if ratio_type == 'number':
-        choices = list(input_dictionary.keys())
-        number_ratios = np.array(list(input_dictionary.values()))
-        mass_dict = None
-    if ratio_type == 'mass':
-        choices, number_ratios, mass_dict = convert_to_masses(input_dictionary)
+        mass_dict = get_masses(input_dictionary.keys())
     probabilities = list(number_ratios / np.sum(number_ratios))
     return choices, probabilities, mass_dict
 
 
-def convert_to_masses(input_dictionary):
+def get_masses(reactant_names):
     number_ratio = {}
     mass_dict = {}
     # First split out the key names into atoms
-    for atomic_composition, mass_ratio in input_dictionary.items():
-        split_atoms = re.findall(r'[A-Za-z]+|\d+', atomic_composition)
-        # split_atoms is now a list where the odd elements describe the atom
-        # types, and the even elements are the number of atoms of that type.
-        # Create a list of atoms that make up the compound.
-        atom_list = []
-        for component in split_atoms:
-            try:
-                quantity = int(component) - 1
-                atom_list += [atom_list[-1]] * quantity
-            except ValueError:
-                atom_list.append(component)
+    for reactant_name in reactant_names:
         # Consult the mass lookup table
-        total_mass = np.sum([ATOM_MASSES[atom_type]
-                             for atom_type in atom_list])
-        mass_dict[atomic_composition] = total_mass
-        # Get the number ratios by dividing the mass ratio by the total mass
-        # of the component
-        number_ratio[atomic_composition] = mass_ratio / float(total_mass)
+        total_mass = mbuild_template(reactant_name).mass
+        mass_dict[reactant_name] = total_mass
     # Return dictionary of number ratios
-    return list(number_ratio.keys()), np.array(list(number_ratio.values())),\
-        mass_dict
+    return mass_dict
 
 
 def create_output_file_name(args, file_type='hoomdxml'):
@@ -538,8 +537,8 @@ def create_output_file_name(args, file_type='hoomdxml'):
                 for key, val in arg_val.items():
                     output_file += str(key) + ':' + str(val) + '_'
                 output_file = output_file[:-1]
-            elif arg_name == 'gas_composition':
-                output_file += "GC_"
+            elif arg_name == 'reactant_composition':
+                output_file += "RC_"
                 for key, val in arg_val.items():
                     output_file += str(key) + ':' + str(val) + '_'
                 output_file = output_file[:-1]
@@ -645,7 +644,7 @@ def main():
                         which describes the physical separation between the
                         bottom layers of the two flipped M1 crystals.\n
                         For example: -z 20.0.\n''')
-    parser.add_argument("-gc", "--gas_composition",
+    parser.add_argument("-rc", "--reactant_composition",
                         type=lambda s: {str(key[1:-1]): float(val)
                                         for [key, val] in
                                         [splitChar for splitChar
@@ -655,36 +654,36 @@ def main():
                                          if len(splitChar) > 0]},
                         default={'C2H6': 3, 'O2': 2, 'He': 5},
                         required=False,
-                        help='''Specify a gas composition.\n
-                        The input proportions are assumed to be by mass, and
-                        will be normalized and used to create the gas, which
-                        is incident on the catalyst as it flows into the
+                        help='''Specify a reactant composition.\n
+                        The input proportions are assumed to be by moles, and
+                        will be normalized and used to create the reactant,
+                        which is incident on the catalyst as it flows into the
                         reactor.\n
-                        For example: -g "{'C2H6': 3, 'O2': 2, 'He': 5}" will
-                        set a relative gas proportion to 0.6:0.4:1 respectively
-                        by mass.\n
+                        For example: -rc "{'C2H6': 3, 'O2': 2, 'He': 5}" will
+                        set a relative reactant proportion to 0.6:0.4:1
+                        respectively by number of molecules.\n
                         Note that keys in the dictionary must be the same as
                         the pdb files located in the PDB_LIBRARY of Lynx, and
                         the corresponding values are interpreted as the
-                        proportion BY MASS.\n''')
-    gas_amount_group = parser.add_mutually_exclusive_group(required=True)
-    gas_amount_group.add_argument("-gn", "--gas_num_mol",
+                        proportion by moles.\n''')
+    reactant_amount_group = parser.add_mutually_exclusive_group(required=True)
+    reactant_amount_group.add_argument("-rn", "--reactant_num_mol",
                                   type=int,
                                   default=None,
-                                  help='''Set the number of gas component
+                                  help='''Set the number of reactant component
                                   molecules to be included in the system.\n
-                                  For example: -gn 1000.\n
-                                  In order to specify the reactor gas input,
-                                  either --gas_num_mol or --gas_density
+                                  For example: -rn 1000.\n
+                                  In order to specify the reactor reactant input,
+                                  either --reactant_num_mol or --reactant_density
                                   must be specified.\n''')
-    gas_amount_group.add_argument("-gd", "--gas_density",
+    reactant_amount_group.add_argument("-rd", "--reactant_density",
                                   type=float,
                                   default=None,
                                   help='''Set the density of the reactor
                                   fluence in g/cm^{3}.\n
-                                  For example: -n 0.05.\n
-                                  In order to specify the reactor gas input,
-                                  either --gas_num_mol or --gas_density
+                                  For example: -rd 0.05.\n
+                                  In order to specify the reactor reactant input,
+                                  either --reactant_num_mol or --reactant_density
                                   must be specified.\n''')
     parser.add_argument("--meow",
                         action='store_true',
