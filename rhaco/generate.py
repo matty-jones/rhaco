@@ -668,16 +668,15 @@ def main():
                         the pdb files located in the PDB_LIBRARY of Rhaco, and
                         the corresponding values are interpreted as the
                         proportion by moles.\n''')
-    reactant_amount_group = parser.add_mutually_exclusive_group(required=True)
+    reactant_amount_group = parser.add_mutually_exclusive_group(required=False)
     reactant_amount_group.add_argument("-rn", "--reactant_num_mol",
                                   type=int,
-                                  default=None,
+                                  default=1000,
                                   help='''Set the number of reactant component
                                   molecules to be included in the system.\n
                                   For example: -rn 1000.\n
-                                  In order to specify the reactor reactant input,
-                                  either --reactant_num_mol or --reactant_density
-                                  must be specified.\n''')
+                                  If unspecified, then 1000 reactant molecules
+                                  will be used.\n''')
     reactant_amount_group.add_argument("-rd", "--reactant_density",
                                   type=float,
                                   default=None,
@@ -687,12 +686,13 @@ def main():
                                   In order to specify the reactor reactant input,
                                   either --reactant_num_mol or --reactant_density
                                   must be specified.\n''')
-    parser.add_argument("--meow",
+    parser.add_argument("--gecko",
                         action='store_true',
                         help=argparse.SUPPRESS)
     parser.add_argument("-f", "--forcefield",
                         type=lambda f: f.split('.xml')[0],
-                        required=True,
+                        default='None',
+                        required=False,
                         help='''Use Foyer to set the forcefield to use when
                         running the simulation.\n
                         Note the forcefields are located in the FF_LIBRARY
@@ -766,13 +766,16 @@ def main():
                         (10.1007/s11244-006-0068-8))\n
                         For example: -xz 0.400321.\n''')
     args = parser.parse_args()
-    if args.meow:
+    if args.gecko:
         print(zlib.decompress(base64.decodebytes(
-            b'''eJx9kEtuxiAMhPc5heVNQcKTZaO4J+gZItEbcILevWNIq4T8qmUTGH1+xCK0Ql/
-            ikg7Rfilmjowaj4xiqAJRtRLKijeFicomLWSv8p8tZDaQZD7MDEBh/WFAJFdVj1aqyi
-            NnVkZk9ZCI0+NNlTxqzximTnwL73FxjBwouy/XqRyhO4FB/OLfZ9f9Rv/hF5ae5Jxyo
-            oOnfkR1wTB3l9e1A28MPY6vYUla6i0E/mB3aTvpq8IBeuH0hBtJv0nqfV/t1RjSZrrz
-            zgQc8uTBBe6zmrH2BTxGrxkf/KNJ9MDjnDauta5mehNTqvW9fz5/AI2vbiM='''))
-            .decode('utf-8'))
+            b"""
+            eJyFU0FuxCAMvPOKUS5OpGDujvoTJPOQPL62IWy6zbZWFIHtGYYBgP9C75H+bNxzziT
+            CGcgiCkXLHmzIO9knFiMgx0HEKexjONCmkQYb306RAUsz4kcqo1FvAYJLrbdjMubYhq
+            X37LaKicYjnUsa/b07IqZ9iVf+hHOv67ltV1fjSajDHlz9/X+IzDHcOWflkI2KSLfwz
+            LJs8NT3tywd5Lp93m0GVu75epWjaMThROOrGDE2HIYODT5UVo5D4G2IfgXrytboghyN
+            xq7XToXZD/nAkXxLtp7hKJvOxaV6lPgeorJb53r6bWlEbS5I6bCCyPF2LCgsRfcnPq0
+            sVfcUpD9xX5RLqSbrN2qWUrMZn29lItf3qH/UEqoIVaRucAzMH56XwNz398D3F9Cy9C
+            fxfPvcB2rfSW6mXw==
+            """)).decode('utf-8'))
         exit()
     create_morphology(args)
