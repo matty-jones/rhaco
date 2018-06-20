@@ -6,7 +6,7 @@ import os
 import re
 import zlib
 import base64
-from lynx.definitions import PDB_LIBRARY, FF_LIBRARY, ATOM_MASSES
+from rhaco.definitions import PDB_LIBRARY, FF_LIBRARY, ATOM_MASSES
 import xml.etree.cElementTree as ET
 from collections import OrderedDict
 
@@ -557,7 +557,7 @@ def create_output_file_name(args, file_type='hoomdxml'):
 
 
 def main():
-    parser = argparse.ArgumentParser(prog='lynx-create-morph',
+    parser = argparse.ArgumentParser(prog='rhaco-create-morph',
                                      formatter_class=argparse.
                                      ArgumentDefaultsHelpFormatter)
     parser.add_argument("-s", "--stoichiometry",
@@ -598,7 +598,7 @@ def main():
                         help='''Identify the unit cell file to be used to
                         create the surface.\n
                         Note the unit cells are located in the PDB_LIBRARY
-                        directory, which defaults to lynx/compounds.\n
+                        directory, which defaults to rhaco/compounds.\n
                         For example: -t "M1UnitCell.pdb".\n
                         If not specified, the default
                         PDB_LIBRARY/M1UnitCell.pdb is used.''')
@@ -626,7 +626,7 @@ def main():
                         required when bonds are to be simulated with MD further
                         down the line.\n
                         Note that these bonds are current hard-coded in
-                        lynx/generate.py for the M1 crystal structure. The user
+                        rhaco/generate.py for the M1 crystal structure. The user
                         can modify these manually if so desired (to place
                         custom bonds), or the user can contact the repository
                         maintainers to express their interest in having an
@@ -665,7 +665,7 @@ def main():
                         set a relative reactant proportion to 0.6:0.4:1
                         respectively by number of molecules.\n
                         Note that keys in the dictionary must be the same as
-                        the pdb files located in the PDB_LIBRARY of Lynx, and
+                        the pdb files located in the PDB_LIBRARY of Rhaco, and
                         the corresponding values are interpreted as the
                         proportion by moles.\n''')
     reactant_amount_group = parser.add_mutually_exclusive_group(required=True)
@@ -696,7 +696,7 @@ def main():
                         help='''Use Foyer to set the forcefield to use when
                         running the simulation.\n
                         Note the forcefields are located in the FF_LIBRARY
-                        directory, which defaults to lynx/forcefields.\n
+                        directory, which defaults to rhaco/forcefields.\n
                         For example: -f FF_opls_uff.\n
                         If 'None' specified, the compound will not be saved
                         with forcefield information.''')
@@ -720,11 +720,11 @@ def main():
                         action='store_true',
                         help='''Change the naming nomenclature to be more
                         specific if signac-flow is not being used (via
-                        lynx-flow).\n
+                        rhaco-flow).\n
                         By default, output files will be named based on the
                         input parameters used to generate them.\n
                         However, this is not useful when using the signac
-                        infrastructure provided by lynx-flow.\n
+                        infrastructure provided by rhaco-flow.\n
                         In this case, signac does the heavy lifting of
                         determining which parameters were used to generate each
                         file, and so only an output.hoomdxml is created.

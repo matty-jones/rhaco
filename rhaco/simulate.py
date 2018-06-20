@@ -133,7 +133,7 @@ def initialize_velocities(snapshot, temperature):
 
 
 def main():
-    parser = argparse.ArgumentParser(prog='lynx-run-hoomd',
+    parser = argparse.ArgumentParser(prog='rhaco-run-hoomd',
                                     formatter_class=argparse.
                                     ArgumentDefaultsHelpFormatter)
     parser.add_argument('-t', '--temperature',
