@@ -17,10 +17,10 @@ CM_TO_NM = 1.0000E07
 
 
 # Set the defaults for all the required arguments
-defaults_dict = {'stoichiometry': {'Mo': 1, 'V': 0.3, 'Nb': 0.15, 'Te': 0.15},
+defaults_dict = {'stoichiometry': {'Mo': 1, 'V': 0.15, 'Nb': 0.13, 'Te': 0.12},
                  'dimensions': [1, 1, 1],
                  'template': 'templateM1.pdb',
-                 'reactant_composition': {'C2H6': 3, 'O2': 2, 'He': 5},
+                 'reactant_composition': {'C2H6': 1},
                  'crystal_separation': 25.0,
                  'z_reactor_size': 20.0,
                  'reactant_num_mol': None,
@@ -568,7 +568,7 @@ def main():
                                              _ for _ in s[1:-1].split(',')
                                              if len(_) > 0]]
                                          if len(splitChar) > 0]},
-                        default={'Mo': 1, 'V': 0.3, 'Nb': 0.15, 'Te': 0.15},
+                        default={'Mo': 1, 'V': 0.15, 'Nb': 0.13, 'Te': 0.12},
                         required=False,
                         help='''Specify a stoichiometry for the surface.\n
                         Atoms marked as type 'X' in the template will be
@@ -576,9 +576,11 @@ def main():
                         the input dictionary, with probabilities determined
                         from the ratios given by the values of the input
                         dictionary.\n
-                        For example: -s "{'Mo': 1, 'V': 0.3, 'Nb': 0.15,
-                        'Te': 0.15}" will create a surface where there are 5
-                        Mo atoms for every V, and 0.85 Nb.\n''')
+                        For example: -s "{'Mo': 1, 'V': 0.15, 'Nb': 0.13,
+                        'Te': 0.12}" will create a surface where there are 5
+                        Mo atoms for every V, and 0.85 Nb.\n
+                        The above default value is taken from
+                        10.1524/zkri.219.3.152.29091\n''')
     parser.add_argument("-d", "--dimensions",
                         type=lambda d: [int(dim) for dim in
                                         d.split('x') if len(dim) > 0],
@@ -652,7 +654,7 @@ def main():
                                              _ for _ in s[1:-1].split(',')
                                              if len(_) > 0]]
                                          if len(splitChar) > 0]},
-                        default={'C2H6': 3, 'O2': 2, 'He': 5},
+                        default={'C2H6': 1},
                         required=False,
                         help='''Specify a reactant composition.\n
                         The input proportions are assumed to be by moles, and
