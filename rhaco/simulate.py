@@ -117,8 +117,8 @@ def rename_types(snapshot):
     return snapshot, catalyst, gas
 
 
-def initialize_velocities(snapshot, temperature):
-    v = np.random.random((len(snapshot.particles.velocity), 3))
+def initialize_velocities(snapshot, temperature, gas):
+    v = np.random.random((len(gas), 3))
     v -= 0.5
     meanv = np.mean(v, 0)
     meanv2 = np.mean(v ** 2, 0)
@@ -128,7 +128,9 @@ def initialize_velocities(snapshot, temperature):
     # Scale the velocities to match the required temperature
     v *= fs
     # Assign the velocities for this MD phase
-    snapshot.particles.velocity[:] = v[:]
+    indices_to_modify = [atom.tag for atom in gas]
+    for i, index in enumerate(indices_to_modify):
+        snapshot.particles.velocity[index] = v[i]
     return snapshot
 
 
@@ -181,13 +183,14 @@ def main():
         renamed_snapshot, catalyst, gas = rename_types(snapshot)
         # Assign the required velocities based on the requested temperature
         initialized_snapshot = initialize_velocities(renamed_snapshot,
-                                                     reduced_temperature)
+                                                     reduced_temperature,
+                                                     gas)
         # Finally, restore the snapshot
         system.restore_snapshot(initialized_snapshot)
         system = set_coeffs(file_name, system)
 
         hoomd.md.integrate.mode_standard(dt=args.timestep);
-        integrator = hoomd.md.integrate.nvt(group=gas, tau=0.1,
+        integrator = hoomd.md.integrate.nvt(group=gas, tau=0.01,
                                             kT=reduced_temperature)
 
         hoomd.dump.gsd(filename=".".join(file_name.split(".")[:-1])
