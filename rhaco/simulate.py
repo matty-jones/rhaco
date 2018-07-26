@@ -17,7 +17,7 @@ def set_coeffs(file_name, system):
     Read in the molecular dynamics coefficients exported by Foyer
     '''
     coeffs_dict = get_coeffs(file_name)
-    ljnl = hoomd.md.nlist.cell()
+    ljnl = hoomd.md.nlist.tree()
     lj = hoomd.md.pair.lj(r_cut=10.0, nlist=ljnl)
     lj.set_params(mode="xplor")
     for type1 in coeffs_dict['pair_coeffs']:
