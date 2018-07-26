@@ -787,4 +787,6 @@ def main():
             fxfPvcB2rfSW6mXw==
             """)).decode('utf-8'))
         exit()
+    print("The run arguments for this job are:")
+    print(print(args))
     create_morphology(args)
