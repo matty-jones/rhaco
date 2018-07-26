@@ -230,8 +230,17 @@ def create_morphology(args):
     box_bottom_vol = np.prod(box_bottom.maxs - box_bottom.mins)
     reactor_vol = box_top_vol + box_bottom_vol
 
+    # No reactant specified
+    if (args.reactant_density is None) and (args.reactant_num_mol is None):
+        number_of_reactant_mols = 0
+    # Both specified - print error and use the number
+    elif (args.reactant_density is not None) and (args.reactant_num_mol is not None):
+        print("".join(["Both -rn (", args.reactant_num_mol, ") and -rd (",
+                       args.reactant_density, ") specified. Using -rn ",
+                       args.reactant_num_mol, "..."]))
+        number_of_reactant_mols = args.reactant_num_mol
     # Number specified and not density
-    if (args.reactant_density is None) and (args.reactant_num_mol is not None):
+    elif (args.reactant_density is None) and (args.reactant_num_mol is not None):
         number_of_reactant_mols = args.reactant_num_mol
     # Density specified but not numbers
     elif (args.reactant_density is not None) and (args.reactant_num_mol is None):
