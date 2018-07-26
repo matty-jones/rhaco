@@ -235,9 +235,9 @@ def create_morphology(args):
         number_of_reactant_mols = 0
     # Both specified - print error and use the number
     elif (args.reactant_density is not None) and (args.reactant_num_mol is not None):
-        print("".join(["Both -rn (", args.reactant_num_mol, ") and -rd (",
-                       args.reactant_density, ") specified. Using -rn ",
-                       args.reactant_num_mol, "..."]))
+        print("".join(["Both -rn (", str(args.reactant_num_mol), ") and -rd (",
+                       str(args.reactant_density), ") specified. Using -rn ",
+                       str(args.reactant_num_mol), "..."]))
         number_of_reactant_mols = args.reactant_num_mol
     # Number specified and not density
     elif (args.reactant_density is None) and (args.reactant_num_mol is not None):
