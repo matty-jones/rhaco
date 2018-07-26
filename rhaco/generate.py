@@ -677,24 +677,26 @@ def main():
                         the pdb files located in the PDB_LIBRARY of Rhaco, and
                         the corresponding values are interpreted as the
                         proportion by moles.\n''')
-    reactant_amount_group = parser.add_mutually_exclusive_group(required=False)
-    reactant_amount_group.add_argument("-rn", "--reactant_num_mol",
-                                  type=int,
-                                  default=1000,
-                                  help='''Set the number of reactant component
-                                  molecules to be included in the system.\n
-                                  For example: -rn 1000.\n
-                                  If unspecified, then 1000 reactant molecules
-                                  will be used.\n''')
-    reactant_amount_group.add_argument("-rd", "--reactant_density",
-                                  type=float,
-                                  default=None,
-                                  help='''Set the density of the reactor
-                                  fluence in g/cm^{3}.\n
-                                  For example: -rd 0.05.\n
-                                  In order to specify the reactor reactant input,
-                                  either --reactant_num_mol or --reactant_density
-                                  must be specified.\n''')
+    parser.add_argument("-rn", "--reactant_num_mol",
+                        type=int,
+                        default=None,
+                        help='''Set the number of reactant component
+                        molecules to be included in the system.\n
+                        For example: -rn 1000.\n
+                        If unspecified, then no reactant will be
+                        used.\n
+                        Note that -rn overrides -rd if both are
+                        specified.''')
+    parser.add_argument("-rd", "--reactant_density",
+                        type=float,
+                        default=None,
+                        help='''Set the density of the reactor
+                        fluence in g/cm^{3}.\n
+                        For example: -rd 0.05.\n
+                        If unspecified, then no reactant will be
+                        used.
+                        Note that -rn overrides -rd if both are
+                        specified.''')
     parser.add_argument("--gecko",
                         action='store_true',
                         help=argparse.SUPPRESS)
