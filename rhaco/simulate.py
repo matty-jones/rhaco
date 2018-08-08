@@ -138,7 +138,7 @@ def main():
     parser = argparse.ArgumentParser(prog='rhaco-run-hoomd',
                                     formatter_class=argparse.
                                     ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-t', '--temperature',
+    parser.add_argument('-T', '--temperature',
                         type=float,
                         default=633,
                         required=False,
@@ -157,6 +157,12 @@ def main():
                         default=1E-3,
                         required=False,
                         help='''The integration timestep to use when running
+                        the NVT MD simulation.\n''')
+    parser.add_argument('-t', '--tau',
+                        type=float,
+                        default=1E-2,
+                        required=False,
+                        help='''The thermostate coupling to use when running
                         the NVT MD simulation.\n''')
     args, file_list = parser.parse_known_args()
 
@@ -190,7 +196,7 @@ def main():
         system = set_coeffs(file_name, system)
 
         hoomd.md.integrate.mode_standard(dt=args.timestep);
-        integrator = hoomd.md.integrate.nvt(group=gas, tau=0.01,
+        integrator = hoomd.md.integrate.nvt(group=gas, tau=args.tau,
                                             kT=reduced_temperature)
 
         hoomd.dump.gsd(filename=".".join(file_name.split(".")[:-1])
