@@ -378,7 +378,8 @@ def create_morphology(args):
     # forcefield input files it will need to care about (if they aren't
     # already covered by Foyer).
     if len(args.forcefield[1]) > 0:
-        morphology["external_forcefields"] = args.forcefield[1]
+        morphology["external_forcefields_attrib"] = {"num": str(len(args.forcefield[1]))}
+        morphology["external_forcefields_text"] = args.forcefield[1]
     write_morphology_xml(morphology, output_file)
     print("Output generated. Exitting...")
 
@@ -540,9 +541,12 @@ def write_morphology_xml(morphology_dictionary, output_file_name):
     for child_tag in child_tags:
         child = ET.Element(child_tag,
                            **morphology_dictionary[child_tag + '_attrib'])
-        data_to_write = '\n'.join(['\t'.join(el) for el in
-                                   morphology_dictionary[
-                                       child_tag + '_text']])
+        if child_tag != "external_forcefields":
+            data_to_write = '\n'.join(['\t'.join(el) for el in
+                                       morphology_dictionary[
+                                           child_tag + '_text']])
+        else:
+            data_to_write = '\n'.join([el for el in morphology_dictionary[child_tag + "_text"]])
         if len(data_to_write) > 0:
             child.text = '\n' + data_to_write + '\n'
         child.tail = '\n'
@@ -636,7 +640,7 @@ def create_output_file_name(args, file_type='hoomdxml'):
                         output_file += "-"
                     output_file += "F2"
                     for FF in args.forcefield[1]:
-                        output_file += "_" + os.path.split(FF)[1] + "_"
+                        output_file += "_" + os.path.split(FF)[1]
             elif arg_val is False:
                 output_file += arg_name[0].upper() + "_Off"
             elif arg_val is True:
