@@ -628,13 +628,15 @@ def create_output_file_name(args, file_type='hoomdxml'):
                     ".")[0]
             elif arg_name == "forcefield":
                 if len(args.forcefield[0]) > 0:
-                    output_file += "F1_"
+                    output_file += "F1"
                     for FF in args.forcefield[0]:
-                        output_file += os.path.split(FF)[1] + "_"
+                        output_file += "_" + os.path.split(FF)[1]
                 if len(args.forcefield[1]) > 0:
-                    output_file += "F2_"
+                    if len(args.forcefield[0]) > 0:
+                        output_file += "-"
+                    output_file += "F2"
                     for FF in args.forcefield[1]:
-                        output_file += os.path.split(FF)[1] + "_"
+                        output_file += "_" + os.path.split(FF)[1] + "_"
             elif arg_val is False:
                 output_file += arg_name[0].upper() + "_Off"
             elif arg_val is True:
