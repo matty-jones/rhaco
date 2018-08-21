@@ -2,6 +2,7 @@ import argparse
 import numpy as np
 import hoomd
 import hoomd.md
+import hoomd.metal
 import hoomd.deprecated
 import xml.etree.cElementTree as ET
 import numpy as np
@@ -17,15 +18,15 @@ def set_coeffs(file_name, system):
     Read in the molecular dynamics coefficients exported by Foyer
     '''
     coeffs_dict = get_coeffs(file_name)
-    ljnl = hoomd.md.nlist.tree()
-    lj = hoomd.md.pair.lj(r_cut=10.0, nlist=ljnl)
-    lj.set_params(mode="xplor")
-    for type1 in coeffs_dict['pair_coeffs']:
-        for type2 in coeffs_dict['pair_coeffs']:
-            lj.pair_coeff.set(type1[0], type2[0],
-                              epsilon=np.sqrt(type1[1] * type2[1]),
-                              sigma=np.sqrt(type1[2] * type2[2]))
-
+    nl = hoomd.md.nlist.tree()
+    if len(coeffs_dict['pair_coeffs']) != 0:
+        lj = hoomd.md.pair.lj(r_cut=10.0, nlist=nl)
+        lj.set_params(mode="xplor")
+        for type1 in coeffs_dict['pair_coeffs']:
+            for type2 in coeffs_dict['pair_coeffs']:
+                lj.pair_coeff.set(type1[0], type2[0],
+                                  epsilon=np.sqrt(type1[1] * type2[1]),
+                                  sigma=np.sqrt(type1[2] * type2[2]))
     if len(coeffs_dict['bond_coeffs']) != 0:
         harmonic_bond = hoomd.md.bond.harmonic()
         for bond in coeffs_dict['bond_coeffs']:
@@ -43,7 +44,14 @@ def set_coeffs(file_name, system):
                                                  k2=dihedral[2],
                                                  k3=dihedral[3],
                                                  k4=dihedral[4])
-
+    if len(coeffs_dict["external_forcefields"]) != 0:
+        for forcefield_loc in coeffs_dict["external_forcefields"]:
+            if forcefield_loc[-7:] == ".eam.fs":
+                hoomd.metal.pair.eam(file=forcefield_loc, type="FS", nlist=nl)
+            else:
+                print("----==== UNABLE TO PARSE EXTERNAL FORCEFIELD ====----")
+                print(forcefield_loc, "is an unspecified file type and will be ignored."
+                      " Please code in how to treat this file in rhaco/simulate.py")
     for atomID, atom in enumerate(system.particles):
         atom.mass = coeffs_dict['mass'][atomID]
 
@@ -58,7 +66,8 @@ def set_coeffs(file_name, system):
 
 def get_coeffs(file_name):
     coeff_dictionary = {'pair_coeffs': [], 'bond_coeffs': [],
-                        'angle_coeffs': [], 'dihedral_coeffs': []}
+                        'angle_coeffs': [], 'dihedral_coeffs': [],
+                        'external_forcefields': []}
     with open(file_name, 'r') as xml_file:
         xml_data = ET.parse(xml_file)
     root = xml_data.getroot()
@@ -69,6 +78,11 @@ def get_coeffs(file_name):
                 coeff_dictionary['mass'] = [float(mass) for mass in
                                             child.text.split('\n') if
                                             len(mass) > 0]
+            # Secondly, get the external forcefields, which are also different
+            elif child.tag == 'external_forcefields':
+                for line in child.text.split('\n'):
+                    if len(line) > 0:
+                        coeff_dictionary[child.tag].append(line)
             # Now the other coefficients
             elif child.tag in coeff_dictionary.keys():
                 if child.text is None:
