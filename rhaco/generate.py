@@ -6,7 +6,7 @@ import os
 import re
 import zlib
 import base64
-from rhaco.definitions import PDB_LIBRARY, FF_LIBRARY, PERMITTED_FF_FORMATS, ATOM_MASSES
+from rhaco.definitions import PDB_LIBRARY, FF_LIBRARY, FOYER_FF_FORMATS, EXTERNAL_FF_FORMATS, ATOM_MASSES
 import xml.etree.cElementTree as ET
 from collections import OrderedDict
 
@@ -192,7 +192,10 @@ class mbuild_template(mb.Compound):
 
 
 def parse_forcefields(forcefield_string):
-    forcefield_list = []
+    print(forcefield_string)
+    PERMITTED_FF_FORMATS = FOYER_FF_FORMATS + EXTERNAL_FF_FORMATS
+    foyer_forcefield_list = []
+    external_forcefield_list = []
     if (forcefield_string[0] == "[") and (forcefield_string[-1] == "]"):
         # User has specified a list
         forcefield_string = forcefield_string[1:-1]
@@ -232,12 +235,23 @@ def parse_forcefields(forcefield_string):
             print("No forcefield data will be saved at generation.")
             return None
         else:
-            forcefield_list.append(forcefield_loc)
-    if len(forcefield_list) > 1:
-        print("The following forcefields will be used:", repr(forcefield_list))
+            FF_file = os.path.split(forcefield_loc)[1]
+            # Can't use os.path.splitext here because EAM has two
+            # file formats and we need both of them
+            FF_format = ".".join(FF_file.split('.')[1:])
+            if FF_format in FOYER_FF_FORMATS:
+                foyer_forcefield_list.append(forcefield_loc)
+            elif FF_format in EXTERNAL_FF_FORMATS:
+                external_forcefield_list.append(forcefield_loc)
+    if len(foyer_forcefield_list) > 1:
+        print("The following forcefields will be implemented with Foyer:", repr(foyer_forcefield_list))
     else:
-        print("The following forcefield will be used:", forcefield_list[0])
-    return forcefield_list
+        print("The following forcefield will be implemented with Foyer:", foyer_forcefield_list[0])
+    if len(external_forcefield_list) > 1:
+        print("The following files will be used as forcefields:", repr(external_forcefield_list))
+    else:
+        print("The following file will be used as a forcefield:", external_forcefield_list[0])
+    return [foyer_forcefield_list, external_forcefield_list]
 
 
 def check_forcefield_exists(path):
@@ -347,13 +361,13 @@ def create_morphology(args):
     print("Morphology generated.")
     # Note this logic means a user cannot specify their own FF with the same
     # name as one in our libary!
-    if args.forcefield is None:
+    if (args.forcefield is None) or (len(args.forcefield[0]) == 0):
         print("Saving morphology...")
         system.save(output_file, overwrite=True, box=system_box)
     else:
         print("Applying forcefield...")
         system.save(output_file, overwrite=True, box=system_box,
-                    forcefield_files=args.forcefield)
+                    forcefield_files=args.forcefield[0])
     # Fix the images because mbuild doesn't set them correctly
     morphology = fix_images(output_file)
     # Identify the crystal atoms in the system by renaming their type to
@@ -363,6 +377,8 @@ def create_morphology(args):
     # Create a new key here that we can use to tell the simulate.py what
     # forcefield input files it will need to care about (if they aren't
     # already covered by Foyer).
+    if len(args.forcefield[1]) > 0:
+        morphology["external_forcefields"] = args.forcefield[1]
     write_morphology_xml(morphology, output_file)
     print("Output generated. Exitting...")
 
