@@ -611,21 +611,30 @@ def create_output_file_name(args, file_type='hoomdxml'):
             except KeyError:
                 continue
             output_file += "-"
-            if arg_name == 'stoichiometry':
+            if arg_name == "stoichiometry":
                 output_file += "S_"
                 for key, val in arg_val.items():
-                    output_file += str(key) + ':' + str(val) + '_'
+                    output_file += str(key) + ":" + str(val) + "_"
                 output_file = output_file[:-1]
-            elif arg_name == 'reactant_composition':
+            elif arg_name == "reactant_composition":
                 output_file += "RC_"
                 for key, val in arg_val.items():
-                    output_file += str(key) + ':' + str(val) + '_'
+                    output_file += str(key) + ":" + str(val) + "_"
                 output_file = output_file[:-1]
-            elif arg_name == 'dimensions':
+            elif arg_name == "dimensions":
                 output_file += "D_" + "x".join(list(map(str, arg_val)))
-            elif arg_name == 'template':
-                output_file += "T_" + args.template.split('/')[-1].split(
-                    '.')[0]
+            elif arg_name == "template":
+                output_file += "T_" + args.template.split("/")[-1].split(
+                    ".")[0]
+            elif arg_name == "forcefield":
+                if len(args.forcefield[0]) > 0:
+                    output_file += "F1_"
+                    for FF in args.forcefield[0]:
+                        output_file += os.path.split(FF)[1] + "_"
+                if len(args.forcefield[1]) > 0:
+                    output_file += "F2_"
+                    for FF in args.forcefield[1]:
+                        output_file += os.path.split(FF)[1] + "_"
             elif arg_val is False:
                 output_file += arg_name[0].upper() + "_Off"
             elif arg_val is True:
