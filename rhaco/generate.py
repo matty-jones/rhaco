@@ -203,11 +203,13 @@ def parse_forcefields(forcefield_string):
         # Split based on whitespace
         forcefield_string = forcefield_string.split()
     for forcefield in forcefield_string:
+        if forcefield.lower() == "none":
+            return None
         # Remove any additional whitespace (if split by ", ")
         forcefield = forcefield.strip()
         # Check file exists
         forcefield_exists = False
-        forcefield_loc = "None"
+        forcefield_loc = None
         # Loop over permitted file extensions (inc. no extension in case already specified):
         for file_extension in [""] + PERMITTED_FF_FORMATS:
             if len(file_extension) > 0:
@@ -228,7 +230,7 @@ def parse_forcefields(forcefield_string):
                   repr(PERMITTED_FF_FORMATS), "in either the FF_LIBRARY dir", FF_LIBRARY,
                   "or cwd.")
             print("No forcefield data will be saved at generation.")
-            return ["None"]
+            return None
         else:
             forcefield_list.append(forcefield_loc)
     if len(forcefield_list) > 1:
@@ -345,26 +347,22 @@ def create_morphology(args):
     print("Morphology generated.")
     # Note this logic means a user cannot specify their own FF with the same
     # name as one in our libary!
-    if args.forcefield[0].lower() != "none":  # Ugly hack for passing in None
-        try:
-            # Check the FF library first
-            forcefield_loc = os.path.join(FF_LIBRARY, args.forcefield) + '.xml'
-            with open(forcefield_loc, 'r') as file_handle:
-                pass
-        except FileNotFoundError:
-            # Otherwise use the cwd
-            forcefield_loc = args.forcefield + '.xml'
-        print("Applying forcefield.")
-        system.save(output_file, overwrite=True, box=system_box,
-                    forcefield_files=forcefield_loc)
-    else:
+    if args.forcefield is None:
+        print("Saving morphology...")
         system.save(output_file, overwrite=True, box=system_box)
+    else:
+        print("Applying forcefield...")
+        system.save(output_file, overwrite=True, box=system_box,
+                    forcefield_files=args.forcefield)
     # Fix the images because mbuild doesn't set them correctly
     morphology = fix_images(output_file)
     # Identify the crystal atoms in the system by renaming their type to
     # X_<PREVIOUS ATOM TYPE> so we know not to integrate them in HOOMD
     if args.integrate_crystal is False:
         morphology = rename_crystal_types(morphology, crystal_IDs)
+    # Create a new key here that we can use to tell the simulate.py what
+    # forcefield input files it will need to care about (if they aren't
+    # already covered by Foyer).
     write_morphology_xml(morphology, output_file)
     print("Output generated. Exitting...")
 
