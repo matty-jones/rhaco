@@ -215,7 +215,6 @@ def parse_forcefields(forcefield_string):
         # Check file exists
         forcefield_exists = False
         forcefield_loc = None
-        print("FORCEFIELD", forcefield)
         # Loop over permitted file extensions (inc. no extension in case already specified):
         for file_extension in [""] + PERMITTED_FF_FORMATS:
             if len(file_extension) > 0:
@@ -247,7 +246,6 @@ def parse_forcefields(forcefield_string):
                 foyer_forcefield_list.append(forcefield_loc)
             elif FF_format in EXTERNAL_FF_FORMATS:
                 external_forcefield_list.append(forcefield_loc)
-    exit()
     if len(foyer_forcefield_list) > 1:
         print("The following forcefields will be implemented with Foyer:", repr(foyer_forcefield_list))
     elif len(foyer_forcefield_list) == 1:
