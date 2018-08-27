@@ -55,6 +55,9 @@ def set_coeffs(file_name, system):
             if forcefield_loc[-7:] == ".eam.fs":
                 hoomd.metal.pair.eam(file=forcefield_loc, type="FS", nlist=nl)
                 log_quantities.append('pair_eam_energy')
+            elif forcefield_loc[-10:] == ".eam.alloy":
+                hoomd.metal.pair.eam(file=forcefield_loc, type="Alloy", nlist=nl)
+                log_quantities.append('pair_eam_energy')
             else:
                 print("----==== UNABLE TO PARSE EXTERNAL FORCEFIELD ====----")
                 print(forcefield_loc, "is an unspecified file type and will be ignored."
