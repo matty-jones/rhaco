@@ -192,7 +192,6 @@ class mbuild_template(mb.Compound):
 
 
 def parse_forcefields(forcefield_string):
-    print(forcefield_string)
     PERMITTED_FF_FORMATS = FOYER_FF_FORMATS + EXTERNAL_FF_FORMATS
     foyer_forcefield_list = []
     external_forcefield_list = []
@@ -364,22 +363,24 @@ def create_morphology(args):
     if (args.forcefield is None) or (len(args.forcefield[0]) == 0):
         print("Saving morphology...")
         system.save(output_file, overwrite=True, box=system_box)
+        # Fix the images because mbuild doesn't set them correctly
+        morphology = fix_images(output_file)
     else:
         print("Applying forcefield...")
         system.save(output_file, overwrite=True, box=system_box,
                     forcefield_files=args.forcefield[0])
-    # Fix the images because mbuild doesn't set them correctly
-    morphology = fix_images(output_file)
+        # Fix the images because mbuild doesn't set them correctly
+        morphology = fix_images(output_file)
+        # Create a new key here that we can use to tell the simulate.py what
+        # forcefield input files it will need to care about (if they aren't
+        # already covered by Foyer).
+        if len(args.forcefield[1]) > 0:
+            morphology["external_forcefields_attrib"] = {"num": str(len(args.forcefield[1]))}
+            morphology["external_forcefields_text"] = args.forcefield[1]
     # Identify the crystal atoms in the system by renaming their type to
     # X_<PREVIOUS ATOM TYPE> so we know not to integrate them in HOOMD
     if args.integrate_crystal is False:
         morphology = rename_crystal_types(morphology, crystal_IDs)
-    # Create a new key here that we can use to tell the simulate.py what
-    # forcefield input files it will need to care about (if they aren't
-    # already covered by Foyer).
-    if len(args.forcefield[1]) > 0:
-        morphology["external_forcefields_attrib"] = {"num": str(len(args.forcefield[1]))}
-        morphology["external_forcefields_text"] = args.forcefield[1]
     write_morphology_xml(morphology, output_file)
     print("Output generated. Exitting...")
 
@@ -787,7 +788,7 @@ def main():
                         help=argparse.SUPPRESS)
     parser.add_argument("-f", "--forcefield",
                         type=parse_forcefields,
-                        default=['None'],
+                        default=None,
                         required=False,
                         help='''Use Foyer to set the forcefield to use when
                         running the simulation.\n
