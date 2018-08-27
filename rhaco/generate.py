@@ -209,9 +209,13 @@ def parse_forcefields(forcefield_string):
             return None
         # Remove any additional whitespace (if split by ", ")
         forcefield = forcefield.strip()
+        if ((forcefield[0] == "'") and (forcefield[-1] == "'")) or ((forcefield[0] == '"') and (forcefield[-1] == '"')):
+            # Cut out the ' or "
+            forcefield = forcefield[1:-1]
         # Check file exists
         forcefield_exists = False
         forcefield_loc = None
+        print("FORCEFIELD", forcefield)
         # Loop over permitted file extensions (inc. no extension in case already specified):
         for file_extension in [""] + PERMITTED_FF_FORMATS:
             if len(file_extension) > 0:
@@ -220,6 +224,7 @@ def parse_forcefields(forcefield_string):
                 forcefield_w_ext = str(forcefield)
             # First check the FF library
             forcefield_loc = os.path.join(FF_LIBRARY, forcefield_w_ext)
+            print(forcefield_loc)
             forcefield_exists = check_forcefield_exists(forcefield_loc)
             if forcefield_exists:
                 break
@@ -242,13 +247,14 @@ def parse_forcefields(forcefield_string):
                 foyer_forcefield_list.append(forcefield_loc)
             elif FF_format in EXTERNAL_FF_FORMATS:
                 external_forcefield_list.append(forcefield_loc)
+    exit()
     if len(foyer_forcefield_list) > 1:
         print("The following forcefields will be implemented with Foyer:", repr(foyer_forcefield_list))
-    else:
+    elif len(foyer_forcefield_list) == 1:
         print("The following forcefield will be implemented with Foyer:", foyer_forcefield_list[0])
     if len(external_forcefield_list) > 1:
         print("The following files will be used as forcefields:", repr(external_forcefield_list))
-    else:
+    elif len(external_forcefield_list) == 1:
         print("The following file will be used as a forcefield:", external_forcefield_list[0])
     return [foyer_forcefield_list, external_forcefield_list]
 
@@ -278,7 +284,7 @@ def create_morphology(args):
     # knows not to integrate them.
     crystal_IDs = range(system.n_particles)
     # Now we can populate the box with reactant
-    print("Surfaces generated. Generating input fluence...")
+    print("Surfaces generated. Generating reactant...")
     reactant_components, reactant_probs, reactant_masses = calculate_probabilities(
         args.reactant_composition, ratio_type='number')
     # Define the regions that the hydrocarbons can go in, so we don't end
