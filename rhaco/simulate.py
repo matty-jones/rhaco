@@ -19,9 +19,12 @@ def set_coeffs(file_name, system):
     '''
     coeffs_dict = get_coeffs(file_name)
     nl = hoomd.md.nlist.tree()
+    log_quantities = ['temperature', 'pressure', 'volume',
+                      'potential_energy', 'kinetic_energy']
     if len(coeffs_dict['pair_coeffs']) != 0:
         lj = hoomd.md.pair.lj(r_cut=10.0, nlist=nl)
         lj.set_params(mode="xplor")
+        log_quantities.append('pair_lj_energy')
         for type1 in coeffs_dict['pair_coeffs']:
             for type2 in coeffs_dict['pair_coeffs']:
                 lj.pair_coeff.set(type1[0], type2[0],
@@ -29,16 +32,19 @@ def set_coeffs(file_name, system):
                                   sigma=np.sqrt(type1[2] * type2[2]))
     if len(coeffs_dict['bond_coeffs']) != 0:
         harmonic_bond = hoomd.md.bond.harmonic()
+        log_quantities.append('bond_harmonic_energy')
         for bond in coeffs_dict['bond_coeffs']:
             harmonic_bond.bond_coeff.set(bond[0], k=bond[1], r0=bond[2])
 
     if len(coeffs_dict['angle_coeffs']) != 0:
         harmonic_angle = hoomd.md.angle.harmonic()
+        log_quantities.append('angle_harmonic_energy')
         for angle in coeffs_dict['angle_coeffs']:
             harmonic_angle.angle_coeff.set(angle[0], k=angle[1], t0=angle[2])
 
     if len(coeffs_dict['dihedral_coeffs']) != 0:
         harmonic_dihedral = hoomd.md.dihedral.opls()
+        log_quantities.append('dihedral_opls_energy')
         for dihedral in coeffs_dict['dihedral_coeffs']:
             harmonic_dihedral.dihedral_coeff.set(dihedral[0], k1=dihedral[1],
                                                  k2=dihedral[2],
@@ -48,6 +54,7 @@ def set_coeffs(file_name, system):
         for forcefield_loc in coeffs_dict["external_forcefields"]:
             if forcefield_loc[-7:] == ".eam.fs":
                 hoomd.metal.pair.eam(file=forcefield_loc, type="FS", nlist=nl)
+                log_quantities.append('pair_eam_energy')
             else:
                 print("----==== UNABLE TO PARSE EXTERNAL FORCEFIELD ====----")
                 print(forcefield_loc, "is an unspecified file type and will be ignored."
@@ -60,8 +67,7 @@ def set_coeffs(file_name, system):
     #pppm = hoomd.md.charge.pppm(group=hoomd.group.charged(), nlist = pppmnl)
     #pppm.set_params(Nx=64,Ny=64,Nz=64,order=6,rcut=2.70)
 
-    return system
-
+    return system, log_quantities
 
 
 def get_coeffs(file_name):
@@ -113,19 +119,29 @@ def rename_types(snapshot):
     # the types data.
     catalyst_type_IDs = []
     new_types = []
+    mapping = {}
     for type_index, atom_type in enumerate(snapshot.particles.types):
         if atom_type[:2] == 'X_':
-            new_types.append(atom_type[2:])
+            new_atom_type = atom_type[2:]
             catalyst_type_IDs.append(type_index)
         else:
-            new_types.append(atom_type)
-    snapshot.particles.types = new_types
+            new_atom_type = atom_type
+        if new_atom_type in new_types:
+            mapping[type_index] = new_types.index(new_atom_type)
+        else:
+            mapping[type_index] = type_index
+            new_types.append(new_atom_type)
     catalyst_atom_IDs = []
     for atom_index, type_ID in enumerate(snapshot.particles.typeid):
         if type_ID in catalyst_type_IDs:
             catalyst_atom_IDs.append(atom_index)
     catalyst = hoomd.group.tag_list(name='catalyst', tags=catalyst_atom_IDs)
     gas = hoomd.group.difference(name='gas', a=hoomd.group.all(), b=catalyst)
+    # Now use the mapping to remove any duplicate types (needed if the same atom
+    # type is present in both the crystal and the reactant)
+    snapshot.particles.types = new_types
+    for AAID, old_type in enumerate(snapshot.particles.typeid):
+        snapshot.particles.typeid[AAID] = mapping[old_type]
     print("The catalyst group is", catalyst)
     print("The gas group is", gas)
     return snapshot, catalyst, gas
@@ -207,7 +223,7 @@ def main():
                                                      gas)
         # Finally, restore the snapshot
         system.restore_snapshot(initialized_snapshot)
-        system = set_coeffs(file_name, system)
+        system, log_quantities = set_coeffs(file_name, system)
 
         hoomd.md.integrate.mode_standard(dt=args.timestep);
         integrator = hoomd.md.integrate.nvt(group=gas, tau=args.tau,
@@ -216,10 +232,6 @@ def main():
         hoomd.dump.gsd(filename=".".join(file_name.split(".")[:-1])
                        + "_traj.gsd", period=max([int(args.run_time/500), 1]),
                        group=hoomd.group.all(), overwrite=True)
-        log_quantities = ['temperature', 'pressure', 'volume',
-                          'potential_energy', 'kinetic_energy',
-                          'pair_lj_energy', 'bond_harmonic_energy',
-                          'angle_harmonic_energy', 'dihedral_opls_energy']
         hoomd.analyze.log(filename='.'.join(file_name.split('.')[:-1])
                           + ".log", quantities=log_quantities,
                           period=max([int(args.run_time/10000), 1]),
