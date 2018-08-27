@@ -266,6 +266,24 @@ def check_forcefield_exists(path):
         return False
 
 
+def parse_reactant_positions(position_string):
+    position_coords = []
+    position_string = "".join(position_string.split(" "))
+    if (position_string[0:2] == "[[") and (position_string[-2:] == "]]"):
+        # [[pos1x, pos1y, pos1z], [pos2x, pos2y, pos2z]]
+        position_string = position_string[1:-1]
+    print(position_string)
+    if "],[" in position_string:
+        position_string = position_string.split("],[")
+    elif "][" in position_string:
+        position_string = position_string.split("][")[1:-1]
+    position_string[0] = position_string[0][1:]
+    position_string[-1] = position_string[-1][:-1]
+    for element in position_string:
+        position_coords.append(list(map(float, element.split(','))))
+    return position_coords
+
+
 def create_morphology(args):
     output_file = create_output_file_name(args)
     print("Generating first surface (bottom)...")
@@ -329,23 +347,38 @@ def create_morphology(args):
         # Need to convert from CGS (g/cm^{3} -> AMU/nm^{3})
         reactant_density_conv = args.reactant_density * G_TO_AMU / (CM_TO_NM**3)
         number_of_reactant_mols = int(reactant_density_conv * reactor_vol / mass_per_n)
-    if number_of_reactant_mols == 1:
-        reactant_top = mb.packing.fill_box(mbuild_template(reactant_components[0]), 1, box_top, seed=np.random.randint(0, 2**31 - 1))
-        system.add(reactant_top)
-    elif number_of_reactant_mols > 1:
-        reactant_compounds = []
-        n_compounds = []
-        for compound_index, reactant_molecule in enumerate(reactant_components):
-            reactant_compounds.append(mbuild_template(reactant_molecule))
-            n_compounds.append(int(np.round(np.round(
-                reactant_probs[compound_index] * number_of_reactant_mols) / 2.0)))
-        reactant_top = mb.packing.fill_box(reactant_compounds, n_compounds, box_top,
-                                      seed=np.random.randint(0, 2**31 - 1))
-        reactant_bottom = mb.packing.fill_box(reactant_compounds, n_compounds,
-                                         box_bottom,
-                                         seed=np.random.randint(0, 2**31 - 1))
-        system.add(reactant_top)
-        system.add(reactant_bottom)
+    if args.reactant_position is not None:
+        if len(args.reactant_position) != number_of_reactant_mols:
+            print("-rp --reactant_position flag has been specified with length",
+                  len(args.reactant_position), "but", str(number_of_reactant_mols),
+                  "reactant molecules have been requested!")
+            print("Ignoring specified positions and using packmol to randomly place reactant.")
+            args.reactant_position = None
+        else:
+            for _, position in enumerate(args.reactant_position):
+                nanoparticle = mbuild_template(reactant_components[0])
+                nanoparticle.translate_to(np.array(position))
+                system.add(nanoparticle)
+    if args.reactant_position is None:
+        # Randomly place reactants using packmol
+        if number_of_reactant_mols == 1:
+            # Only 1 molecule to place, so put it on top of the crystals
+            reactant_top = mb.packing.fill_box(mbuild_template(reactant_components[0]), 1, box_top, seed=np.random.randint(0, 2**31 - 1))
+            system.add(reactant_top)
+        elif number_of_reactant_mols > 1:
+            reactant_compounds = []
+            n_compounds = []
+            for compound_index, reactant_molecule in enumerate(reactant_components):
+                reactant_compounds.append(mbuild_template(reactant_molecule))
+                n_compounds.append(int(np.round(np.round(
+                    reactant_probs[compound_index] * number_of_reactant_mols) / 2.0)))
+            reactant_top = mb.packing.fill_box(reactant_compounds, n_compounds, box_top,
+                                          seed=np.random.randint(0, 2**31 - 1))
+            reactant_bottom = mb.packing.fill_box(reactant_compounds, n_compounds,
+                                             box_bottom,
+                                             seed=np.random.randint(0, 2**31 - 1))
+            system.add(reactant_top)
+            system.add(reactant_bottom)
 
     if "M1UnitCell.pdb" in args.template:
         # Check the separation of crystal and reactant that we will use later is
@@ -790,6 +823,17 @@ def main():
                         used.
                         Note that -rn overrides -rd if both are
                         specified.''')
+    parser.add_argument("-rp", "--reactant_position",
+                        type=parse_reactant_positions,
+                        default=None,
+                        help='''Set the position of the reactant
+                        molecules.\n
+                        This only makes sense for a small number of reactant
+                        particles (i.e. nanoparticle initializations).
+                        For example: -rp [[-50, 0, 50], [50, 0, 50]].\n
+                        If unspecified, then reactants will be packed randomly
+                        using packmol.
+                        ''')
     parser.add_argument("--gecko",
                         action='store_true',
                         help=argparse.SUPPRESS)
