@@ -367,7 +367,7 @@ def create_morphology(args):
     print("Morphology generated.")
     # Note this logic means a user cannot specify their own FF with the same
     # name as one in our libary!
-    if (args.forcefield is None) or (len(args.forcefield[0]) == 0):
+    if (args.forcefield is None) or ((len(args.forcefield[0]) == 0) and (len(args.forcefield[1]) == 0)):
         print("Saving morphology...")
         system.save(output_file, overwrite=True, box=system_box)
         # Fix the images because mbuild doesn't set them correctly
