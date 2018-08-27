@@ -325,7 +325,10 @@ def create_morphology(args):
         # Need to convert from CGS (g/cm^{3} -> AMU/nm^{3})
         reactant_density_conv = args.reactant_density * G_TO_AMU / (CM_TO_NM**3)
         number_of_reactant_mols = int(reactant_density_conv * reactor_vol / mass_per_n)
-    if number_of_reactant_mols > 0:
+    if number_of_reactant_mols == 1:
+        reactant_top = mb.packing.fill_box(mbuild_template(reactant_components[0]), 1, box_top, seed=np.random.randint(0, 2**31 - 1))
+        system.add(reactant_top)
+    elif number_of_reactant_mols > 1:
         reactant_compounds = []
         n_compounds = []
         for compound_index, reactant_molecule in enumerate(reactant_components):
