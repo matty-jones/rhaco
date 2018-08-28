@@ -223,7 +223,6 @@ def parse_forcefields(forcefield_string):
                 forcefield_w_ext = str(forcefield)
             # First check the FF library
             forcefield_loc = os.path.join(FF_LIBRARY, forcefield_w_ext)
-            print(forcefield_loc)
             forcefield_exists = check_forcefield_exists(forcefield_loc)
             if forcefield_exists:
                 break
