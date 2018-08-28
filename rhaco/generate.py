@@ -272,7 +272,6 @@ def parse_reactant_positions(position_string):
     if (position_string[0:2] == "[[") and (position_string[-2:] == "]]"):
         # [[pos1x, pos1y, pos1z], [pos2x, pos2y, pos2z]]
         position_string = position_string[1:-1]
-    print(position_string)
     if "],[" in position_string:
         position_string = position_string.split("],[")
     elif "][" in position_string:
