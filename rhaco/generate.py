@@ -6,7 +6,7 @@ import os
 import re
 import zlib
 import base64
-from rhaco.definitions import PDB_LIBRARY, FF_LIBRARY, ATOM_MASSES
+from rhaco.definitions import PDB_LIBRARY, FF_LIBRARY, FOYER_FF_FORMATS, EXTERNAL_FF_FORMATS, ATOM_MASSES
 import xml.etree.cElementTree as ET
 from collections import OrderedDict
 
@@ -191,6 +191,98 @@ class mbuild_template(mb.Compound):
         return mass
 
 
+def parse_forcefields(forcefield_string):
+    PERMITTED_FF_FORMATS = FOYER_FF_FORMATS + EXTERNAL_FF_FORMATS
+    foyer_forcefield_list = []
+    external_forcefield_list = []
+    if (forcefield_string[0] == "[") and (forcefield_string[-1] == "]"):
+        # User has specified a list
+        forcefield_string = forcefield_string[1:-1]
+    if "," in forcefield_string:
+        # Split based on commas
+        forcefield_string = forcefield_string.split(",")
+    else:
+        # Split based on whitespace
+        forcefield_string = forcefield_string.split()
+    for forcefield in forcefield_string:
+        if forcefield.lower() == "none":
+            return None
+        # Remove any additional whitespace (if split by ", ")
+        forcefield = forcefield.strip()
+        if ((forcefield[0] == "'") and (forcefield[-1] == "'")) or ((forcefield[0] == '"') and (forcefield[-1] == '"')):
+            # Cut out the ' or "
+            forcefield = forcefield[1:-1]
+        # Check file exists
+        forcefield_exists = False
+        forcefield_loc = None
+        # Loop over permitted file extensions (inc. no extension in case already specified):
+        for file_extension in [""] + PERMITTED_FF_FORMATS:
+            if len(file_extension) > 0:
+                forcefield_w_ext = ".".join([forcefield, file_extension])
+            else:
+                forcefield_w_ext = str(forcefield)
+            # First check the FF library
+            forcefield_loc = os.path.join(FF_LIBRARY, forcefield_w_ext)
+            print(forcefield_loc)
+            forcefield_exists = check_forcefield_exists(forcefield_loc)
+            if forcefield_exists:
+                break
+            # Then check the cwd
+            forcefield_exsits = check_forcefield_exists(forcefield_w_ext)
+            if forcefield_exists:
+                break
+        if not forcefield_exists:
+            print("Forcefield", forcefield, "not found with any compatible extension:",
+                  repr(PERMITTED_FF_FORMATS), "in either the FF_LIBRARY dir", FF_LIBRARY,
+                  "or cwd.")
+            print("No forcefield data will be saved at generation.")
+            return None
+        else:
+            FF_file = os.path.split(forcefield_loc)[1]
+            # Can't use os.path.splitext here because EAM has two
+            # file formats and we need both of them
+            FF_format = ".".join(FF_file.split('.')[1:])
+            if FF_format in FOYER_FF_FORMATS:
+                foyer_forcefield_list.append(forcefield_loc)
+            elif FF_format in EXTERNAL_FF_FORMATS:
+                external_forcefield_list.append(forcefield_loc)
+    if len(foyer_forcefield_list) > 1:
+        print("The following forcefields will be implemented with Foyer:", repr(foyer_forcefield_list))
+    elif len(foyer_forcefield_list) == 1:
+        print("The following forcefield will be implemented with Foyer:", foyer_forcefield_list[0])
+    if len(external_forcefield_list) > 1:
+        print("The following files will be used as forcefields:", repr(external_forcefield_list))
+    elif len(external_forcefield_list) == 1:
+        print("The following file will be used as a forcefield:", external_forcefield_list[0])
+    return [foyer_forcefield_list, external_forcefield_list]
+
+
+def check_forcefield_exists(path):
+    try:
+        with open(path, 'r'):
+            pass
+        return True
+    except FileNotFoundError:
+        return False
+
+
+def parse_reactant_positions(position_string):
+    position_coords = []
+    position_string = "".join(position_string.split(" "))
+    if (position_string[0:2] == "[[") and (position_string[-2:] == "]]"):
+        # [[pos1x, pos1y, pos1z], [pos2x, pos2y, pos2z]]
+        position_string = position_string[1:-1]
+    if "],[" in position_string:
+        position_string = position_string.split("],[")
+    elif "][" in position_string:
+        position_string = position_string.split("][")[1:-1]
+    position_string[0] = position_string[0][1:]
+    position_string[-1] = position_string[-1][:-1]
+    for element in position_string:
+        position_coords.append(list(map(float, element.split(','))))
+    return position_coords
+
+
 def create_morphology(args):
     output_file = create_output_file_name(args)
     print("Generating first surface (bottom)...")
@@ -207,7 +299,7 @@ def create_morphology(args):
     # knows not to integrate them.
     crystal_IDs = range(system.n_particles)
     # Now we can populate the box with reactant
-    print("Surfaces generated. Generating input fluence...")
+    print("Surfaces generated. Generating reactant...")
     reactant_components, reactant_probs, reactant_masses = calculate_probabilities(
         args.reactant_composition, ratio_type='number')
     # Define the regions that the hydrocarbons can go in, so we don't end
@@ -254,20 +346,38 @@ def create_morphology(args):
         # Need to convert from CGS (g/cm^{3} -> AMU/nm^{3})
         reactant_density_conv = args.reactant_density * G_TO_AMU / (CM_TO_NM**3)
         number_of_reactant_mols = int(reactant_density_conv * reactor_vol / mass_per_n)
-    if number_of_reactant_mols > 0:
-        reactant_compounds = []
-        n_compounds = []
-        for compound_index, reactant_molecule in enumerate(reactant_components):
-            reactant_compounds.append(mbuild_template(reactant_molecule))
-            n_compounds.append(int(np.round(np.round(
-                reactant_probs[compound_index] * number_of_reactant_mols) / 2.0)))
-        reactant_top = mb.packing.fill_box(reactant_compounds, n_compounds, box_top,
-                                      seed=np.random.randint(0, 2**31 - 1))
-        reactant_bottom = mb.packing.fill_box(reactant_compounds, n_compounds,
-                                         box_bottom,
-                                         seed=np.random.randint(0, 2**31 - 1))
-        system.add(reactant_top)
-        system.add(reactant_bottom)
+    if args.reactant_position is not None:
+        if len(args.reactant_position) != number_of_reactant_mols:
+            print("-rp --reactant_position flag has been specified with length",
+                  len(args.reactant_position), "but", str(number_of_reactant_mols),
+                  "reactant molecules have been requested!")
+            print("Ignoring specified positions and using packmol to randomly place reactant.")
+            args.reactant_position = None
+        else:
+            for _, position in enumerate(args.reactant_position):
+                nanoparticle = mbuild_template(reactant_components[0])
+                nanoparticle.translate_to(np.array(position))
+                system.add(nanoparticle)
+    if args.reactant_position is None:
+        # Randomly place reactants using packmol
+        if number_of_reactant_mols == 1:
+            # Only 1 molecule to place, so put it on top of the crystals
+            reactant_top = mb.packing.fill_box(mbuild_template(reactant_components[0]), 1, box_top, seed=np.random.randint(0, 2**31 - 1))
+            system.add(reactant_top)
+        elif number_of_reactant_mols > 1:
+            reactant_compounds = []
+            n_compounds = []
+            for compound_index, reactant_molecule in enumerate(reactant_components):
+                reactant_compounds.append(mbuild_template(reactant_molecule))
+                n_compounds.append(int(np.round(np.round(
+                    reactant_probs[compound_index] * number_of_reactant_mols) / 2.0)))
+            reactant_top = mb.packing.fill_box(reactant_compounds, n_compounds, box_top,
+                                          seed=np.random.randint(0, 2**31 - 1))
+            reactant_bottom = mb.packing.fill_box(reactant_compounds, n_compounds,
+                                             box_bottom,
+                                             seed=np.random.randint(0, 2**31 - 1))
+            system.add(reactant_top)
+            system.add(reactant_bottom)
 
     if "M1UnitCell.pdb" in args.template:
         # Check the separation of crystal and reactant that we will use later is
@@ -289,22 +399,23 @@ def create_morphology(args):
     print("Morphology generated.")
     # Note this logic means a user cannot specify their own FF with the same
     # name as one in our libary!
-    if args.forcefield.lower() != "none":  # Ugly hack for passing in None
-        try:
-            # Check the FF library first
-            forcefield_loc = os.path.join(FF_LIBRARY, args.forcefield) + '.xml'
-            with open(forcefield_loc, 'r') as file_handle:
-                pass
-        except FileNotFoundError:
-            # Otherwise use the cwd
-            forcefield_loc = args.forcefield + '.xml'
-        print("Applying forcefield.")
-        system.save(output_file, overwrite=True, box=system_box,
-                    forcefield_files=forcefield_loc)
-    else:
+    if (args.forcefield is None) or ((len(args.forcefield[0]) == 0) and (len(args.forcefield[1]) == 0)):
+        print("Saving morphology...")
         system.save(output_file, overwrite=True, box=system_box)
-    # Fix the images because mbuild doesn't set them correctly
-    morphology = fix_images(output_file)
+        # Fix the images because mbuild doesn't set them correctly
+        morphology = fix_images(output_file)
+    else:
+        print("Applying forcefield...")
+        system.save(output_file, overwrite=True, box=system_box,
+                    forcefield_files=args.forcefield[0])
+        # Fix the images because mbuild doesn't set them correctly
+        morphology = fix_images(output_file)
+        # Create a new key here that we can use to tell the simulate.py what
+        # forcefield input files it will need to care about (if they aren't
+        # already covered by Foyer).
+        if len(args.forcefield[1]) > 0:
+            morphology["external_forcefields_attrib"] = {"num": str(len(args.forcefield[1]))}
+            morphology["external_forcefields_text"] = args.forcefield[1]
     # Identify the crystal atoms in the system by renaming their type to
     # X_<PREVIOUS ATOM TYPE> so we know not to integrate them in HOOMD
     if args.integrate_crystal is False:
@@ -470,9 +581,12 @@ def write_morphology_xml(morphology_dictionary, output_file_name):
     for child_tag in child_tags:
         child = ET.Element(child_tag,
                            **morphology_dictionary[child_tag + '_attrib'])
-        data_to_write = '\n'.join(['\t'.join(el) for el in
-                                   morphology_dictionary[
-                                       child_tag + '_text']])
+        if child_tag != "external_forcefields":
+            data_to_write = '\n'.join(['\t'.join(el) for el in
+                                       morphology_dictionary[
+                                           child_tag + '_text']])
+        else:
+            data_to_write = '\n'.join([el for el in morphology_dictionary[child_tag + "_text"]])
         if len(data_to_write) > 0:
             child.text = '\n' + data_to_write + '\n'
         child.tail = '\n'
@@ -541,21 +655,32 @@ def create_output_file_name(args, file_type='hoomdxml'):
             except KeyError:
                 continue
             output_file += "-"
-            if arg_name == 'stoichiometry':
+            if arg_name == "stoichiometry":
                 output_file += "S_"
                 for key, val in arg_val.items():
-                    output_file += str(key) + ':' + str(val) + '_'
+                    output_file += str(key) + ":" + str(val) + "_"
                 output_file = output_file[:-1]
-            elif arg_name == 'reactant_composition':
+            elif arg_name == "reactant_composition":
                 output_file += "RC_"
                 for key, val in arg_val.items():
-                    output_file += str(key) + ':' + str(val) + '_'
+                    output_file += str(key) + ":" + str(val) + "_"
                 output_file = output_file[:-1]
-            elif arg_name == 'dimensions':
+            elif arg_name == "dimensions":
                 output_file += "D_" + "x".join(list(map(str, arg_val)))
-            elif arg_name == 'template':
-                output_file += "T_" + args.template.split('/')[-1].split(
-                    '.')[0]
+            elif arg_name == "template":
+                output_file += "T_" + args.template.split("/")[-1].split(
+                    ".")[0]
+            elif arg_name == "forcefield":
+                if len(args.forcefield[0]) > 0:
+                    output_file += "F1"
+                    for FF in args.forcefield[0]:
+                        output_file += "_" + os.path.split(FF)[1]
+                if len(args.forcefield[1]) > 0:
+                    if len(args.forcefield[0]) > 0:
+                        output_file += "-"
+                    output_file += "F2"
+                    for FF in args.forcefield[1]:
+                        output_file += "_" + os.path.split(FF)[1]
             elif arg_val is False:
                 output_file += arg_name[0].upper() + "_Off"
             elif arg_val is True:
@@ -697,12 +822,23 @@ def main():
                         used.
                         Note that -rn overrides -rd if both are
                         specified.''')
+    parser.add_argument("-rp", "--reactant_position",
+                        type=parse_reactant_positions,
+                        default=None,
+                        help='''Set the position of the reactant
+                        molecules.\n
+                        This only makes sense for a small number of reactant
+                        particles (i.e. nanoparticle initializations).
+                        For example: -rp [[-50, 0, 50], [50, 0, 50]].\n
+                        If unspecified, then reactants will be packed randomly
+                        using packmol.
+                        ''')
     parser.add_argument("--gecko",
                         action='store_true',
                         help=argparse.SUPPRESS)
     parser.add_argument("-f", "--forcefield",
-                        type=lambda f: f.split('.xml')[0],
-                        default='None',
+                        type=parse_forcefields,
+                        default=None,
                         required=False,
                         help='''Use Foyer to set the forcefield to use when
                         running the simulation.\n

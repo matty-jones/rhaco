@@ -14,6 +14,12 @@
 
 2) rhaco-run-hoomd: Used to interpret the Foyer forcefields and begin a HOOMD molecular dynamics simulation based on several input parameters (`rhaco-run-hoomd -h` for more details)
 
+## Version History
+
+v1.0 - Release of Rhaco, set up for small hydrocarbon interactions on an M1 catalyst surface
+v1.1 - Rhaco generalized to work with other systems, specifically the interactions of polydimethylsiloxane on Ni-Mn-Ga shape memory alloy
+v1.2 - Additional functionality added to permit the simulation of metallic nanoparticles on a surface.
+
 
 ## Important Citations
 
