@@ -7,13 +7,36 @@ import hoomd.deprecated
 import xml.etree.cElementTree as ET
 import numpy as np
 
+
 AVOGADRO = 6.022140857E23
 BOLTZMANN = 1.38064852E-23
 KCAL_TO_J = 4.184E3
 AMU_TO_KG = 1.6605E-27
 ANG_TO_M = 1E-10
 
-def set_coeffs(file_name, system):
+
+def parse_interactions(omit_string):
+    omit_list = []
+    if (omit_string[0] == "[") and (omit_string[-1] == "]"):
+        omit_string = omit_string[1:-1]
+    if "," in omit_string:
+        print("comma")
+        omit_string = "".join(omit_string.split(" "))
+        omit_string = omit_string.split(",")
+    else:
+        print("space")
+        omit_string = omit_string.split()
+    for interaction in omit_string:
+        if (interaction[0] == "'") and (interaction[-1] == "'"):
+            omit_list.append(interaction[1:-1])
+        elif (interaction[0] == '"') and (interaction[-1] == '"'):
+            omit_list.append(interaction[1:-1])
+        else:
+            omit_list.append(interaction)
+    return omit_list
+
+
+def set_coeffs(file_name, system, omit_lj):
     '''
     Read in the molecular dynamics coefficients exported by Foyer
     '''
@@ -27,9 +50,14 @@ def set_coeffs(file_name, system):
         log_quantities.append('pair_lj_energy')
         for type1 in coeffs_dict['pair_coeffs']:
             for type2 in coeffs_dict['pair_coeffs']:
-                lj.pair_coeff.set(type1[0], type2[0],
-                                  epsilon=np.sqrt(type1[1] * type2[1]),
-                                  sigma=np.sqrt(type1[2] * type2[2]))
+                if "-".join([type1[0], type2[0]]) in omit_lj:
+                    lj.pair_coeff.set(type1[0], type2[0],
+                                      epsilon=0.0,
+                                      sigma=0.0)
+                else:
+                    lj.pair_coeff.set(type1[0], type2[0],
+                                      epsilon=np.sqrt(type1[1] * type2[1]),
+                                      sigma=np.sqrt(type1[2] * type2[2]))
     if len(coeffs_dict['bond_coeffs']) != 0:
         harmonic_bond = hoomd.md.bond.harmonic()
         log_quantities.append('bond_harmonic_energy')
@@ -195,20 +223,44 @@ def main():
                         type=float,
                         default=1E-2,
                         required=False,
-                        help='''The thermostate coupling to use when running
+                        help='''The thermostat coupling to use when running
                         the NVT MD simulation.\n''')
+    parser.add_argument('-o', '--omit_lj',
+                        type=parse_interactions,
+                        default=[],
+                        required=False,
+                        help='''A list of lj interactions to omit from the
+                        rhaco-generated input hoomdxml (useful when using EAM).\n
+                        If unspecified, all interactions are considered''')
+    parser.add_argument('-e', '--energy_scale_unit',
+                        type=float,
+                        default=1.0,
+                        required=False,
+                        help='''The energy scaling unit rhaco should use to
+                        set the correct temperature in kcal/mol. Default is Foyer's
+                        default unit (1.0 kcal/mol). A useful alternative is 23.06 kcal/mol,
+                        which corresponds to 1 eV, which is the energy scaling unit for EAM.
+                        Be careful with this, it WILL frack everything up.''')
+    parser.add_argument('-d', '--distance_scale_unit',
+                        type=float,
+                        default=1.0,
+                        required=False,
+                        help='''The distance scaling unit rhaco should use to
+                        set the correct temperature in angstroems. Default is Foyer's
+                        default unit (1.0 angstroem).
+                        Be careful with this, it WILL frack everything up.''')
     args, file_list = parser.parse_known_args()
 
     # Foyer gives parameters in terms of kcal/mol for energies and angstroems
     # for distances. Convert these to reduced units for HOOMD using the
     # following conversion, and print a string to inform the user it has been
     # done.
-    reduced_temperature = args.temperature * BOLTZMANN * AVOGADRO / KCAL_TO_J
-    timestep_SI = args.timestep * np.sqrt(AMU_TO_KG * ANG_TO_M**2 * AVOGADRO
-                                          / KCAL_TO_J)
-    print("Using the Foyer default units of <DISTANCE> = 1 Angstroem,"
-          " <ENERGY> = 1 kcal/mol, and <MASS> = 1 amu, the input temperature"
-          " of", args.temperature, "K corresponds to"
+    reduced_temperature = args.temperature * BOLTZMANN * AVOGADRO / (KCAL_TO_J * args.energy_scale_unit)
+    timestep_SI = args.timestep * np.sqrt(AMU_TO_KG * (ANG_TO_M * args.distance_scale_unit)**2 * AVOGADRO
+                                          / (KCAL_TO_J * args.energy_scale_unit))
+    print("Using the units of <DISTANCE> =", args.distance_scale_unit, "Angstroem,"
+          " <ENERGY> =", args.energy_scale_unit, "kcal/mol, and <MASS> = 1 amu,"
+          " the input temperature of", args.temperature, "K corresponds to"
           " {:.2E}".format(reduced_temperature),
           "in dimensionless HOOMD kT units, and the input timestep",
           args.timestep, "corresponds to {:.2E} s.".format(timestep_SI))
@@ -226,7 +278,7 @@ def main():
                                                      gas)
         # Finally, restore the snapshot
         system.restore_snapshot(initialized_snapshot)
-        system, log_quantities = set_coeffs(file_name, system)
+        system, log_quantities = set_coeffs(file_name, system, args.omit_lj)
 
         hoomd.md.integrate.mode_standard(dt=args.timestep);
         integrator = hoomd.md.integrate.nvt(group=gas, tau=args.tau,
