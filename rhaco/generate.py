@@ -275,10 +275,15 @@ def parse_reactant_positions(position_string):
         position_string = position_string.split("],[")
     elif "][" in position_string:
         position_string = position_string.split("][")[1:-1]
-    position_string[0] = position_string[0][1:]
-    position_string[-1] = position_string[-1][:-1]
-    for element in position_string:
-        position_coords.append(list(map(float, element.split(','))))
+    if position_string.count("[") == 1:
+        # Only one position specified
+        position_coords.append(list(map(float, position_string[1:-1].split(','))))
+    else:
+        # Multiple positions specified
+        position_string[0] = position_string[0][1:]
+        position_string[-1] = position_string[-1][:-1]
+        for element in position_string:
+            position_coords.append(list(map(float, element.split(','))))
     return position_coords
 
 
