@@ -45,6 +45,7 @@ def set_coeffs(file_name, system, omit_lj):
     log_quantities = ['temperature', 'pressure', 'volume',
                       'potential_energy', 'kinetic_energy']
     if len(coeffs_dict['pair_coeffs']) != 0:
+        print("Loading LJ pair coeffs...")
         lj = hoomd.md.pair.lj(r_cut=10.0, nlist=nl)
         lj.set_params(mode="xplor")
         log_quantities.append('pair_lj_energy')
@@ -59,18 +60,21 @@ def set_coeffs(file_name, system, omit_lj):
                                       epsilon=np.sqrt(type1[1] * type2[1]),
                                       sigma=np.sqrt(type1[2] * type2[2]))
     if len(coeffs_dict['bond_coeffs']) != 0:
+        print("Loading harmonic bond coeffs...")
         harmonic_bond = hoomd.md.bond.harmonic()
         log_quantities.append('bond_harmonic_energy')
         for bond in coeffs_dict['bond_coeffs']:
             harmonic_bond.bond_coeff.set(bond[0], k=bond[1], r0=bond[2])
 
     if len(coeffs_dict['angle_coeffs']) != 0:
+        print("Loading harmonic angle coeffs...")
         harmonic_angle = hoomd.md.angle.harmonic()
         log_quantities.append('angle_harmonic_energy')
         for angle in coeffs_dict['angle_coeffs']:
             harmonic_angle.angle_coeff.set(angle[0], k=angle[1], t0=angle[2])
 
     if len(coeffs_dict['dihedral_coeffs']) != 0:
+        print("Loading opls dihedral coeffs...")
         harmonic_dihedral = hoomd.md.dihedral.opls()
         log_quantities.append('dihedral_opls_energy')
         for dihedral in coeffs_dict['dihedral_coeffs']:
@@ -80,6 +84,7 @@ def set_coeffs(file_name, system, omit_lj):
                                                  k4=dihedral[4])
     if len(coeffs_dict["external_forcefields"]) != 0:
         for forcefield_loc in coeffs_dict["external_forcefields"]:
+            print("Loading external forcefield:", "".join([forcefield_loc, "..."]))
             if forcefield_loc[-7:] == ".eam.fs":
                 hoomd.metal.pair.eam(file=forcefield_loc, type="FS", nlist=nl)
                 log_quantities.append('pair_eam_energy')
