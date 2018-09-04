@@ -183,6 +183,7 @@ class mbuild_template(mb.Compound):
             try:
                 type_mass = ATOM_MASSES[atom_type]
             except KeyError:
+                print("***** WARNING *****")
                 print("Type", atom_type, "not found in definitions.py."
                       " Assuming a mass of 1.0 AMU (the density specified by"
                       " -rd can no longer be trusted!)")
@@ -231,6 +232,7 @@ def parse_forcefields(forcefield_string):
             if forcefield_exists:
                 break
         if not forcefield_exists:
+            print("***** WARNING *****")
             print("Forcefield", forcefield, "not found with any compatible extension:",
                   repr(PERMITTED_FF_FORMATS), "in either the FF_LIBRARY dir", FF_LIBRARY,
                   "or cwd.")
