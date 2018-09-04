@@ -78,14 +78,14 @@ if __name__ == "__main__":
     element_names = {0: first_element_line,
                      1: second_element_line,
                      2: third_element_line}
-    # element_properties = {0: [first_element_emb_func, first_element_dens_func, first_element_potentials],
-    #                       1: [second_element_emb_func, second_element_dens_func, second_element_potentials],
-    #                       2: [third_element_emb_func, third_element_dens_func, third_element_potentials]}
-    # NOTE: Perhaps density function only needed for single element potentials?
-    element_properties = {0: [first_element_emb_func, first_element_potentials],
-                          1: [second_element_emb_func, second_element_potentials],
-                          2: [third_element_emb_func, third_element_potentials],
-                         }
+    element_properties = {0: [first_element_emb_func, first_element_dens_func, first_element_potentials],
+                          1: [second_element_emb_func, second_element_dens_func, second_element_potentials],
+                          2: [third_element_emb_func, third_element_dens_func, third_element_potentials]}
+    # # NOTE: Perhaps density function only needed for single element potentials?
+    # element_properties = {0: [first_element_emb_func, first_element_dens_func],
+    #                       1: [second_element_emb_func, second_element_dens_func],
+    #                       2: [third_element_emb_func, third_element_dens_func],
+    #                      }
     for elementID in range(3):
         element_floats = []
         for element_props in element_properties[elementID]:
