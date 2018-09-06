@@ -42,8 +42,9 @@ def set_coeffs(file_name, system, omit_lj):
     '''
     coeffs_dict = get_coeffs(file_name)
     nl = hoomd.md.nlist.tree()
-    log_quantities = ['temperature', 'pressure', 'volume',
-                      'potential_energy', 'kinetic_energy']
+    log_quantities = ['temperature', 'temperature_gas', 'pressure', 'volume',
+                      'potential_energy', 'potential_energy_gas', 'kinetic_energy',
+                      'kinetic_energy_gas']
     if len(coeffs_dict['pair_coeffs']) != 0:
         print("Loading LJ pair coeffs...")
         lj = hoomd.md.pair.lj(r_cut=10.0, nlist=nl)
@@ -183,23 +184,6 @@ def rename_types(snapshot):
     return snapshot, catalyst, gas
 
 
-def initialize_velocities(snapshot, temperature, gas):
-    v = np.random.random((len(gas), 3))
-    v -= 0.5
-    meanv = np.mean(v, 0)
-    meanv2 = np.mean(v ** 2, 0)
-    fs = np.sqrt(temperature / meanv2)
-    # Shift the velocities such that the average is zero
-    v = (v - meanv)
-    # Scale the velocities to match the required temperature
-    v *= fs
-    # Assign the velocities for this MD phase
-    indices_to_modify = [atom.tag for atom in gas]
-    for i, index in enumerate(indices_to_modify):
-        snapshot.particles.velocity[index] = v[i]
-    return snapshot
-
-
 def main():
     parser = argparse.ArgumentParser(prog='rhaco-run-hoomd',
                                     formatter_class=argparse.
@@ -277,17 +261,14 @@ def main():
         # Get the integration groups by ignoring anything that has the X_
         # prefix to the atom type, and rename the types for the forcefield
         renamed_snapshot, catalyst, gas = rename_types(snapshot)
-        # Assign the required velocities based on the requested temperature
-        initialized_snapshot = initialize_velocities(renamed_snapshot,
-                                                     reduced_temperature,
-                                                     gas)
-        # Finally, restore the snapshot
-        system.restore_snapshot(initialized_snapshot)
+        # Then, restore the snapshot
+        system.restore_snapshot(renamed_snapshot)
         system, log_quantities = set_coeffs(file_name, system, args.omit_lj)
 
         hoomd.md.integrate.mode_standard(dt=args.timestep);
         integrator = hoomd.md.integrate.nvt(group=gas, tau=args.tau,
                                             kT=reduced_temperature)
+        integrator.randomize_velocities(seed=42)
 
         hoomd.dump.gsd(filename=".".join(file_name.split(".")[:-1])
                        + "_traj.gsd", period=max([int(args.run_time/500), 1]),
