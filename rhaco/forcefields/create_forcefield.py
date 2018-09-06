@@ -49,6 +49,7 @@ if __name__ == "__main__":
     blank_line = [" ".join(["{:24.16E}" * 5, "\n"]).format(*[0.0]*5)]
 
     # Element 1:
+    # We already have E1-E1 interactions in first_element_potentials
     # Add E1-E2 and E1-E3 interactions to forcefield
     # Firstly, Element 1 interacting with Element 2
     first_element_potentials += blank_line * (nr // numbers_per_line)
@@ -81,11 +82,13 @@ if __name__ == "__main__":
     element_properties = {0: [first_element_emb_func, first_element_dens_func, first_element_potentials],
                           1: [second_element_emb_func, second_element_dens_func, second_element_potentials],
                           2: [third_element_emb_func, third_element_dens_func, third_element_potentials]}
-    # # NOTE: Perhaps density function only needed for single element potentials?
-    # element_properties = {0: [first_element_emb_func, first_element_dens_func],
-    #                       1: [second_element_emb_func, second_element_dens_func],
-    #                       2: [third_element_emb_func, third_element_dens_func],
-    #                      }
+    # LAMMPS documentation http://www.afs.enea.it/software/lammps/doc15/pair_eam.html suggests that
+    # the setfl format doesn't store potentials, just the emb and dens functions for each.
+    # Let's try that now instead.
+    element_properties = {0: [first_element_emb_func, first_element_dens_func],
+                          1: [second_element_emb_func, second_element_dens_func],
+                          2: [third_element_emb_func, third_element_dens_func],
+                         }
     for elementID in range(3):
         element_floats = []
         for element_props in element_properties[elementID]:
@@ -105,6 +108,8 @@ if __name__ == "__main__":
     # new_FF_lines = file_header + first_element_line + first_element_emb_func + first_element_dens_func + first_element_potentials + second_element_line + second_element_emb_func + second_element_dens_func + second_element_potentials + third_element_line + third_element_emb_func + third_element_dens_func + third_element_potentials
 
     print("Writing the new eam file...")
-    with open("corundum.eam.fs", "w+") as new_FF_file:
+    #file_name = "corundum.eam.fs"
+    file_name = "corundum.eam.alloy"
+    with open(file_name, "w+") as new_FF_file:
         new_FF_file.writelines(new_FF_lines)
-    print("EAM file written to corundum.eam.fs")
+    print("EAM file written to", file_name)
