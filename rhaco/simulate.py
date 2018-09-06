@@ -184,6 +184,23 @@ def rename_types(snapshot):
     return snapshot, catalyst, gas
 
 
+def initialize_velocities(snapshot, temperature, gas):
+    v = np.random.random((len(gas), 3))
+    v -= 0.5
+    meanv = np.mean(v, 0)
+    meanv2 = np.mean(v ** 2, 0)
+    fs = np.sqrt(temperature / meanv2)
+    # Shift the velocities such that the average is zero
+    v = (v - meanv)
+    # Scale the velocities to match the required temperature
+    v *= fs
+    # Assign the velocities for this MD phase
+    indices_to_modify = [atom.tag for atom in gas]
+    for i, index in enumerate(indices_to_modify):
+        snapshot.particles.velocity[index] = v[i]
+    return snapshot
+
+
 def main():
     parser = argparse.ArgumentParser(prog='rhaco-run-hoomd',
                                     formatter_class=argparse.
@@ -256,10 +273,10 @@ def main():
 
     for file_name in file_list:
         hoomd.context.initialize("")
-        system = hoomd.deprecated.init.read_xml(filename=file_name)
-        snapshot = system.take_snapshot()
         # Get the integration groups by ignoring anything that has the X_
         # prefix to the atom type, and rename the types for the forcefield
+        system = hoomd.deprecated.init.read_xml(filename=file_name)
+        snapshot = system.take_snapshot()
         renamed_snapshot, catalyst, gas = rename_types(snapshot)
         # Then, restore the snapshot
         system.restore_snapshot(renamed_snapshot)
@@ -268,7 +285,15 @@ def main():
         hoomd.md.integrate.mode_standard(dt=args.timestep);
         integrator = hoomd.md.integrate.nvt(group=gas, tau=args.tau,
                                             kT=reduced_temperature)
-        integrator.randomize_velocities(seed=42)
+        try:
+            # Use HOOMD 2.3's randomize_velocities
+            integrator.randomize_velocities(seed=42)
+        except AttributeError:
+            # Using a previous version of HOOMD - use the old initialization
+            # function instead
+            snapshot = system.take_snapshot()
+            initialized_snapshot = initialize_velocities(snapshot, reduced_temperature, gas)
+            system.restore_snapshot(initialized_snapshot)
 
         hoomd.dump.gsd(filename=".".join(file_name.split(".")[:-1])
                        + "_traj.gsd", period=max([int(args.run_time/500), 1]),
