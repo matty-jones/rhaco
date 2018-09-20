@@ -29,6 +29,34 @@ defaults_dict = {'stoichiometry': {'Mo': 1, 'V': 0.15, 'Nb': 0.13, 'Te': 0.12},
                  'integrate_crystal': False}
 
 
+def split_argument_into_dictionary(argument):
+    """
+    Uses the string parsing on the argument to
+    split the string into a dictionary.
+    Requires:
+        argument - string in the from of a dictionary
+    Reutrns:
+        combine_list - dictionary
+    """
+    # Create empty dictionary
+    dictionary = {}
+    # Remove curly brackets
+    argument = argument[1:-1]
+    # Remove whitespace
+    argument = "".join([char for char in argument if char != " "])
+    # Identify and split the keys based off of the ',' separator
+    argument = argument.split(",")
+    # We now have key:val pairs for each element, add these to dict
+    for key_val in argument:
+        key_val_split = key_val.split(":")
+        key = key_val_split[0]
+        val = key_val_split[1]
+        if ((key[0] == '"') and (key[-1] == '"')) or ((key[0] == "'") and (key[-1] == "'")):
+            key = key[1:-1]
+        dictionary[key] = float(val)
+    return dictionary
+
+
 class crystal_unit_cell(mb.Compound):
     # This class will contain the unit cell for manipulation and replication
     def __init__(self, template, stoichiometry_dict):
@@ -695,13 +723,7 @@ def main():
                                      formatter_class=argparse.
                                      ArgumentDefaultsHelpFormatter)
     parser.add_argument("-s", "--stoichiometry",
-                        type=lambda s: {str(key[1:-1]): float(val)
-                                        for [key, val] in
-                                        [splitChar for splitChar
-                                         in [cell.split(':') for cell in [
-                                             _ for _ in s[1:-1].split(',')
-                                             if len(_) > 0]]
-                                         if len(splitChar) > 0]},
+                        type=split_argument_into_dictionary,
                         default={'Mo': 1, 'V': 0.15, 'Nb': 0.13, 'Te': 0.12},
                         required=False,
                         help='''Specify a stoichiometry for the surface.\n
