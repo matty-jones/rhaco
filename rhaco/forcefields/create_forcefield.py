@@ -1,6 +1,6 @@
 if __name__ == "__main__":
     # Create a hybrid 3-element forcefield based on the silver forcefield
-    with open("./Ag.eam.fs", "r") as original_FF:
+    with open("./Ag_Zhou04.eam.alloy", "r") as original_FF:
         FF_lines = original_FF.readlines()
     # Number of Elements Line
     n_elements = FF_lines[3]
@@ -109,7 +109,7 @@ if __name__ == "__main__":
 
     print("Writing the new eam file...")
     #file_name = "corundum.eam.fs"
-    file_name = "corundum.eam.alloy"
+    file_name = "corundum_Zhou04.eam.alloy"
     with open(file_name, "w+") as new_FF_file:
         new_FF_file.writelines(new_FF_lines)
     print("EAM file written to", file_name)
