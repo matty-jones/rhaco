@@ -36,15 +36,17 @@ def parse_interactions(omit_string):
     return omit_list
 
 
-def set_coeffs(file_name, system, omit_lj):
+def set_coeffs(file_name, system, omit_lj, distance_scaling, energy_scaling):
     '''
     Read in the molecular dynamics coefficients exported by Foyer
     '''
     coeffs_dict = get_coeffs(file_name)
     nl = hoomd.md.nlist.tree()
-    log_quantities = ['temperature', 'pressure', 'volume',
-                      'potential_energy', 'kinetic_energy']
+    log_quantities = ['temperature', 'temperature_gas', 'pressure', 'volume',
+                      'potential_energy', 'potential_energy_gas', 'kinetic_energy',
+                      'kinetic_energy_gas']
     if len(coeffs_dict['pair_coeffs']) != 0:
+        print("Loading LJ pair coeffs...")
         lj = hoomd.md.pair.lj(r_cut=10.0, nlist=nl)
         lj.set_params(mode="xplor")
         log_quantities.append('pair_lj_energy')
@@ -56,30 +58,40 @@ def set_coeffs(file_name, system, omit_lj):
                                       sigma=0.0)
                 else:
                     lj.pair_coeff.set(type1[0], type2[0],
-                                      epsilon=np.sqrt(type1[1] * type2[1]),
-                                      sigma=np.sqrt(type1[2] * type2[2]))
+                                      epsilon=np.sqrt(type1[1] * type2[1]) / energy_scaling,
+                                      sigma=np.sqrt(type1[2] * type2[2]) / distance_scaling,
+                                     )
     if len(coeffs_dict['bond_coeffs']) != 0:
+        print("Loading harmonic bond coeffs...")
         harmonic_bond = hoomd.md.bond.harmonic()
         log_quantities.append('bond_harmonic_energy')
         for bond in coeffs_dict['bond_coeffs']:
-            harmonic_bond.bond_coeff.set(bond[0], k=bond[1], r0=bond[2])
+            harmonic_bond.bond_coeff.set(bond[0],
+                                         k=bond[1] / (energy_scaling / distance_scaling**2),
+                                         r0=bond[2] / distance_scaling,
+                                        )
 
     if len(coeffs_dict['angle_coeffs']) != 0:
+        print("Loading harmonic angle coeffs...")
         harmonic_angle = hoomd.md.angle.harmonic()
         log_quantities.append('angle_harmonic_energy')
         for angle in coeffs_dict['angle_coeffs']:
-            harmonic_angle.angle_coeff.set(angle[0], k=angle[1], t0=angle[2])
+            harmonic_angle.angle_coeff.set(angle[0], k=angle[1] / energy_scaling, t0=angle[2])
 
     if len(coeffs_dict['dihedral_coeffs']) != 0:
+        print("Loading opls dihedral coeffs...")
         harmonic_dihedral = hoomd.md.dihedral.opls()
         log_quantities.append('dihedral_opls_energy')
         for dihedral in coeffs_dict['dihedral_coeffs']:
-            harmonic_dihedral.dihedral_coeff.set(dihedral[0], k1=dihedral[1],
-                                                 k2=dihedral[2],
-                                                 k3=dihedral[3],
-                                                 k4=dihedral[4])
+            harmonic_dihedral.dihedral_coeff.set(dihedral[0],
+                                                 k1=dihedral[1] / energy_scaling,
+                                                 k2=dihedral[2] / energy_scaling,
+                                                 k3=dihedral[3] / energy_scaling,
+                                                 k4=dihedral[4] / energy_scaling,
+                                                )
     if len(coeffs_dict["external_forcefields"]) != 0:
         for forcefield_loc in coeffs_dict["external_forcefields"]:
+            print("Loading external forcefield:", "".join([forcefield_loc, "..."]))
             if forcefield_loc[-7:] == ".eam.fs":
                 hoomd.metal.pair.eam(file=forcefield_loc, type="FS", nlist=nl)
                 log_quantities.append('pair_eam_energy')
@@ -237,17 +249,18 @@ def main():
                         default=1.0,
                         required=False,
                         help='''The energy scaling unit rhaco should use to
-                        set the correct temperature in kcal/mol. Default is Foyer's
-                        default unit (1.0 kcal/mol). A useful alternative is 23.06 kcal/mol,
-                        which corresponds to 1 eV, which is the energy scaling unit for EAM.
+                        set the correct temperature, and LJ epsilons in kcal/mol. Default
+                        is Foyer's default unit (1.0 kcal/mol). A useful alternative is
+                        23.060541945329334 kcal/mol, which corresponds to 1 eV, which is
+                        the energy scaling unit for EAM.
                         Be careful with this, it WILL frack everything up.''')
     parser.add_argument('-d', '--distance_scale_unit',
                         type=float,
                         default=1.0,
                         required=False,
                         help='''The distance scaling unit rhaco should use to
-                        set the correct temperature in angstroems. Default is Foyer's
-                        default unit (1.0 angstroem).
+                        set the correct LJ sigmas in angstroems. Default is Foyer's
+                        default unit (1.0 angstroem, same as EAM).
                         Be careful with this, it WILL frack everything up.''')
     args, file_list = parser.parse_known_args()
 
@@ -267,22 +280,27 @@ def main():
 
     for file_name in file_list:
         hoomd.context.initialize("")
-        system = hoomd.deprecated.init.read_xml(filename=file_name)
-        snapshot = system.take_snapshot()
         # Get the integration groups by ignoring anything that has the X_
         # prefix to the atom type, and rename the types for the forcefield
+        system = hoomd.deprecated.init.read_xml(filename=file_name)
+        snapshot = system.take_snapshot()
         renamed_snapshot, catalyst, gas = rename_types(snapshot)
-        # Assign the required velocities based on the requested temperature
-        initialized_snapshot = initialize_velocities(renamed_snapshot,
-                                                     reduced_temperature,
-                                                     gas)
-        # Finally, restore the snapshot
-        system.restore_snapshot(initialized_snapshot)
-        system, log_quantities = set_coeffs(file_name, system, args.omit_lj)
+        # Then, restore the snapshot
+        system.restore_snapshot(renamed_snapshot)
+        system, log_quantities = set_coeffs(file_name, system, args.omit_lj, args.distance_scale_unit, args.energy_scale_unit)
 
         hoomd.md.integrate.mode_standard(dt=args.timestep);
         integrator = hoomd.md.integrate.nvt(group=gas, tau=args.tau,
                                             kT=reduced_temperature)
+        try:
+            # Use HOOMD 2.3's randomize_velocities
+            integrator.randomize_velocities(seed=42)
+        except AttributeError:
+            # Using a previous version of HOOMD - use the old initialization
+            # function instead
+            snapshot = system.take_snapshot()
+            initialized_snapshot = initialize_velocities(snapshot, reduced_temperature, gas)
+            system.restore_snapshot(initialized_snapshot)
 
         hoomd.dump.gsd(filename=".".join(file_name.split(".")[:-1])
                        + "_traj.gsd", period=max([int(args.run_time/500), 1]),

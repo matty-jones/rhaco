@@ -1,0 +1,18 @@
+<ForceField>
+ <AtomTypes>
+  <Type name="O" class="O" element="O" mass="15.9990"  def="O" desc="uff_O: oxygen, all geometries" doi="10.1021/ja00051a040"/>
+  <Type name="Ag" class="Ag" element="Ag" mass="107.8682"  def="Ag"/>
+  <Type name="Al" class="Al" element="Al" mass="26.98154" def="Al"/>
+ </AtomTypes>
+ <HarmonicBondForce>
+ </HarmonicBondForce>
+ <HarmonicAngleForce>
+ </HarmonicAngleForce>
+ <RBTorsionForce>
+ </RBTorsionForce>
+ <NonbondedForce coulomb14scale="0.5" lj14scale="0.5">
+  <Atom type="O" charge="0.00" sigma="0.3115" epsilon="0.25104"/>
+  <Atom type="Ag" charge="0.00" sigma="0.280172" epsilon="0.150624"/>
+  <Atom type="Al" charge="0.00" sigma="0.400411" epsilon="2.11292"/>
+ </NonbondedForce>
+</ForceField>
