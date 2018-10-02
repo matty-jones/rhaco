@@ -20,11 +20,9 @@ def parse_interactions(omit_string):
     if (omit_string[0] == "[") and (omit_string[-1] == "]"):
         omit_string = omit_string[1:-1]
     if "," in omit_string:
-        print("comma")
         omit_string = "".join(omit_string.split(" "))
         omit_string = omit_string.split(",")
     else:
-        print("space")
         omit_string = omit_string.split()
     for interaction in omit_string:
         if (interaction[0] == "'") and (interaction[-1] == "'"):
