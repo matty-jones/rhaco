@@ -34,20 +34,27 @@ def parse_interactions(omit_string):
     return omit_list
 
 
-def set_coeffs(file_name, system, omit_lj, distance_scaling, energy_scaling):
+def set_coeffs(
+    file_name, system, omit_lj, distance_scaling, energy_scaling,
+    nl_type, r_cut
+):
     '''
     Read in the molecular dynamics coefficients exported by Foyer
     '''
     coeffs_dict = get_coeffs(file_name)
-    nl = hoomd.md.nlist.tree()
+    if nl_type == "tree":
+        nl = hoomd.md.nlist.tree()
+    else:
+        nl = hoomd.md.nlist.cell()
     log_quantities = ['temperature', 'temperature_gas', 'pressure', 'volume',
                       'potential_energy', 'potential_energy_gas', 'kinetic_energy',
                       'kinetic_energy_gas']
     if len(coeffs_dict['pair_coeffs']) != 0:
         print("Loading LJ pair coeffs...")
-        lj = hoomd.md.pair.lj(r_cut=10.0, nlist=nl)
+        lj = hoomd.md.pair.lj(r_cut=2.5, nlist=nl)
         lj.set_params(mode="xplor")
-        log_quantities.append('pair_lj_energy')
+        if "pair_lj_energy" not in log_quantities:
+            log_quantities.append('pair_lj_energy')
         for type1 in coeffs_dict['pair_coeffs']:
             for type2 in coeffs_dict['pair_coeffs']:
                 if "-".join([type1[0], type2[0]]) in omit_lj:
@@ -62,7 +69,8 @@ def set_coeffs(file_name, system, omit_lj, distance_scaling, energy_scaling):
     if len(coeffs_dict['bond_coeffs']) != 0:
         print("Loading harmonic bond coeffs...")
         harmonic_bond = hoomd.md.bond.harmonic()
-        log_quantities.append('bond_harmonic_energy')
+        if "bond_harmonic_energy" not in log_quantities:
+            log_quantities.append('bond_harmonic_energy')
         for bond in coeffs_dict['bond_coeffs']:
             harmonic_bond.bond_coeff.set(bond[0],
                                          k=bond[1] / (energy_scaling / distance_scaling**2),
@@ -72,14 +80,16 @@ def set_coeffs(file_name, system, omit_lj, distance_scaling, energy_scaling):
     if len(coeffs_dict['angle_coeffs']) != 0:
         print("Loading harmonic angle coeffs...")
         harmonic_angle = hoomd.md.angle.harmonic()
-        log_quantities.append('angle_harmonic_energy')
+        if "angle_harmonic_energy" not in log_quantities:
+            log_quantities.append('angle_harmonic_energy')
         for angle in coeffs_dict['angle_coeffs']:
             harmonic_angle.angle_coeff.set(angle[0], k=angle[1] / energy_scaling, t0=angle[2])
 
     if len(coeffs_dict['dihedral_coeffs']) != 0:
         print("Loading opls dihedral coeffs...")
         harmonic_dihedral = hoomd.md.dihedral.opls()
-        log_quantities.append('dihedral_opls_energy')
+        if "dihedral_opls_energy" not in log_quantities:
+            log_quantities.append('dihedral_opls_energy')
         for dihedral in coeffs_dict['dihedral_coeffs']:
             harmonic_dihedral.dihedral_coeff.set(dihedral[0],
                                                  k1=dihedral[1] / energy_scaling,
@@ -92,10 +102,12 @@ def set_coeffs(file_name, system, omit_lj, distance_scaling, energy_scaling):
             print("Loading external forcefield:", "".join([forcefield_loc, "..."]))
             if forcefield_loc[-7:] == ".eam.fs":
                 hoomd.metal.pair.eam(file=forcefield_loc, type="FS", nlist=nl)
-                log_quantities.append('pair_eam_energy')
+                if "pair_eam_energy" not in log_quantities:
+                    log_quantities.append('pair_eam_energy')
             elif forcefield_loc[-10:] == ".eam.alloy":
                 hoomd.metal.pair.eam(file=forcefield_loc, type="Alloy", nlist=nl)
-                log_quantities.append('pair_eam_energy')
+                if "pair_eam_energy" not in log_quantities:
+                    log_quantities.append('pair_eam_energy')
             else:
                 print("----==== UNABLE TO PARSE EXTERNAL FORCEFIELD ====----")
                 print(forcefield_loc, "is an unspecified file type and will be ignored."
@@ -260,6 +272,19 @@ def main():
                         set the correct LJ sigmas in angstroems. Default is Foyer's
                         default unit (1.0 angstroem, same as EAM).
                         Be careful with this, it WILL frack everything up.''')
+    parser.add_argument('-nl', '--nl_type',
+                        type=str,
+                        default="tree",
+                        required=False,
+                        help='''The neighbour list type to use. Default is tree,
+                        other option is "cell"''')
+    parser.add_argument('-rc', '--r_cut',
+                        type=float,
+                        default=10.0,
+                        required=False,
+                        help='''The r_cut value to use in the LJ interactions given
+                        in distance_scale_unit. Default = 10.0 (10 Angstroems if
+                        -d = 1.0)''')
     args, file_list = parser.parse_known_args()
 
     # Foyer gives parameters in terms of kcal/mol for energies and angstroems
@@ -285,7 +310,8 @@ def main():
         renamed_snapshot, catalyst, gas = rename_types(snapshot)
         # Then, restore the snapshot
         system.restore_snapshot(renamed_snapshot)
-        system, log_quantities = set_coeffs(file_name, system, args.omit_lj, args.distance_scale_unit, args.energy_scale_unit)
+        system, log_quantities = set_coeffs(file_name, system, args.omit_lj, args.distance_scale_unit, args.energy_scale_unit,
+                                           args.nl_type, args.r_cut)
 
         hoomd.md.integrate.mode_standard(dt=args.timestep);
         integrator = hoomd.md.integrate.nvt(group=gas, tau=args.tau,
