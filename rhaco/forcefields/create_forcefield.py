@@ -1,3 +1,6 @@
+import copy
+
+
 if __name__ == "__main__":
     # Create a hybrid 3-element forcefield based on the silver forcefield
     with open("./Ag_Zhou04.eam.alloy", "r") as original_FF:
@@ -48,29 +51,49 @@ if __name__ == "__main__":
     # Now we want to add in a ton of zeroes corresponding to the other interactions
     blank_line = [" ".join(["{:24.16E}" * 5, "\n"]).format(*[0.0]*5)]
 
-    # Element 1:
+
+
+    # LAMMPS documentation http://www.afs.enea.it/software/lammps/doc15/pair_eam.html
+    # and cross-checking with *.eam.alloy files available through NIST:
+    # The alloy file format for 3 elements looks like this:
+    # Element 1 indentifier line
+    # Element 1 emb fn
+    # Element 1 dens fn
+    # Element 2 indentifier line
+    # Element 2 emb fn
+    # Element 2 dens fn
+    # Element 3 indentifier line
+    # Element 3 emb fn
+    # Element 3 dens fn
+    # All potentials ([1, 1], [1, 2], [1, 3], [2, 2], [2, 3], [3, 3])
+
+    # For the potentials:
     # We already have E1-E1 interactions in first_element_potentials
     # Add E1-E2 and E1-E3 interactions to forcefield
+    potentials = copy.deepcopy(first_element_potentials)
     # Firstly, Element 1 interacting with Element 2
-    first_element_potentials += blank_line * (nr // numbers_per_line)
+    potentials += blank_line * (nr // numbers_per_line)
     # Then, Element 1 interacting with Element 3
-    first_element_potentials += blank_line * (nr // numbers_per_line)
+    potentials += blank_line * (nr // numbers_per_line)
+    # Now add in Element 2 interacting with Element 2
+    potentials += blank_line * (nr // numbers_per_line)
+    # Then, Element 2 interacting with Element 3
+    potentials += blank_line * (nr // numbers_per_line)
+    # And finally, Element 3 interacting with Element 3
+    potentials += blank_line * (nr // numbers_per_line)
+
 
     # Element 2:
     # Firstly, we need the embedding function
     second_element_emb_func = blank_line * (nrho // numbers_per_line)
     # Then, the density function
     second_element_dens_func = blank_line * (nrho // numbers_per_line)
-    # Then, the forcefield (E2-E2, E2-E3, E2-E1)
-    second_element_potentials = blank_line * (nr // numbers_per_line) * 3
 
     # Element 3:
     # Firstly, we need the embedding function
     third_element_emb_func = blank_line * (nrho // numbers_per_line)
     # Then, the density function
     third_element_dens_func = blank_line * (nrho // numbers_per_line)
-    # Then, the forcefield (E2-E2, E2-E3, E2-E1)
-    third_element_potentials = blank_line * (nr // numbers_per_line) * 3
 
 
     new_FF_lines = file_header
@@ -79,15 +102,10 @@ if __name__ == "__main__":
     element_names = {0: first_element_line,
                      1: second_element_line,
                      2: third_element_line}
-    element_properties = {0: [first_element_emb_func, first_element_dens_func, first_element_potentials],
-                          1: [second_element_emb_func, second_element_dens_func, second_element_potentials],
-                          2: [third_element_emb_func, third_element_dens_func, third_element_potentials]}
-    # LAMMPS documentation http://www.afs.enea.it/software/lammps/doc15/pair_eam.html suggests that
-    # the setfl format doesn't store potentials, just the emb and dens functions for each.
-    # Let's try that now instead.
+    # Based on the *.eam.alloy format, here is the correct ordering:
     element_properties = {0: [first_element_emb_func, first_element_dens_func],
                           1: [second_element_emb_func, second_element_dens_func],
-                          2: [third_element_emb_func, third_element_dens_func],
+                          2: [third_element_emb_func, third_element_dens_func, potentials],
                          }
     for elementID in range(3):
         element_floats = []
