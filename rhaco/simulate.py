@@ -46,6 +46,8 @@ def set_coeffs(
         nl = hoomd.md.nlist.tree()
     else:
         nl = hoomd.md.nlist.cell()
+    # Ignore any surface-surface interactions
+    nl.reset_exclusions(exclusions=["body"])
     log_quantities = ['temperature', 'temperature_gas', 'pressure', 'volume',
                       'potential_energy', 'potential_energy_gas', 'kinetic_energy',
                       'kinetic_energy_gas']
@@ -193,6 +195,8 @@ def rename_types(snapshot):
     for atom_index, type_ID in enumerate(snapshot.particles.typeid):
         if type_ID in catalyst_type_IDs:
             catalyst_atom_IDs.append(atom_index)
+    # Also, add the surface atom to the same rigid body
+    snapshot.particles.body[catalyst_atom_IDs] = 0
     catalyst = hoomd.group.tag_list(name='catalyst', tags=catalyst_atom_IDs)
     gas = hoomd.group.difference(name='gas', a=hoomd.group.all(), b=catalyst)
     # Now use the mapping to remove any duplicate types (needed if the same atom
