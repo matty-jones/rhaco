@@ -51,13 +51,20 @@ def set_coeffs(
                       'kinetic_energy_gas']
     if len(coeffs_dict['pair_coeffs']) != 0:
         print("Loading LJ pair coeffs...")
-        lj = hoomd.md.pair.lj(r_cut=2.5, nlist=nl)
+        if r_cut is None:
+            max_sigma = np.max(list(map(
+                float, np.array(coeffs_dict['pair_coeffs'])[:,2]
+            )))
+            r_cut = 2.5 * max_sigma
+            print("Setting r_cut to 2.5 * max_lj_sigma =", r_cut)
+        lj = hoomd.md.pair.lj(r_cut=r_cut, nlist=nl)
         lj.set_params(mode="xplor")
         if "pair_lj_energy" not in log_quantities:
             log_quantities.append('pair_lj_energy')
         for type1 in coeffs_dict['pair_coeffs']:
             for type2 in coeffs_dict['pair_coeffs']:
                 if "-".join([type1[0], type2[0]]) in omit_lj:
+                    print("Omitting", "-".join([type1[0], type2[0]]), "0", "0")
                     lj.pair_coeff.set(type1[0], type2[0],
                                       epsilon=0.0,
                                       sigma=0.0)
@@ -114,12 +121,10 @@ def set_coeffs(
                       " Please code in how to treat this file in rhaco/simulate.py")
     for atomID, atom in enumerate(system.particles):
         atom.mass = coeffs_dict['mass'][atomID]
-
     # TODO: Support for charges
     #pppmnl = hoomd.md.nlist.cell()
     #pppm = hoomd.md.charge.pppm(group=hoomd.group.charged(), nlist = pppmnl)
     #pppm.set_params(Nx=64,Ny=64,Nz=64,order=6,rcut=2.70)
-
     return system, log_quantities
 
 
@@ -280,11 +285,10 @@ def main():
                         other option is "cell"''')
     parser.add_argument('-rc', '--r_cut',
                         type=float,
-                        default=10.0,
+                        default=None,
                         required=False,
                         help='''The r_cut value to use in the LJ interactions given
-                        in distance_scale_unit. Default = 10.0 (10 Angstroems if
-                        -d = 1.0)''')
+                        in distance_scale_unit. Default = 2.5 * max_lj_sigma''')
     args, file_list = parser.parse_known_args()
 
     # Foyer gives parameters in terms of kcal/mol for energies and angstroems
