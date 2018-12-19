@@ -22,9 +22,9 @@
   <Proper class1="SI" class2="O" class3="SI" class4="C" c0="0.08368" c1="-0.25104" c2="0.0" c3="0.33472" c4="0.0" c5="0.0"/>
  </RBTorsionForce>
  <NonbondedForce coulomb14scale="0.5" lj14scale="0.5">
-  <Atom type="Mn" charge="0.00" sigma="0.2635" epsilon="0.217568"/>
-  <Atom type="Ni" charge="0.00" sigma="0.2522" epsilon="0.25104"/>
-  <Atom type="Ga" charge="0.00" sigma="0.3901" epsilon="6.94544"/>
+  <Atom type="Mn" charge="0.00" sigma="0.2635" epsilon="0.054392"/>
+  <Atom type="Ni" charge="0.00" sigma="0.2522" epsilon="0.062760"/>
+  <Atom type="Ga" charge="0.00" sigma="0.3901" epsilon="1.73636"/>
   <Atom type="Si" charge="0.30" sigma="0.3385" epsilon="2.4480"/>
   <Atom type="O" charge="-0.30" sigma="0.2955" epsilon="0.8493"/>
   <Atom type="C" charge="0.00" sigma="0.3786" epsilon="0.7532"/>
