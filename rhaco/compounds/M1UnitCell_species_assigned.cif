@@ -1,0 +1,621 @@
+data_M1UNITCELL_SPECIES_ASSIGNED
+# 
+_audit_author.name           'Boise, Cme_Lab' 
+_audit_author.pdbx_ordinal   1 
+# 
+_database.entry_id        M1UNITCELL_SPECIES_ASSIGNED 
+_database.pdbx_code_NDB   M1UNITCELL_SPECIES_ASSIGNED 
+_database.pdbx_code_PDB   ? 
+_database.code_CSD        ? 
+# 
+loop_
+_database_2.database_id 
+_database_2.database_code 
+NDB  M1UNITCELL_SPECIES_ASSIGNED 
+RCSB M1UNITCELL_SPECIES_ASSIGNED 
+# 
+_exptl.entry_id          M1UNITCELL_SPECIES_ASSIGNED 
+_exptl.method            'X-RAY DIFFRACTION' 
+_exptl.crystals_number   ? 
+# 
+_pdbx_pdb_compnd.id     ? 
+_pdbx_pdb_compnd.text   M1 
+# 
+loop_
+_struct_biol_gen.biol_id 
+_struct_biol_gen.asym_id 
+_struct_biol_gen.pdbx_new_asym_id 
+_struct_biol_gen.pdbx_new_pdb_asym_id 
+_struct_biol_gen.symmetry 
+_struct_biol_gen.pdbx_before_begin_residue_no 
+_struct_biol_gen.pdbx_before_end_residue_no 
+_struct_biol_gen.pdbx_after_begin_residue_no 
+_struct_biol_gen.pdbx_after_end_residue_no 
+_struct_biol_gen.details 
+_struct_biol_gen.pdbx_full_symmetry_operation 
+_struct_biol_gen.pdbx_PDB_order 
+1 A A ? 1_555 1 1 1 1 ? x,y,z 1 
+1 B B ? 1_555 1 1 1 1 ? x,y,z 2 
+1 C C ? 1_555 1 1 1 1 ? x,y,z 3 
+1 D D ? 1_555 1 1 1 1 ? x,y,z 4 
+1 E E ? 1_555 1 1 1 1 ? x,y,z 5 
+# 
+_struct_biol_view.biol_id            ? 
+_struct_biol_view.id                 ? 
+_struct_biol_view.rot_matrix[1][1]   ? 
+_struct_biol_view.rot_matrix[1][2]   ? 
+_struct_biol_view.rot_matrix[1][3]   ? 
+_struct_biol_view.rot_matrix[2][1]   ? 
+_struct_biol_view.rot_matrix[2][2]   ? 
+_struct_biol_view.rot_matrix[2][3]   ? 
+_struct_biol_view.rot_matrix[3][1]   ? 
+_struct_biol_view.rot_matrix[3][2]   ? 
+_struct_biol_view.rot_matrix[3][3]   ? 
+_struct_biol_view.pdbx_vector[1]     ? 
+_struct_biol_view.pdbx_vector[2]     ? 
+_struct_biol_view.pdbx_vector[3]     ? 
+# 
+loop_
+_struct_asym.id 
+_struct_asym.pdbx_PDB_id 
+_struct_asym.pdbx_alt_id 
+_struct_asym.pdbx_blank_PDB_chainid_flag 
+_struct_asym.pdbx_type 
+_struct_asym.pdbx_order 
+_struct_asym.pdbx_modified 
+_struct_asym.pdbx_fraction_per_asym_unit 
+_struct_asym.entity_id 
+_struct_asym.pdbx_missing_num_begin_of_chain_not_in_seqres 
+_struct_asym.pdbx_missing_num_end_of_chain_not_in_seqres 
+_struct_asym.pdbx_missing_num_begin_of_chain_in_seqres 
+_struct_asym.details 
+A ? ? N HETAIN 1 N ? 1 ? ? ? ? 
+B ? ? N HETAIN 2 N ? 1 ? ? ? ? 
+C ? ? N HETAIN 3 N ? 1 ? ? ? ? 
+D ? ? N HETAIN 4 N ? 1 ? ? ? ? 
+E ? ? N HETAIN 5 N ? 1 ? ? ? ? 
+# 
+_pdbx_inhibitor_info.id                  1 
+_pdbx_inhibitor_info.name                '3-PYRIDIN-4-YL-2,4-DIHYDRO-INDENO[1,2-.C.]PYRAZOLE' 
+_pdbx_inhibitor_info.num_per_asym_unit   5 
+# 
+loop_
+_pdbx_nonpoly_scheme.asym_id 
+_pdbx_nonpoly_scheme.entity_id 
+_pdbx_nonpoly_scheme.mon_id 
+_pdbx_nonpoly_scheme.ndb_seq_num 
+_pdbx_nonpoly_scheme.pdb_seq_num 
+_pdbx_nonpoly_scheme.auth_seq_num 
+_pdbx_nonpoly_scheme.pdb_mon_id 
+_pdbx_nonpoly_scheme.auth_mon_id 
+_pdbx_nonpoly_scheme.pdb_strand_id 
+_pdbx_nonpoly_scheme.pdb_ins_code 
+A 1 LIG 1 1 1 LIG LIG ? . 
+B 1 LIG 1 2 2 LIG LIG ? . 
+C 1 LIG 1 3 3 LIG LIG ? . 
+D 1 LIG 1 4 4 LIG LIG ? . 
+E 1 LIG 1 5 5 LIG LIG ? . 
+# 
+_entity.id                         1 
+_entity.type                       non-polymer 
+_entity.src_method                 syn 
+_entity.pdbx_description           '3-PYRIDIN-4-YL-2,4-DIHYDRO-INDENO[1,2-.C.]PYRAZOLE' 
+_entity.formula_weight             233.268 
+_entity.pdbx_number_of_molecules   5 
+_entity.details                    ? 
+# 
+_entity_keywords.entity_id               1 
+_entity_keywords.text                    ? 
+_entity_keywords.pdbx_mutation           ? 
+_entity_keywords.pdbx_fragment           ? 
+_entity_keywords.pdbx_antibody_isotype   ? 
+_entity_keywords.pdbx_ec                 ? 
+# 
+_entity_name_com.entity_id   1 
+_entity_name_com.name        ? 
+# 
+_entity_name_sys.entity_id   1 
+_entity_name_sys.name        ? 
+# 
+_chem_comp.id               LIG 
+_chem_comp.type             non-polymer 
+_chem_comp.mon_nstd_flag    . 
+_chem_comp.name             '3-PYRIDIN-4-YL-2,4-DIHYDRO-INDENO[1,2-.C.]PYRAZOLE' 
+_chem_comp.pdbx_synonyms    ? 
+_chem_comp.formula          'C15 H11 N3' 
+_chem_comp.formula_weight   233.268 
+# 
+_pdbx_database_status.status_code                        ? 
+_pdbx_database_status.entry_id                           M1UNITCELL_SPECIES_ASSIGNED 
+_pdbx_database_status.ndb_tid                            ? 
+_pdbx_database_status.status_coordinates_in_NDB          ? 
+_pdbx_database_status.recvd_deposit_form                 ? 
+_pdbx_database_status.date_deposition_form               ? 
+_pdbx_database_status.recvd_coordinates                  ? 
+_pdbx_database_status.date_coordinates                   ? 
+_pdbx_database_status.recvd_struct_fact                  ? 
+_pdbx_database_status.date_struct_fact                   ? 
+_pdbx_database_status.recvd_internal_approval            ? 
+_pdbx_database_status.recvd_nmr_constraints              ? 
+_pdbx_database_status.date_nmr_constraints               ? 
+_pdbx_database_status.recvd_manuscript                   ? 
+_pdbx_database_status.date_manuscript                    ? 
+_pdbx_database_status.name_depositor                     ? 
+_pdbx_database_status.rcsb_annotator                     ? 
+_pdbx_database_status.recvd_author_approval              ? 
+_pdbx_database_status.date_author_approval               ? 
+_pdbx_database_status.recvd_initial_deposition_date      ? 
+_pdbx_database_status.date_submitted                     ? 
+_pdbx_database_status.author_approval_type               ? 
+_pdbx_database_status.author_release_status_code         ? 
+_pdbx_database_status.date_revised                       ? 
+_pdbx_database_status.revision_id                        ? 
+_pdbx_database_status.replaced_entry_id                  ? 
+_pdbx_database_status.revision_description               ? 
+_pdbx_database_status.date_of_NDB_release                ? 
+_pdbx_database_status.date_released_to_PDB               ? 
+_pdbx_database_status.date_of_PDB_release                ? 
+_pdbx_database_status.date_hold_coordinates              ? 
+_pdbx_database_status.date_hold_struct_fact              ? 
+_pdbx_database_status.hold_for_publication               ? 
+_pdbx_database_status.date_hold_nmr_constraints          ? 
+_pdbx_database_status.dep_release_code_coordinates       ? 
+_pdbx_database_status.dep_release_code_struct_fact       ? 
+_pdbx_database_status.dep_release_code_nmr_constraints   ? 
+_pdbx_database_status.dep_release_code_sequence          ? 
+_pdbx_database_status.pdb_date_of_author_approval        ? 
+_pdbx_database_status.deposit_site                       ? 
+_pdbx_database_status.process_site                       ? 
+_pdbx_database_status.skip_PDB_REMARK                    ? 
+# 
+_pdbx_database_proc.entry_id           M1UNITCELL_SPECIES_ASSIGNED 
+_pdbx_database_proc.cycle_id           ? 
+_pdbx_database_proc.date_begin_cycle   ? 
+_pdbx_database_proc.date_end_cycle     ? 
+_pdbx_database_proc.details            ? 
+# 
+_pdbx_database_PDB_master.num_remark   0 
+_pdbx_database_PDB_master.num_ftnote   0 
+_pdbx_database_PDB_master.num_het      0 
+_pdbx_database_PDB_master.num_helix    0 
+_pdbx_database_PDB_master.num_sheet    0 
+_pdbx_database_PDB_master.num_turn     0 
+_pdbx_database_PDB_master.num_site     0 
+_pdbx_database_PDB_master.num_trans    0 
+_pdbx_database_PDB_master.num_coord    160 
+_pdbx_database_PDB_master.num_ter      0 
+_pdbx_database_PDB_master.num_conect   160 
+_pdbx_database_PDB_master.num_seqres   0 
+# 
+_pdbx_coord.entry_id                M1UNITCELL_SPECIES_ASSIGNED 
+_pdbx_coord.chain_atoms_Y_P         ? 
+_pdbx_coord.hydrogen_atoms_Y_N      ? 
+_pdbx_coord.solvent_atoms_Y_N       ? 
+_pdbx_coord.structure_factors_Y_N   ? 
+# 
+_symmetry.entry_id                         M1UNITCELL_SPECIES_ASSIGNED 
+_symmetry.space_group_name_H-M             'P 1' 
+_symmetry.pdbx_full_space_group_name_H-M   ? 
+_symmetry.cell_setting                     ? 
+_symmetry.Int_Tables_number                ? 
+# 
+_cell.entry_id           M1UNITCELL_SPECIES_ASSIGNED 
+_cell.length_a           1.000 
+_cell.length_b           1.000 
+_cell.length_c           1.000 
+_cell.angle_alpha        90.00 
+_cell.angle_beta         90.00 
+_cell.angle_gamma        90.00 
+_cell.Z_PDB              1 
+_cell.pdbx_unique_axis   ? 
+# 
+_database_PDB_matrix.entry_id          M1UNITCELL_SPECIES_ASSIGNED 
+_database_PDB_matrix.origx[1][1]       1.000000 
+_database_PDB_matrix.origx[1][2]       0.000000 
+_database_PDB_matrix.origx[1][3]       0.000000 
+_database_PDB_matrix.origx[2][1]       0.000000 
+_database_PDB_matrix.origx[2][2]       1.000000 
+_database_PDB_matrix.origx[2][3]       0.000000 
+_database_PDB_matrix.origx[3][1]       0.000000 
+_database_PDB_matrix.origx[3][2]       0.000000 
+_database_PDB_matrix.origx[3][3]       1.000000 
+_database_PDB_matrix.origx_vector[1]   0.00000 
+_database_PDB_matrix.origx_vector[2]   0.00000 
+_database_PDB_matrix.origx_vector[3]   0.00000 
+# 
+_atom_sites.entry_id                    M1UNITCELL_SPECIES_ASSIGNED 
+_atom_sites.cartn_transform_axes        ? 
+_atom_sites.fract_transf_matrix[1][1]   1.000000 
+_atom_sites.fract_transf_matrix[1][2]   0.000000 
+_atom_sites.fract_transf_matrix[1][3]   0.000000 
+_atom_sites.fract_transf_matrix[2][1]   0.000000 
+_atom_sites.fract_transf_matrix[2][2]   1.000000 
+_atom_sites.fract_transf_matrix[2][3]   0.000000 
+_atom_sites.fract_transf_matrix[3][1]   0.000000 
+_atom_sites.fract_transf_matrix[3][2]   0.000000 
+_atom_sites.fract_transf_matrix[3][3]   1.000000 
+_atom_sites.fract_transf_vector[1]      0.00000 
+_atom_sites.fract_transf_vector[2]      0.00000 
+_atom_sites.fract_transf_vector[3]      0.00000 
+# 
+_struct_ncs_oper.id             ? 
+_struct_ncs_oper.code           ? 
+_struct_ncs_oper.details        ? 
+_struct_ncs_oper.matrix[1][1]   ? 
+_struct_ncs_oper.matrix[1][2]   ? 
+_struct_ncs_oper.matrix[1][3]   ? 
+_struct_ncs_oper.matrix[2][1]   ? 
+_struct_ncs_oper.matrix[2][2]   ? 
+_struct_ncs_oper.matrix[2][3]   ? 
+_struct_ncs_oper.matrix[3][1]   ? 
+_struct_ncs_oper.matrix[3][2]   ? 
+_struct_ncs_oper.matrix[3][3]   ? 
+_struct_ncs_oper.vector[1]      ? 
+_struct_ncs_oper.vector[2]      ? 
+_struct_ncs_oper.vector[3]      ? 
+# 
+_pdbx_post_process_details.entry_id      M1UNITCELL_SPECIES_ASSIGNED 
+_pdbx_post_process_details.text          ? 
+_pdbx_post_process_details.seq_details   ? 
+# 
+_pdbx_post_process_status.entry_id     M1UNITCELL_SPECIES_ASSIGNED 
+_pdbx_post_process_status.cycle_id     ? 
+_pdbx_post_process_status.date_begin   ? 
+_pdbx_post_process_status.date_end     ? 
+_pdbx_post_process_status.details      ? 
+_pdbx_post_process_status.annotator    ? 
+# 
+_em_2d_projection_selection.entry_id        M1UNITCELL_SPECIES_ASSIGNED 
+_em_2d_projection_selection.software_name   ? 
+_em_2d_projection_selection.num_particles   ? 
+# 
+_em_3d_fitting.id                ? 
+_em_3d_fitting.entry_id          M1UNITCELL_SPECIES_ASSIGNED 
+_em_3d_fitting.ref_space         ? 
+_em_3d_fitting.ref_protocol      ? 
+_em_3d_fitting.target_criteria   ? 
+_em_3d_fitting.overall_b_value   ? 
+_em_3d_fitting.method            ? 
+# 
+_em_3d_reconstruction.entry_id                    M1UNITCELL_SPECIES_ASSIGNED 
+_em_3d_reconstruction.id                          ? 
+_em_3d_reconstruction.method                      ? 
+_em_3d_reconstruction.nominal_pixel_size          ? 
+_em_3d_reconstruction.actual_pixel_size           ? 
+_em_3d_reconstruction.resolution                  ? 
+_em_3d_reconstruction.ctf_correction_method       ? 
+_em_3d_reconstruction.magnification_calibration   ? 
+_em_3d_reconstruction.details                     ? 
+# 
+_em_assembly.id                  ? 
+_em_assembly.entry_id            M1UNITCELL_SPECIES_ASSIGNED 
+_em_assembly.aggregation_state   ? 
+_em_assembly.name                ? 
+_em_assembly.details             ? 
+# 
+_em_sample_preparation.entry_id               M1UNITCELL_SPECIES_ASSIGNED 
+_em_sample_preparation.id                     ? 
+_em_sample_preparation.buffer_id              ? 
+_em_sample_preparation.support_id             ? 
+_em_sample_preparation.sample_concentration   ? 
+_em_sample_preparation.ph                     ? 
+# 
+_em_vitrification.entry_id   M1UNITCELL_SPECIES_ASSIGNED 
+_em_vitrification.id         ? 
+_em_vitrification.details    ? 
+# 
+_em_experiment.entry_id                M1UNITCELL_SPECIES_ASSIGNED 
+_em_experiment.reconstruction_method   ? 
+_em_experiment.specimen_type           ? 
+# 
+_em_single_particle_entity.entry_id        M1UNITCELL_SPECIES_ASSIGNED 
+_em_single_particle_entity.symmetry_type   ? 
+# 
+_entry.id   M1UNITCELL_SPECIES_ASSIGNED 
+# 
+loop_
+_atom_type.symbol 
+M 
+N 
+O 
+T 
+V 
+# 
+loop_
+_pdbx_unobs_or_zero_occ_atoms.id 
+_pdbx_unobs_or_zero_occ_atoms.polymer_flag 
+_pdbx_unobs_or_zero_occ_atoms.occupancy_flag 
+_pdbx_unobs_or_zero_occ_atoms.PDB_model_num 
+_pdbx_unobs_or_zero_occ_atoms.auth_asym_id 
+_pdbx_unobs_or_zero_occ_atoms.auth_comp_id 
+_pdbx_unobs_or_zero_occ_atoms.auth_seq_id 
+_pdbx_unobs_or_zero_occ_atoms.PDB_ins_code 
+_pdbx_unobs_or_zero_occ_atoms.auth_atom_id 
+_pdbx_unobs_or_zero_occ_atoms.label_alt_id 
+1  N 1 1 ? LIG 1 ? N1  ? 
+2  N 1 1 ? LIG 1 ? N3  ? 
+3  N 1 1 ? LIG 1 ? C4  ? 
+4  N 1 1 ? LIG 1 ? C5  ? 
+5  N 1 1 ? LIG 1 ? C6  ? 
+6  N 1 1 ? LIG 1 ? C7  ? 
+7  N 1 1 ? LIG 1 ? C8  ? 
+8  N 1 1 ? LIG 1 ? C10 ? 
+9  N 1 1 ? LIG 1 ? N12 ? 
+10 N 1 1 ? LIG 1 ? C13 ? 
+11 N 1 1 ? LIG 1 ? C15 ? 
+12 N 1 1 ? LIG 1 ? C17 ? 
+13 N 1 1 ? LIG 1 ? C20 ? 
+14 N 1 1 ? LIG 1 ? C21 ? 
+15 N 1 1 ? LIG 1 ? C22 ? 
+16 N 1 1 ? LIG 1 ? C24 ? 
+17 N 1 1 ? LIG 1 ? C26 ? 
+18 N 1 1 ? LIG 1 ? C28 ? 
+19 N 1 1 ? LIG 2 ? N1  ? 
+20 N 1 1 ? LIG 2 ? N3  ? 
+21 N 1 1 ? LIG 2 ? C4  ? 
+22 N 1 1 ? LIG 2 ? C5  ? 
+23 N 1 1 ? LIG 2 ? C6  ? 
+24 N 1 1 ? LIG 2 ? C7  ? 
+25 N 1 1 ? LIG 2 ? C8  ? 
+26 N 1 1 ? LIG 2 ? C10 ? 
+27 N 1 1 ? LIG 2 ? N12 ? 
+28 N 1 1 ? LIG 2 ? C13 ? 
+29 N 1 1 ? LIG 2 ? C15 ? 
+30 N 1 1 ? LIG 2 ? C17 ? 
+31 N 1 1 ? LIG 2 ? C20 ? 
+32 N 1 1 ? LIG 2 ? C21 ? 
+33 N 1 1 ? LIG 2 ? C22 ? 
+34 N 1 1 ? LIG 2 ? C24 ? 
+35 N 1 1 ? LIG 2 ? C26 ? 
+36 N 1 1 ? LIG 2 ? C28 ? 
+37 N 1 1 ? LIG 3 ? N1  ? 
+38 N 1 1 ? LIG 3 ? N3  ? 
+39 N 1 1 ? LIG 3 ? C4  ? 
+40 N 1 1 ? LIG 3 ? C5  ? 
+41 N 1 1 ? LIG 3 ? C6  ? 
+42 N 1 1 ? LIG 3 ? C7  ? 
+43 N 1 1 ? LIG 3 ? C8  ? 
+44 N 1 1 ? LIG 3 ? C10 ? 
+45 N 1 1 ? LIG 3 ? N12 ? 
+46 N 1 1 ? LIG 3 ? C13 ? 
+47 N 1 1 ? LIG 3 ? C15 ? 
+48 N 1 1 ? LIG 3 ? C17 ? 
+49 N 1 1 ? LIG 3 ? C20 ? 
+50 N 1 1 ? LIG 3 ? C21 ? 
+51 N 1 1 ? LIG 3 ? C22 ? 
+52 N 1 1 ? LIG 3 ? C24 ? 
+53 N 1 1 ? LIG 3 ? C26 ? 
+54 N 1 1 ? LIG 3 ? C28 ? 
+55 N 1 1 ? LIG 4 ? C4  ? 
+56 N 1 1 ? LIG 4 ? C5  ? 
+57 N 1 1 ? LIG 4 ? C6  ? 
+58 N 1 1 ? LIG 4 ? C7  ? 
+59 N 1 1 ? LIG 4 ? C8  ? 
+60 N 1 1 ? LIG 4 ? C10 ? 
+61 N 1 1 ? LIG 4 ? N12 ? 
+62 N 1 1 ? LIG 4 ? C13 ? 
+63 N 1 1 ? LIG 4 ? C15 ? 
+64 N 1 1 ? LIG 4 ? C17 ? 
+65 N 1 1 ? LIG 4 ? C20 ? 
+66 N 1 1 ? LIG 4 ? C21 ? 
+67 N 1 1 ? LIG 4 ? C22 ? 
+68 N 1 1 ? LIG 4 ? C24 ? 
+69 N 1 1 ? LIG 4 ? C26 ? 
+70 N 1 1 ? LIG 4 ? C28 ? 
+71 N 1 1 ? LIG 5 ? N1  ? 
+72 N 1 1 ? LIG 5 ? N3  ? 
+73 N 1 1 ? LIG 5 ? C4  ? 
+74 N 1 1 ? LIG 5 ? C5  ? 
+75 N 1 1 ? LIG 5 ? C6  ? 
+76 N 1 1 ? LIG 5 ? C7  ? 
+77 N 1 1 ? LIG 5 ? C8  ? 
+78 N 1 1 ? LIG 5 ? C10 ? 
+79 N 1 1 ? LIG 5 ? N12 ? 
+80 N 1 1 ? LIG 5 ? C13 ? 
+81 N 1 1 ? LIG 5 ? C15 ? 
+82 N 1 1 ? LIG 5 ? C17 ? 
+83 N 1 1 ? LIG 5 ? C20 ? 
+84 N 1 1 ? LIG 5 ? C21 ? 
+85 N 1 1 ? LIG 5 ? C22 ? 
+86 N 1 1 ? LIG 5 ? C24 ? 
+87 N 1 1 ? LIG 5 ? C26 ? 
+88 N 1 1 ? LIG 5 ? C28 ? 
+# 
+_pdbx_entity_nonpoly.entity_id   1 
+_pdbx_entity_nonpoly.name        '3-PYRIDIN-4-YL-2,4-DIHYDRO-INDENO[1,2-.C.]PYRAZOLE' 
+_pdbx_entity_nonpoly.comp_id     LIG 
+# 
+loop_
+_atom_site.group_PDB 
+_atom_site.id 
+_atom_site.type_symbol 
+_atom_site.label_atom_id 
+_atom_site.label_alt_id 
+_atom_site.label_comp_id 
+_atom_site.label_asym_id 
+_atom_site.label_entity_id 
+_atom_site.label_seq_id 
+_atom_site.pdbx_label_seq_num 
+_atom_site.pdbx_PDB_ins_code 
+_atom_site.Cartn_x 
+_atom_site.Cartn_y 
+_atom_site.Cartn_z 
+_atom_site.occupancy 
+_atom_site.B_iso_or_equiv 
+_atom_site.Cartn_x_esd 
+_atom_site.Cartn_y_esd 
+_atom_site.Cartn_z_esd 
+_atom_site.occupancy_esd 
+_atom_site.B_iso_or_equiv_esd 
+_atom_site.footnote_id 
+_atom_site.pdbx_formal_charge 
+_atom_site.auth_seq_id 
+_atom_site.auth_comp_id 
+_atom_site.auth_asym_id 
+_atom_site.auth_atom_id 
+_atom_site.pdbx_auth_seq_id 
+_atom_site.pdbx_auth_comp_id 
+_atom_site.pdbx_auth_asym_id 
+_atom_site.pdbx_auth_atom_name 
+_atom_site.pdbx_PDB_model_num 
+HETATM 1   M Mo . LIG A 1 . 1 ? 4.703  20.379 8.545  1.00 0.00 ? ? ? ? ? ? o 1 LIG ? Mo 1 LIG ? Mo 1 
+HETATM 2   T Te . LIG A 1 . 1 ? 7.160  26.551 8.609  1.00 0.00 ? ? ? ? ? ? e 1 LIG ? Te 1 LIG ? Te 1 
+HETATM 3   M Mo . LIG A 1 . 1 ? 8.435  6.368  8.575  1.00 0.00 ? ? ? ? ? ? o 1 LIG ? Mo 1 LIG ? Mo 1 
+HETATM 4   V V  . LIG A 1 . 1 ? 9.209  2.862  9.692  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? V  1 LIG ? V  1 
+HETATM 5   M Mo . LIG A 1 . 1 ? 10.680 26.007 9.655  1.00 0.00 ? ? ? ? ? ? o 1 LIG ? Mo 1 LIG ? Mo 1 
+HETATM 6   M Mo . LIG A 1 . 1 ? 12.789 23.152 8.569  1.00 0.00 ? ? ? ? ? ? o 1 LIG ? Mo 1 LIG ? Mo 1 
+HETATM 7   M Mo . LIG A 1 . 1 ? 14.350 26.443 9.692  1.00 0.00 ? ? ? ? ? ? o 1 LIG ? Mo 1 LIG ? Mo 1 
+HETATM 8   M Mo . LIG A 1 . 1 ? 4.711  23.937 9.638  1.00 0.00 ? ? ? ? ? ? o 1 LIG ? Mo 1 LIG ? Mo 1 
+HETATM 9   M Mo . LIG A 1 . 1 ? 11.975 5.506  9.502  1.00 0.00 ? ? ? ? ? ? o 1 LIG ? Mo 1 LIG ? Mo 1 
+HETATM 10  M Mo . LIG A 1 . 1 ? 15.274 7.056  8.545  1.00 0.00 ? ? ? ? ? ? o 1 LIG ? Mo 1 LIG ? Mo 1 
+HETATM 11  V V  . LIG A 1 . 1 ? 2.245  14.206 8.611  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? V  1 LIG ? V  1 
+HETATM 12  M Mo . LIG A 1 . 1 ? 12.817 13.228 8.609  1.00 0.00 ? ? ? ? ? ? o 1 LIG ? Mo 1 LIG ? Mo 1 
+HETATM 13  V V  . LIG A 1 . 1 ? 17.732 0.883  8.611  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? V  1 LIG ? V  1 
+HETATM 14  V V  . LIG A 1 . 1 ? 0.968  7.743  8.577  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? V  1 LIG ? V  1 
+HETATM 15  M Mo . LIG A 1 . 1 ? 11.541 19.692 8.575  1.00 0.00 ? ? ? ? ? ? o 1 LIG ? Mo 1 LIG ? Mo 1 
+HETATM 16  M Mo . LIG A 1 . 1 ? 19.009 21.067 8.577  1.00 0.00 ? ? ? ? ? ? o 1 LIG ? Mo 1 LIG ? Mo 1 
+HETATM 17  M Mo . LIG A 1 . 1 ? 0.195  11.250 9.693  1.00 0.00 ? ? ? ? ? ? o 1 LIG ? Mo 1 LIG ? Mo 1 
+HETATM 18  M Mo . LIG A 1 . 1 ? 10.768 16.186 9.692  1.00 0.00 ? ? ? ? ? ? o 1 LIG ? Mo 1 LIG ? Mo 1 
+HETATM 19  M Mo . LIG A 1 . 1 ? 19.782 24.573 9.694  1.00 0.00 ? ? ? ? ? ? o 1 LIG ? Mo 1 LIG ? Mo 1 
+HETATM 20  V V  . LIG A 1 . 1 ? 19.869 14.753 9.655  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? V  1 LIG ? V  1 
+HETATM 21  M Mo . LIG A 1 . 1 ? 9.297  12.683 9.654  1.00 0.00 ? ? ? ? ? ? o 1 LIG ? Mo 1 LIG ? Mo 1 
+HETATM 22  M Mo . LIG A 1 . 1 ? 0.108  1.429  9.656  1.00 0.00 ? ? ? ? ? ? o 1 LIG ? Mo 1 LIG ? Mo 1 
+HETATM 23  M Mo . LIG A 1 . 1 ? 17.761 17.607 8.569  1.00 0.00 ? ? ? ? ? ? o 1 LIG ? Mo 1 LIG ? Mo 1 
+HETATM 24  M Mo . LIG A 1 . 1 ? 7.188  9.829  8.569  1.00 0.00 ? ? ? ? ? ? o 1 LIG ? Mo 1 LIG ? Mo 1 
+HETATM 25  N Nb . LIG A 1 . 1 ? 2.217  4.284  8.570  1.00 0.00 ? ? ? ? ? ? b 1 LIG ? Nb 1 LIG ? Nb 1 
+HETATM 26  M Mo . LIG A 1 . 1 ? 16.199 14.317 9.692  1.00 0.00 ? ? ? ? ? ? o 1 LIG ? Mo 1 LIG ? Mo 1 
+HETATM 27  V V  . LIG A 1 . 1 ? 5.628  13.119 9.692  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? V  1 LIG ? V  1 
+HETATM 28  M Mo . LIG A 1 . 1 ? 3.778  0.993  9.692  1.00 0.00 ? ? ? ? ? ? o 1 LIG ? Mo 1 LIG ? Mo 1 
+HETATM 29  M Mo . LIG A 1 . 1 ? 4.693  16.822 9.638  1.00 0.00 ? ? ? ? ? ? o 1 LIG ? Mo 1 LIG ? Mo 1 
+HETATM 30  M Mo . LIG A 1 . 1 ? 15.266 10.613 9.637  1.00 0.00 ? ? ? ? ? ? o 1 LIG ? Mo 1 LIG ? Mo 1 
+HETATM 31  M Mo . LIG A 1 . 1 ? 15.284 3.499  9.638  1.00 0.00 ? ? ? ? ? ? o 1 LIG ? Mo 1 LIG ? Mo 1 
+HETATM 32  M Mo . LIG A 1 . 1 ? 18.572 8.607  9.501  1.00 0.00 ? ? ? ? ? ? o 1 LIG ? Mo 1 LIG ? Mo 1 
+HETATM 33  M Mo . LIG A 1 . 1 ? 8.001  18.830 9.502  1.00 0.00 ? ? ? ? ? ? o 1 LIG ? Mo 1 LIG ? Mo 1 
+HETATM 34  V V  . LIG A 1 . 1 ? 1.405  21.930 9.502  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? V  1 LIG ? V  1 
+HETATM 35  M Mo . LIG A 1 . 1 ? 12.307 2.218  8.656  1.00 0.00 ? ? ? ? ? ? o 1 LIG ? Mo 1 LIG ? Mo 1 
+HETATM 36  V V  . LIG A 1 . 1 ? 18.242 11.896 8.655  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? V  1 LIG ? V  1 
+HETATM 37  M Mo . LIG A 1 . 1 ? 7.670  15.541 8.656  1.00 0.00 ? ? ? ? ? ? o 1 LIG ? Mo 1 LIG ? Mo 1 
+HETATM 38  M Mo . LIG A 1 . 1 ? 1.735  25.219 8.656  1.00 0.00 ? ? ? ? ? ? o 1 LIG ? Mo 1 LIG ? Mo 1 
+HETATM 39  M Mo . LIG A 1 . 1 ? 4.703  7.056  9.621  1.00 0.00 ? ? ? ? ? ? o 1 LIG ? Mo 1 LIG ? Mo 1 
+HETATM 40  V V  . LIG A 1 . 1 ? 15.275 20.379 9.620  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? V  1 LIG ? V  1 
+HETATM 41  O O  . LIG A 1 . 1 ? 4.703  20.379 6.873  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 42  O O  . LIG A 1 . 1 ? 4.703  7.056  11.289 1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 43  O O  . LIG A 1 . 1 ? 7.149  26.526 6.936  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 44  O O  . LIG A 1 . 1 ? 8.442  6.307  6.904  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 45  O O  . LIG A 1 . 1 ? 9.207  2.853  11.371 1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 46  O O  . LIG A 1 . 1 ? 10.706 26.016 11.333 1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 47  O O  . LIG A 1 . 1 ? 12.746 23.232 6.899  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 48  O O  . LIG A 1 . 1 ? 14.307 26.415 11.369 1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 49  O O  . LIG A 1 . 1 ? 12.311 2.217  6.945  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 50  O O  . LIG A 1 . 1 ? 4.723  23.910 11.316 1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 51  O O  . LIG A 1 . 1 ? 11.991 5.585  11.178 1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 52  O O  . LIG A 1 . 1 ? 15.688 5.238  9.117  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 53  O O  . LIG A 1 . 1 ? 16.810 2.556  9.133  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 54  O O  . LIG A 1 . 1 ? 5.533  0.808  9.152  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 55  O O  . LIG A 1 . 1 ? 16.949 21.333 9.023  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 56  O O  . LIG A 1 . 1 ? 19.475 1.611  9.146  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 57  O O  . LIG A 1 . 1 ? 21.079 26.060 9.251  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 58  O O  . LIG A 1 . 1 ? 18.970 22.955 9.158  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 59  O O  . LIG A 1 . 1 ? 3.952  5.308  9.008  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 60  O O  . LIG A 1 . 1 ? 0.823  3.102  9.180  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 61  O O  . LIG A 1 . 1 ? 0.383  23.698 9.136  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 62  O O  . LIG A 1 . 1 ? 20.940 21.070 9.019  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 63  O O  . LIG A 1 . 1 ? 1.921  0.676  9.062  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 64  O O  . LIG A 1 . 1 ? 2.759  23.457 9.141  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 65  O O  . LIG A 1 . 1 ? 2.782  20.818 8.955  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 66  O O  . LIG A 1 . 1 ? 1.308  5.910  8.976  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 67  O O  . LIG A 1 . 1 ? 3.596  2.839  9.071  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 68  O O  . LIG A 1 . 1 ? 3.654  25.656 9.251  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 69  O O  . LIG A 1 . 1 ? 7.928  1.679  9.106  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 70  O O  . LIG A 1 . 1 ? 15.274 7.056  6.873  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 71  O O  . LIG A 1 . 1 ? 15.275 20.379 11.289 1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 72  O O  . LIG A 1 . 1 ? 2.257  14.230 6.937  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 73  O O  . LIG A 1 . 1 ? 12.829 13.204 6.935  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 74  O O  . LIG A 1 . 1 ? 17.721 0.906  6.937  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 75  O O  . LIG A 1 . 1 ? 0.961  7.804  6.906  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 76  O O  . LIG A 1 . 1 ? 11.535 19.631 6.904  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 77  O O  . LIG A 1 . 1 ? 19.016 21.128 6.906  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 78  O O  . LIG A 1 . 1 ? 0.195  11.259 11.372 1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 79  O O  . LIG A 1 . 1 ? 10.769 16.176 11.371 1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 80  O O  . LIG A 1 . 1 ? 19.782 24.582 11.373 1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 81  O O  . LIG A 1 . 1 ? 19.843 14.742 11.333 1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 82  O O  . LIG A 1 . 1 ? 9.271  12.693 11.332 1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 83  O O  . LIG A 1 . 1 ? 0.134  1.419  11.333 1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 84  O O  . LIG A 1 . 1 ? 17.805 17.529 6.899  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 85  O O  . LIG A 1 . 1 ? 7.231  9.908  6.899  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 86  O O  . LIG A 1 . 1 ? 2.172  4.205  6.899  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 87  O O  . LIG A 1 . 1 ? 16.240 14.345 11.368 1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 88  O O  . LIG A 1 . 1 ? 5.671  13.091 11.368 1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 89  O O  . LIG A 1 . 1 ? 3.738  1.022  11.368 1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 90  O O  . LIG A 1 . 1 ? 18.238 11.898 6.944  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 91  O O  . LIG A 1 . 1 ? 7.665  15.540 6.945  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 92  O O  . LIG A 1 . 1 ? 1.739  25.222 6.944  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 93  O O  . LIG A 1 . 1 ? 4.680  16.849 11.316 1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 94  O O  . LIG A 1 . 1 ? 15.254 10.587 11.315 1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 95  O O  . LIG A 1 . 1 ? 15.297 3.526  11.316 1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 96  O O  . LIG A 1 . 1 ? 18.555 8.531  11.177 1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 97  O O  . LIG A 1 . 1 ? 7.986  18.908 11.178 1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 98  O O  . LIG A 1 . 1 ? 1.421  21.853 11.178 1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 99  O O  . LIG A 1 . 1 ? 14.861 8.875  9.117  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 100 O O  . LIG A 1 . 1 ? 4.289  18.561 9.117  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 101 O O  . LIG A 1 . 1 ? 5.116  22.198 9.117  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 102 O O  . LIG A 1 . 1 ? 13.739 11.556 9.134  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 103 O O  . LIG A 1 . 1 ? 3.167  15.879 9.133  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 104 O O  . LIG A 1 . 1 ? 6.238  24.879 9.134  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 105 O O  . LIG A 1 . 1 ? 3.873  13.304 9.154  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 106 O O  . LIG A 1 . 1 ? 14.445 14.132 9.152  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 107 O O  . LIG A 1 . 1 ? 16.104 26.628 9.154  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 108 O O  . LIG A 1 . 1 ? 13.600 19.425 9.022  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 109 O O  . LIG A 1 . 1 ? 3.028  8.010  9.023  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 110 O O  . LIG A 1 . 1 ? 6.377  6.102  9.022  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 111 O O  . LIG A 1 . 1 ? 11.074 12.502 9.144  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 112 O O  . LIG A 1 . 1 ? 0.503  14.934 9.146  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 113 O O  . LIG A 1 . 1 ? 8.903  25.825 9.145  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 114 O O  . LIG A 1 . 1 ? 9.470  14.700 9.250  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 115 O O  . LIG A 1 . 1 ? 20.042 12.737 9.250  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 116 O O  . LIG A 1 . 1 ? 10.507 1.376  9.251  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 117 O O  . LIG A 1 . 1 ? 11.579 17.804 9.156  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 118 O O  . LIG A 1 . 1 ? 1.007  9.631  9.158  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 119 O O  . LIG A 1 . 1 ? 8.397  4.481  9.156  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 120 O O  . LIG A 1 . 1 ? 5.452  8.804  9.007  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 121 O O  . LIG A 1 . 1 ? 16.025 18.632 9.007  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 122 O O  . LIG A 1 . 1 ? 14.525 22.127 9.008  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 123 O O  . LIG A 1 . 1 ? 8.582  11.011 9.178  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 124 O O  . LIG A 1 . 1 ? 19.154 16.425 9.180  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 125 O O  . LIG A 1 . 1 ? 11.395 24.334 9.179  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 126 O O  . LIG A 1 . 1 ? 9.023  17.062 9.137  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 127 O O  . LIG A 1 . 1 ? 19.594 10.375 9.136  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 128 O O  . LIG A 1 . 1 ? 10.954 3.738  9.137  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 129 O O  . LIG A 1 . 1 ? 9.610  19.689 9.017  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 130 O O  . LIG A 1 . 1 ? 20.181 7.747  9.019  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 131 O O  . LIG A 1 . 1 ? 10.367 6.366  9.017  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 132 O O  . LIG A 1 . 1 ? 7.484  13.437 9.060  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 133 O O  . LIG A 1 . 1 ? 18.056 13.999 9.062  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 134 O O  . LIG A 1 . 1 ? 12.493 0.114  9.061  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 135 O O  . LIG A 1 . 1 ? 6.646  17.303 9.144  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 136 O O  . LIG A 1 . 1 ? 17.218 10.134 9.140  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 137 O O  . LIG A 1 . 1 ? 13.331 3.979  9.144  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 138 O O  . LIG A 1 . 1 ? 6.624  19.941 8.955  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 139 O O  . LIG A 1 . 1 ? 17.195 7.495  8.955  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 140 O O  . LIG A 1 . 1 ? 13.353 6.618  8.955  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 141 O O  . LIG A 1 . 1 ? 8.096  8.202  8.975  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 142 O O  . LIG A 1 . 1 ? 18.669 19.234 8.976  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 143 O O  . LIG A 1 . 1 ? 11.881 21.525 8.975  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 144 O O  . LIG A 1 . 1 ? 5.809  11.273 9.071  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 145 O O  . LIG A 1 . 1 ? 16.381 16.163 9.070  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 146 O O  . LIG A 1 . 1 ? 14.168 24.597 9.071  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 147 O O  . LIG A 1 . 1 ? 5.752  15.104 9.251  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 148 O O  . LIG A 1 . 1 ? 16.324 12.333 9.250  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 149 O O  . LIG A 1 . 1 ? 14.226 1.780  9.251  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 150 O O  . LIG A 1 . 1 ? 1.477  12.433 9.109  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 151 O O  . LIG A 1 . 1 ? 12.049 15.002 9.106  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 152 O O  . LIG A 1 . 1 ? 18.288 25.855 9.100  1.00 0.00 ? ? ? ? ? ? ? 1 LIG ? O  1 LIG ? O  1 
+HETATM 153 M Mo . LIG B 1 . 1 ? 16.247 23.447 9.156  1.00 0.00 ? ? ? ? ? ? o 2 LIG ? Mo 2 LIG ? Mo 1 
+HETATM 154 O O  . LIG B 1 . 1 ? 16.388 23.644 10.976 1.00 0.00 ? ? ? ? ? ? ? 2 LIG ? O  2 LIG ? O  1 
+HETATM 155 M Mo . LIG C 1 . 1 ? 14.302 17.312 9.155  1.00 0.00 ? ? ? ? ? ? o 3 LIG ? Mo 3 LIG ? Mo 1 
+HETATM 156 O O  . LIG C 1 . 1 ? 14.161 17.114 10.974 1.00 0.00 ? ? ? ? ? ? ? 3 LIG ? O  3 LIG ? O  1 
+HETATM 157 V N1 . LIG D 1 . 1 ? 3.729  10.123 9.155  1.00 0.00 ? ? ? ? ? ? ? 4 LIG ? N1 4 LIG ? V  1 
+HETATM 158 O N3 . LIG D 1 . 1 ? 3.589  10.320 10.975 1.00 0.00 ? ? ? ? ? ? ? 4 LIG ? N3 4 LIG ? O  1 
+HETATM 159 M Mo . LIG E 1 . 1 ? 5.675  3.988  9.155  1.00 0.00 ? ? ? ? ? ? o 5 LIG ? Mo 5 LIG ? Mo 1 
+HETATM 160 O O  . LIG E 1 . 1 ? 5.816  3.791  10.975 1.00 0.00 ? ? ? ? ? ? ? 5 LIG ? O  5 LIG ? O  1 
+# 

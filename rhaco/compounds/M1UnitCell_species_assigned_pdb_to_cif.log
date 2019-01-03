@@ -1,0 +1,12 @@
+--2019-01-03 14:44:46--  https://mmcif.pdbj.org/converter/data/265725566224065c2e81150e416/maxit.log
+Resolving mmcif.pdbj.org (mmcif.pdbj.org)... 133.1.158.133
+Connecting to mmcif.pdbj.org (mmcif.pdbj.org)|133.1.158.133|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 62165 (61K) [text/plain]
+Saving to: ‘maxit.log’
+
+     0K .......... .......... .......... .......... .......... 82%  164K 0s
+    50K ..........                                            100% 89.9M=0.3s
+
+2019-01-03 14:44:47 (198 KB/s) - ‘maxit.log’ saved [62165/62165]
+
