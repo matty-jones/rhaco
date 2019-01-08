@@ -809,13 +809,7 @@ def main():
                         bottom layers of the two flipped M1 crystals.\n
                         For example: -z 20.0.\n''')
     parser.add_argument("-rc", "--reactant_composition",
-                        type=lambda s: {str(key[1:-1]): float(val)
-                                        for [key, val] in
-                                        [splitChar for splitChar
-                                         in [cell.split(':') for cell in [
-                                             _ for _ in s[1:-1].split(',')
-                                             if len(_) > 0]]
-                                         if len(splitChar) > 0]},
+                        type=split_argument_into_dictionary,
                         default={'C2H6': 1},
                         required=False,
                         help='''Specify a reactant composition.\n
@@ -941,6 +935,8 @@ def main():
                         (10.1007/s11244-006-0068-8))\n
                         For example: -xz 0.400321.\n''')
     args = parser.parse_args()
+    print(args.reactant_composition)
+    exit()
     if args.gecko:
         print(zlib.decompress(base64.decodebytes(
             b"""
