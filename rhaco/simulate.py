@@ -28,7 +28,7 @@ def set_coeffs(
     else:
         nl = hoomd.md.nlist.cell()
     # Ignore any surface-surface interactions
-    nl.reset_exclusions(exclusions=["body"])
+    nl.reset_exclusions(exclusions=["body", "bond", "angle", "dihedral"])
     log_quantities = ['temperature', 'temperature_gas', 'pressure', 'volume',
                       'potential_energy', 'potential_energy_gas', 'kinetic_energy',
                       'kinetic_energy_gas']
@@ -39,7 +39,7 @@ def set_coeffs(
                 float, np.array(coeffs_dict['pair_coeffs'])[:,2]
             )))
             r_cut = 2.5 * max_sigma
-            print("Setting r_cut to 2.5 * max_lj_sigma =", r_cut)
+            print("Setting r_cut to 2.5 * max_sigma =", r_cut)
         lj = hoomd.md.pair.lj(r_cut=r_cut, nlist=nl)
         lj.set_params(mode="xplor")
         if "pair_lj_energy" not in log_quantities:
@@ -47,8 +47,8 @@ def set_coeffs(
         for type1 in coeffs_dict['pair_coeffs']:
             for type2 in coeffs_dict['pair_coeffs']:
                 lj.pair_coeff.set(type1[0], type2[0],
-                                  epsilon=np.sqrt(type1[1] * type2[1]) / energy_scaling,
-                                  sigma=np.sqrt(type1[2] * type2[2]) / distance_scaling,
+                                  epsilon=np.sqrt(type1[1] * type2[1]) / (energy_scaling),
+                                  sigma=np.sqrt(type1[2] * type2[2]) / (distance_scaling),
                                  )
     if len(coeffs_dict['bond_coeffs']) != 0:
         print("Loading harmonic bond coeffs...")
@@ -161,11 +161,9 @@ def rename_types(snapshot):
             catalyst_type_IDs.append(type_index)
         else:
             new_atom_type = atom_type
-        if new_atom_type in new_types:
-            mapping[type_index] = new_types.index(new_atom_type)
-        else:
-            mapping[type_index] = type_index
+        if new_atom_type not in new_types:
             new_types.append(new_atom_type)
+        mapping[type_index] = new_types.index(new_atom_type)
     catalyst_atom_IDs = []
     for atom_index, type_ID in enumerate(snapshot.particles.typeid):
         if type_ID in catalyst_type_IDs:
@@ -279,6 +277,7 @@ def main():
 
     for file_name in file_list:
         hoomd.context.initialize("")
+        # hoomd.context.initialize("--notice-level=99", memory_traceback=True)
         # Get the integration groups by ignoring anything that has the X_
         # prefix to the atom type, and rename the types for the forcefield
         system = hoomd.deprecated.init.read_xml(filename=file_name)
@@ -288,7 +287,6 @@ def main():
         system.restore_snapshot(renamed_snapshot)
         system, log_quantities = set_coeffs(file_name, system, args.distance_scale_unit, args.energy_scale_unit,
                                            args.nl_type, args.r_cut)
-
         hoomd.md.integrate.mode_standard(dt=args.timestep);
         integrator = hoomd.md.integrate.nvt(group=gas, tau=args.tau,
                                             kT=reduced_temperature)
