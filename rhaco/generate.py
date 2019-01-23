@@ -935,8 +935,6 @@ def main():
                         (10.1007/s11244-006-0068-8))\n
                         For example: -xz 0.400321.\n''')
     args = parser.parse_args()
-    print(args.reactant_composition)
-    exit()
     if args.gecko:
         print(zlib.decompress(base64.decodebytes(
             b"""
