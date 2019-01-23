@@ -21,6 +21,7 @@ defaults_dict = {'stoichiometry': {'Mo': 1, 'V': 0.15, 'Nb': 0.13, 'Te': 0.12},
                  'dimensions': [1, 1, 1],
                  'template': 'templateM1.pdb',
                  'reactant_composition': {'C2H6': 1},
+                 'reactant_rigid': False,
                  'crystal_separation': 25.0,
                  'z_reactor_size': 20.0,
                  'reactant_num_mol': None,
@@ -194,13 +195,15 @@ class crystal_system(mb.Compound):
 
 class mbuild_template(mb.Compound):
     # This class will contain the mb compound for the reactant
-    def __init__(self, template):
+    def __init__(self, template, rigid):
         # Call the mb.Compound initialisation
         super().__init__()
         # Load the unit cell
-        mb.load(os.path.join(PDB_LIBRARY,
-                             ''.join(template.split('.pdb')) + '.pdb'),
-                compound=self)
+        mb.load(
+            os.path.join(PDB_LIBRARY, ''.join(template.split('.pdb')) + '.pdb'),
+            compound=self,
+            rigid=rigid,
+        )
         atom_types = [atom_type.split('[')[0] for atom_type in
                       self.labels.keys() if '[' in atom_type]
         self.mass = self.get_mass(atom_types)
@@ -389,20 +392,27 @@ def create_morphology(args):
             args.reactant_position = None
         else:
             for _, position in enumerate(args.reactant_position):
-                nanoparticle = mbuild_template(reactant_components[0])
+                nanoparticle = mbuild_template(
+                    reactant_components[0], args.reactant_rigid
+                )
                 nanoparticle.translate_to(np.array(position))
                 system.add(nanoparticle)
     if args.reactant_position is None:
         # Randomly place reactants using packmol
         if number_of_reactant_mols == 1:
             # Only 1 molecule to place, so put it on top of the crystals
-            reactant_top = mb.packing.fill_box(mbuild_template(reactant_components[0]), 1, box_top, seed=np.random.randint(0, 2**31 - 1))
+            reactant_top = mb.packing.fill_box(
+                mbuild_template(reactant_components[0], args.reactant_rigid),
+                1, box_top, seed=np.random.randint(0, 2**31 - 1)
+            )
             system.add(reactant_top)
         elif number_of_reactant_mols > 1:
             reactant_compounds = []
             n_compounds = []
             for compound_index, reactant_molecule in enumerate(reactant_components):
-                reactant_compounds.append(mbuild_template(reactant_molecule))
+                reactant_compounds.append(
+                    mbuild_template(reactant_molecule, args.reactant_rigid)
+                )
                 n_compounds.append(int(np.round(np.round(
                     reactant_probs[compound_index] * number_of_reactant_mols) / 2.0)))
             reactant_top = mb.packing.fill_box(reactant_compounds, n_compounds, box_top,
@@ -671,7 +681,7 @@ def get_masses(reactant_names):
     # First split out the key names into atoms
     for reactant_name in reactant_names:
         # Consult the mass lookup table
-        total_mass = mbuild_template(reactant_name).mass
+        total_mass = mbuild_template(reactant_name, False).mass
         mass_dict[reactant_name] = total_mass
     # Return dictionary of number ratios
     return mass_dict
@@ -824,6 +834,12 @@ def main():
                         the pdb files located in the PDB_LIBRARY of Rhaco, and
                         the corresponding values are interpreted as the
                         proportion by moles.\n''')
+    parser.add_argument("-rr", "--reactant_rigid",
+                        type=bool,
+                        default=False,
+                        required=False,
+                        help='''If True, then each reactant molecule will be
+                        treated as its own rigid body.''')
     parser.add_argument("-rn", "--reactant_num_mol",
                         type=int,
                         default=None,
@@ -935,8 +951,6 @@ def main():
                         (10.1007/s11244-006-0068-8))\n
                         For example: -xz 0.400321.\n''')
     args = parser.parse_args()
-    print(args.reactant_composition)
-    exit()
     if args.gecko:
         print(zlib.decompress(base64.decodebytes(
             b"""

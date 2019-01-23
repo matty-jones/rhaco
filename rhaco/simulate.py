@@ -286,8 +286,10 @@ def main():
         renamed_snapshot, catalyst, gas = rename_types(snapshot)
         # Then, restore the snapshot
         system.restore_snapshot(renamed_snapshot)
-        system, log_quantities = set_coeffs(file_name, system, args.distance_scale_unit, args.energy_scale_unit,
-                                           args.nl_type, args.r_cut)
+        system, log_quantities = set_coeffs(
+            file_name, system, args.distance_scale_unit, args.energy_scale_unit,
+            args.nl_type, args.r_cut
+        )
 
         hoomd.md.integrate.mode_standard(dt=args.timestep);
         integrator = hoomd.md.integrate.nvt(group=gas, tau=args.tau,
