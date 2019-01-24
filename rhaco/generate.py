@@ -701,8 +701,12 @@ def create_output_file_name(args, file_type='hoomdxml'):
         output_file = "out"
         for (arg_name, arg_val) in sorted(args._get_kwargs()):
             try:
-                if (arg_val == defaults_dict[arg_name]):
-                    continue
+                if isinstance(arg_val, dict):
+                    if sorted(arg_val) == sorted(defaults_dict[arg_name]):
+                        continue
+                else:
+                    if (arg_val == defaults_dict[arg_name]):
+                        continue
             except KeyError:
                 continue
             output_file += "-"
