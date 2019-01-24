@@ -413,13 +413,20 @@ def create_morphology(args):
                 reactant_compounds.append(
                     mbuild_template(reactant_molecule, args.reactant_rigid)
                 )
-                n_compounds.append(int(np.round(np.round(
-                    reactant_probs[compound_index] * number_of_reactant_mols) / 2.0)))
-            reactant_top = mb.packing.fill_box(reactant_compounds, n_compounds, box_top,
-                                          seed=np.random.randint(0, 2**31 - 1))
-            reactant_bottom = mb.packing.fill_box(reactant_compounds, n_compounds,
-                                             box_bottom,
-                                             seed=np.random.randint(0, 2**31 - 1))
+                n_compounds.append(int(np.round(
+                    reactant_probs[compound_index] * number_of_reactant_mols)))
+            # Split the n_compounds to the top and bottom. Note: Top will always have
+            # the extra molecule for odd n_compounds
+            top_n = list(map(int, np.ceil(np.array(n_compounds) / 2.0)))
+            bot_n = list(map(int, np.floor(np.array(n_compounds) / 2.0)))
+            reactant_top = mb.packing.fill_box(
+                reactant_compounds, top_n, box_top,
+                seed=np.random.randint(0, 2**31 - 1)
+            )
+            reactant_bottom = mb.packing.fill_box(
+                reactant_compounds, bot_n, box_bottom,
+                seed=np.random.randint(0, 2**31 - 1)
+            )
             system.add(reactant_top)
             system.add(reactant_bottom)
 
