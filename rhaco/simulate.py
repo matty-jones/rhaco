@@ -168,8 +168,6 @@ def rename_types(snapshot):
     for atom_index, type_ID in enumerate(snapshot.particles.typeid):
         if type_ID in catalyst_type_IDs:
             catalyst_atom_IDs.append(atom_index)
-    # Also, add the surface atom to the same rigid body
-    snapshot.particles.body[catalyst_atom_IDs] = 0
     catalyst = hoomd.group.tag_list(name='catalyst', tags=catalyst_atom_IDs)
     gas = hoomd.group.difference(name='gas', a=hoomd.group.all(), b=catalyst)
     # Now use the mapping to remove any duplicate types (needed if the same atom
@@ -177,9 +175,36 @@ def rename_types(snapshot):
     snapshot.particles.types = new_types
     for AAID, old_type in enumerate(snapshot.particles.typeid):
         snapshot.particles.typeid[AAID] = mapping[old_type]
+    # Finally, add the surface atoms to the same rigid body
+    # First get the number of rigid bodies already in the system
+    if len(set(snapshot.particles.body)) > 1:
+        # Rigid bodies already defined, so 0 is already taken. Increment all rigid
+        # bodies by one and then we can set the surface to be zero.
+        # Skip rigid body 4294967295 (== -1 for uint32), as these are flexible
+
+        # NOTE: Snapshots don't allow array assignment, gonna do it elementwise instead
+        # mask = (snapshot.particles.body != 4294967295).astype(np.uint32)
+        # incremented_body = snapshot.particles.body + mask
+        # snapshot.particles.body = incremented_body
+        for index, rigid_ID in np.ndenumerate(snapshot.particles.body):
+            if rigid_ID == 4294967295:
+                continue
+            else:
+                snapshot.particles.body[index] = rigid_ID + 1
+    snapshot.particles.body[catalyst_atom_IDs] = 0
     print("The catalyst group is", catalyst)
     print("The gas group is", gas)
     return snapshot, catalyst, gas
+
+
+def create_rigid_bodies(snapshot):
+    # Firstly, return the snapshot if no bodies exist
+    # Should be one rigid body for the crystal, and then one (-1) for the flexible
+    # reactants == 2 total.
+    rigid_IDs = set(snapshot.particles.body)
+    if len(set(snapshot.particles.body)) == 2:
+        return snapshot
+    return snapshot
 
 
 def initialize_velocities(snapshot, temperature, gas):
@@ -278,17 +303,29 @@ def main():
     for file_name in file_list:
         hoomd.context.initialize("")
         # hoomd.context.initialize("--notice-level=99", memory_traceback=True)
+
         # Get the integration groups by ignoring anything that has the X_
         # prefix to the atom type, and rename the types for the forcefield
         system = hoomd.deprecated.init.read_xml(filename=file_name)
         snapshot = system.take_snapshot()
-        renamed_snapshot, catalyst, gas = rename_types(snapshot)
-        # Then, restore the snapshot
-        system.restore_snapshot(renamed_snapshot)
+        updated_snapshot, catalyst, gas = rename_types(snapshot)
+        system.restore_snapshot(updated_snapshot)
+
+        # Sort out any rigid bodies (if they exist)
+        snapshot = system.take_snapshot()
+        updated_snapshot = create_rigid_bodies(snapshot)
+        system.restore_snapshot(updated_snapshot)
+
+        # hoomd.deprecated.dump.xml(group=hoomd.group.all(), filename="temp.xml", all=True)
+        # exit()
+
+        # Apply the forcefield coefficients
         system, log_quantities = set_coeffs(
             file_name, system, args.distance_scale_unit, args.energy_scale_unit,
             args.nl_type, args.r_cut
         )
+
+        # Create the integrators
         hoomd.md.integrate.mode_standard(dt=args.timestep);
         integrator = hoomd.md.integrate.nvt(group=gas, tau=args.tau,
                                             kT=reduced_temperature)
@@ -299,8 +336,10 @@ def main():
             # Using a previous version of HOOMD - use the old initialization
             # function instead
             snapshot = system.take_snapshot()
-            initialized_snapshot = initialize_velocities(snapshot, reduced_temperature, gas)
-            system.restore_snapshot(initialized_snapshot)
+            updated_snapshot = initialize_velocities(
+                snapshot, reduced_temperature, gas
+            )
+            system.restore_snapshot(updated_snapshot)
 
         hoomd.dump.gsd(filename=".".join(file_name.split(".")[:-1])
                        + "_traj.gsd", period=max([int(args.run_time/500), 1]),
