@@ -199,26 +199,26 @@ class mbuild_template(mb.Compound):
         # Call the mb.Compound initialisation
         super().__init__()
         # Load the unit cell
-        mb.load(
+        molecule = mb.load(
             os.path.join(PDB_LIBRARY, ''.join(template.split('.pdb')) + '.pdb'),
-            compound=self,
             rigid=rigid,
         )
         atom_types = [atom_type.split('[')[0] for atom_type in
-                      self.labels.keys() if '[' in atom_type]
+                      molecule.labels.keys() if '[' in atom_type]
         self.mass = self.get_mass(atom_types)
         # Calculate the CoM
         masses = np.array([ATOM_MASSES[atom_type] for atom_type in atom_types])
-        centre_of_mass = np.sum((self.xyz.T * masses).T, axis=0) / self.mass
+        centre_of_mass = np.sum((molecule.xyz.T * masses).T, axis=0) / self.mass
         # Centre the CoM over the origin
-        self.translate(-centre_of_mass)
+        molecule.translate(-centre_of_mass)
         if rigid:
-            # Need to create a central particle
+            # Need to create a central particle first
             central_particle = mb.Particle(name="R", pos=[0, 0, 0])
             central_particle.rigid_id = 0
             self.add(
                 central_particle, label='R', reset_rigid_ids=False,
             )
+        self.add(molecule, reset_rigid_ids=False)
 
     def get_mass(self, atom_types):
         mass = 0.0
