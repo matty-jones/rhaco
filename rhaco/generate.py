@@ -207,6 +207,18 @@ class mbuild_template(mb.Compound):
         atom_types = [atom_type.split('[')[0] for atom_type in
                       self.labels.keys() if '[' in atom_type]
         self.mass = self.get_mass(atom_types)
+        # Calculate the CoM
+        masses = np.array([ATOM_MASSES[atom_type] for atom_type in atom_types])
+        centre_of_mass = np.sum((self.xyz.T * masses).T, axis=0) / self.mass
+        # Centre the CoM over the origin
+        self.translate(-centre_of_mass)
+        if rigid:
+            # Need to create a central particle
+            central_particle = mb.Particle(name="R", pos=[0, 0, 0])
+            central_particle.rigid_id = 0
+            self.add(
+                central_particle, label='R', reset_rigid_ids=False,
+            )
 
     def get_mass(self, atom_types):
         mass = 0.0
