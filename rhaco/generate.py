@@ -168,7 +168,9 @@ class crystal_system(mb.Compound):
     # crystal_unit_cell instances in a specified dimension
     # Default stoichiometry found in: Nanostructured Catalysts: Selective
     # Oxidations (Hess and Schl\"ogl, 2011, RSC)
-    def __init__(self, bottom_crystal, top_crystal, crystal_separation):
+    def __init__(
+        self, bottom_crystal, top_crystal, crystal_separation, integrate_crystal
+    ):
         # Call the mb.Compound initialisation
         super().__init__()
         # Firstly, get the current COM positions for each plane. This will be
@@ -188,6 +190,10 @@ class crystal_system(mb.Compound):
         # in nm
         bottom_crystal.translate([0, 0, crystal_separation / 20.0])
         top_crystal.translate([0, 0, -crystal_separation / 20.0])
+        # If integrate_crystal, then not a rigid body
+        if not integrate_crystal:
+            central_particle = mb.Particle(name = "R0", pos = [0, 0, 0])
+            self.add(central_particle, label="R0")
         # Add both crystal planes to the system
         self.add(bottom_crystal)
         self.add(top_crystal)
@@ -195,7 +201,7 @@ class crystal_system(mb.Compound):
 
 class mbuild_template(mb.Compound):
     # This class will contain the mb compound for the reactant
-    def __init__(self, template, rigid):
+    def __init__(self, template, rigid, rolling_rigid_body_index):
         # Call the mb.Compound initialisation
         super().__init__()
         # Load the unit cell
@@ -213,10 +219,13 @@ class mbuild_template(mb.Compound):
         molecule.translate(-centre_of_mass)
         if rigid:
             # Need to create a central particle first
-            central_particle = mb.Particle(name="R", pos=[0, 0, 0])
+            central_particle = mb.Particle(
+                name="R{}".format(rolling_rigid_body_index), pos=[0, 0, 0]
+            )
             central_particle.rigid_id = 0
             self.add(
-                central_particle, label='R', reset_rigid_ids=False,
+                central_particle, label="R{}".format(rolling_rigid_body_index),
+                reset_rigid_ids=False,
             )
         self.add(molecule, reset_rigid_ids=False)
 
@@ -343,12 +352,15 @@ def create_morphology(args):
                                args.stoichiometry, args.crystal_bonds,
                                args.crystal_x, args.crystal_y, args.crystal_z)
     # Now create the system by combining the two surfaces
-    system = crystal_system(surface1, surface2, args.crystal_separation)
+    system = crystal_system(
+        surface1, surface2, args.crystal_separation, args.integrate_crystal
+    )
     # Get the crystal IDs because we're going to need them later so that HOOMD
     # knows not to integrate them.
     crystal_IDs = range(system.n_particles)
     # Now we can populate the box with reactant
     print("Surfaces generated. Generating reactant...")
+    rolling_rigid_body_index = int(not args.integrate_crystal)
     reactant_components, reactant_probs, reactant_masses = calculate_probabilities(
         args.reactant_composition, ratio_type='number')
     # Define the regions that the hydrocarbons can go in, so we don't end
@@ -405,28 +417,38 @@ def create_morphology(args):
         else:
             for _, position in enumerate(args.reactant_position):
                 nanoparticle = mbuild_template(
-                    reactant_components[0], args.reactant_rigid
+                    reactant_components[0], args.reactant_rigid,
+                    rolling_rigid_body_index,
                 )
                 nanoparticle.translate_to(np.array(position))
                 system.add(nanoparticle)
+                rolling_rigid_body_index += 1
     if args.reactant_position is None:
         # Randomly place reactants using packmol
         if number_of_reactant_mols == 1:
             # Only 1 molecule to place, so put it on top of the crystals
             reactant_top = mb.packing.fill_box(
-                mbuild_template(reactant_components[0], args.reactant_rigid),
+                mbuild_template(
+                    reactant_components[0], args.reactant_rigid,
+                    rolling_rigid_body_index,
+                ),
                 1, box_top, seed=np.random.randint(0, 2**31 - 1)
             )
             system.add(reactant_top)
+            rolling_rigid_body_index += 1
         elif number_of_reactant_mols > 1:
             reactant_compounds = []
             n_compounds = []
             for compound_index, reactant_molecule in enumerate(reactant_components):
                 reactant_compounds.append(
-                    mbuild_template(reactant_molecule, args.reactant_rigid)
+                    mbuild_template(
+                        reactant_molecule, args.reactant_rigid,
+                        rolling_rigid_body_index,
+                    )
                 )
                 n_compounds.append(int(np.round(
                     reactant_probs[compound_index] * number_of_reactant_mols)))
+                rolling_rigid_body_index += 1
             # Split the n_compounds to the top and bottom. Note: Top will always have
             # the extra molecule for odd n_compounds
             top_n = list(map(int, np.ceil(np.array(n_compounds) / 2.0)))
@@ -448,7 +470,7 @@ def create_morphology(args):
         # don't include the base atom type, which we asusme to be oxygen).
         names = [particle.name for particle_ID, particle in
                  enumerate(system.particles()) if (particle_ID in crystal_IDs)
-                 and (particle.name != 'O')]
+                 and (particle.name != "O") and (particle.name != "R0")]
         # Ensure that this is the same as the stoichiometry dictionary keys
         assert(np.array_equal(args.stoichiometry.keys(), set(names)))
 
@@ -700,7 +722,7 @@ def get_masses(reactant_names):
     # First split out the key names into atoms
     for reactant_name in reactant_names:
         # Consult the mass lookup table
-        total_mass = mbuild_template(reactant_name, False).mass
+        total_mass = mbuild_template(reactant_name, False, 0).mass
         mass_dict[reactant_name] = total_mass
     # Return dictionary of number ratios
     return mass_dict
