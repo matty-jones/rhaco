@@ -1,11 +1,12 @@
 import argparse
-import numpy as np
+import copy
 import hoomd
 import hoomd.md
 import hoomd.metal
 import hoomd.deprecated
-import xml.etree.cElementTree as ET
 import numpy as np
+import quaternion
+import xml.etree.cElementTree as ET
 
 
 AVOGADRO = 6.022140857E23
@@ -17,7 +18,7 @@ ANG_TO_M = 1E-10
 
 def set_coeffs(
     file_name, system, distance_scaling, energy_scaling,
-    nl_type, r_cut
+    nl_type, r_cut, groups_list,
 ):
     '''
     Read in the molecular dynamics coefficients exported by Foyer
@@ -29,9 +30,10 @@ def set_coeffs(
         nl = hoomd.md.nlist.cell()
     # Ignore any surface-surface interactions
     nl.reset_exclusions(exclusions=["body", "bond", "angle", "dihedral"])
-    log_quantities = ['temperature', 'temperature_gas', 'pressure', 'volume',
-                      'potential_energy', 'potential_energy_gas', 'kinetic_energy',
-                      'kinetic_energy_gas']
+    log_quantities = ["temperature", "pressure", "volume"]
+    for quantity in ["potential_energy", "kinetic_energy"]:
+        for group in groups_list:
+            log_quantities.append("_".join([quantity, group.name])),
     if len(coeffs_dict['pair_coeffs']) != 0:
         print("Loading LJ pair coeffs...")
         if r_cut is None:
@@ -138,7 +140,7 @@ def get_coeffs(file_name):
     return coeff_dictionary
 
 
-def rename_types(snapshot):
+def rename_crystal_types(snapshot):
     '''
     This function splits the system into atoms to integrate over and atoms to
     not integrate over, based on the specified atom types ('X_<ATOM TYPE>')
@@ -200,11 +202,228 @@ def rename_types(snapshot):
 def create_rigid_bodies(snapshot):
     # Firstly, return the snapshot if no bodies exist
     # Should be one rigid body for the crystal, and then one (-1) for the flexible
-    # reactants == 2 total.
+    # reactants == 2 total, or just one (-1) if we are integrating the surface.
     rigid_IDs = set(snapshot.particles.body)
-    if len(set(snapshot.particles.body)) == 2:
+    # Discard -1 (== 4294967295 in uint32)
+    rigid_IDs.discard(4294967295)
+    if len(set(snapshot.particles.body)) <= 1:
         return snapshot
-    return snapshot
+    # Mbuild just updates the rigid body number, but rhaco-create-morph creates the 
+    # central particle and lists it first in the rigid body.
+    # For HOOMD to honour the rigid specification, we just need
+    # to:
+    # 1) Describe the relative positions of the constituent members of the body
+    rigid_IDs = list(rigid_IDs)
+    rigid_body_AAIDs = {}
+    for AAID, body in enumerate(snapshot.particles.body):
+        # Skip it if it's not a rigid body that we care about
+        if body not in rigid_IDs:
+            continue
+        if body not in rigid_body_AAIDs:
+            # This is the first element of a new rigid body
+            rigid_body_AAIDs[body] = []
+        rigid_body_AAIDs[body].append(AAID)
+    # NOTE: This will fail if we have multiple species of rigid bodies
+    rigid_type_assignments = {}
+    all_rigid_body_types = []
+    all_rigid_body_positions = []
+    rolling_rigid_ID = 0
+    # 2) Assign a rotation quaternion
+    for rigid_ID, AAIDs in rigid_body_AAIDs.items():
+        rigid_body_types = get_rigid_body_types(
+            snapshot.particles, AAIDs
+        )
+        rigid_body_positions = get_rigid_body_positions(
+            snapshot.particles, AAIDs
+        )
+        # Append our rigid body list with the important rigid body details
+        if rigid_body_types not in all_rigid_body_types:
+            all_rigid_body_types.append(rigid_body_types)
+            all_rigid_body_positions.append(rigid_body_positions)
+            rigid_body_type_ID = "R{}".format(rolling_rigid_ID)
+            rolling_rigid_ID += 1
+        rigid_type_assignments[AAIDs[0]] = rigid_body_type_ID
+        euler_a, euler_b, euler_c = get_euler_angles(snapshot.particles, AAIDs)
+        body_rotation = quaternion.from_euler_angles(
+            euler_a, beta=euler_b, gamma=euler_c
+        )
+        # Convert the quaternion to the format that hoomd expects
+        # Assign rotation to the central rigid_body particle
+        snapshot.particles.orientation[AAIDs[0]] = np.array(
+            body_rotation.components, dtype=np.float32
+        )
+        # Update the central atom type to include the rigid body species number
+        #snapshot.particles.types = snapshot.particles.types + [rigid_body_type_ID]
+        #print(snapshot.particles.types)
+        #for AAID in AAIDs:
+        #    snapshot.particles.typeid[AAID] = len(snapshot.particles.types)
+        #print(snapshot.particles.types)
+        #exit()
+
+    # Now assign the rigid atom types so constraint parameters can be set
+    for central_particle_ID, atom_type in rigid_type_assignments.items():
+        type_id = snapshot.particles.types.index(atom_type)
+        snapshot.particles.typeid[central_particle_ID] = type_id
+    # Now set the contraints
+    rigid = hoomd.md.constrain.rigid()
+    for rigid_type_index, rigid_body_types in enumerate(all_rigid_body_types):
+        rigid.set_param(
+            "R{}".format(rigid_type_index),
+            types=rigid_body_types,
+            positions=all_rigid_body_positions[rigid_type_index],
+        )
+
+    # # **ERROR**: constrain.rigid(): Central particles must have a body tag identical
+    # # to their contiguous tag.
+    tag_is = 0
+    change_to = 0
+    for AAID, body_tag in enumerate(snapshot.particles.body):
+        if AAID == 0:
+            previous_body_tag = body_tag
+            continue
+        if body_tag != previous_body_tag:
+            tag_is = body_tag
+            change_to = AAID
+            previous_body_tag = body_tag
+        if body_tag == tag_is:
+            snapshot.particles.body[AAID] = change_to
+
+    for rigid_ID, AAIDs in rigid_body_AAIDs.items():
+        central_ID = AAIDs[0]
+        type_ID = snapshot.particles.typeid[central_ID]
+        body_IDs = [snapshot.particles.body[AAID] for AAID in AAIDs[1:]]
+        rigid_type_name = rigid_type_assignments[central_ID]
+        print(rigid_type_name,
+              snapshot.particles.types[type_ID],
+              snapshot.particles.body[central_ID],
+              snapshot.particles.orientation[central_ID],
+              len(body_IDs),
+              len(all_rigid_body_positions[int(rigid_type_name.split("R")[-1])]),
+             )
+    return rigid, snapshot
+
+
+def get_euler_angles(particles, AAIDs):
+    # Translate rigid body to origin
+    CoM = np.array(particles.position[AAIDs[0]])
+    particle_positions = np.array(
+        [particles.position[AAID] for AAID in AAIDs[1:]]
+    ) - CoM
+    # Use three positions for the rest of the calculation: particle_positions[1] = A,
+    # particle_positions[2] = B, particle_positions[3] = C
+    pos_A = particle_positions[1]
+    pos_B = particle_positions[2]
+    pos_C = particle_positions[3]
+    vec_AB = pos_B - pos_A
+    vec_AC = pos_C - pos_A
+    vec_BC = pos_C - pos_B
+    # And the unit normal
+    normal = np.cross(vec_AB, vec_AC)
+    # Normalize to get the "z axis" of the body
+    z_axis = normal / np.linalg.norm(normal)
+    # Define the "x axis" of the body as the vector starting at C and passing through
+    # the midpoint of BC
+    x_axis = (pos_A + pos_B / 2.0) - pos_C
+    x_axis /= np.linalg.norm(x_axis)
+    # The y axis is the cross of the x and z axes
+    y_axis = np.cross(z_axis, x_axis)
+    y_axis /= np.linalg.norm(y_axis)
+    # Calculating euler angles using the x-convention:
+    alpha = np.arctan2(-z_axis[1], -z_axis[2])
+    beta = np.arcsin(z_axis[0])
+    gamma = np.arctan2(-y_axis[0], x_axis[0])
+    return alpha, beta, gamma
+
+
+def get_rigid_body_types(particles, AAIDs):
+    types_in_body = []
+    for AAID in AAIDs[1:]:
+        # Skip the first one because it's type "R"
+        types_in_body.append(particles.types[particles.typeid[AAID]])
+    return types_in_body
+
+
+def get_rigid_body_positions(particles, AAIDs):
+    # Perform coordinate transformation s.t.:
+    # 1) Rigid body is at origin
+    CoM = np.array(particles.position[AAIDs[0]])
+    particle_positions = np.array(
+        [particles.position[AAID] for AAID in AAIDs[1:]]
+    ) - CoM
+    # 2) particle[0], particle[1], particle[2] form plane describing rigid body and
+    # has normal [0, 0, 1]
+    pos_A = particle_positions[1]
+    pos_B = particle_positions[2]
+    pos_C = particle_positions[3]
+    vec_AB = pos_B - pos_A
+    vec_AC = pos_C - pos_A
+    vec_BC = pos_C - pos_B
+    normal = np.cross(vec_AB, vec_AC)
+    normal /= np.linalg.norm(normal)
+    # Calculate the rotation matrix required to map the normal onto the baseline
+    # (0, 0, 1)
+    rotation_matrix = get_rotation_matrix(normal, np.array([0, 0, 1]))
+    # Now the rotation matrix is set up, rotate all atoms (positions at origin)
+    rotated_positions = np.matmul(rotation_matrix, particle_positions.T).T
+    return np.array(rotated_positions, dtype=np.float32)
+
+
+def get_rotation_matrix(vector1, vector2):
+    """
+    This function returns the rotation matrix around the origin that maps vector1 to
+    vector 2
+    """
+    cross_product = np.cross(vector1, vector2)
+    sin_angle = np.sqrt(
+        (
+            (cross_product[0] ** 2)
+            + ((cross_product[1]) ** 2)
+            + ((cross_product[2]) ** 2)
+        )
+    )
+    cos_angle = np.dot(vector1, vector2)
+    skew_matrix = np.array(
+        [
+            [0, -cross_product[2], cross_product[1]],
+            [cross_product[2], 0, -cross_product[0]],
+            [-cross_product[1], cross_product[0], 0],
+        ]
+    )
+    skew_matrix_squared = skew_matrix @ skew_matrix
+    rot_matrix = (
+        np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+        + skew_matrix
+        + skew_matrix_squared * ((1 - cos_angle) / (sin_angle ** 2))
+    )
+    return rot_matrix
+
+
+def get_integrators(args, catalyst, gas, reduced_temperature):
+    integrator_list = []
+    rigid_gas = hoomd.group.intersection(
+        name="rigid_gas", a=hoomd.group.rigid_center(), b=gas
+    )
+    flexible_gas = hoomd.group.difference(
+        name="flexible_gas", a=gas, b=hoomd.group.rigid()
+    )
+    integrator_list = []
+    # Integrate over rigid bodies in the gas
+    if len(rigid_gas) > 0:
+        integrator_list.append(
+            hoomd.md.integrate.nvt(
+                group=rigid_gas, tau=args.tau, kT=reduced_temperature,
+            )
+        )
+    # Integrate over flexible bodies in the gas
+    if len(flexible_gas) > 0:
+        integrator_list.append(
+            hoomd.md.integrate.nvt(
+                group=flexible_gas, tau=args.tau, kT=reduced_temperature,
+            )
+        )
+    # Also get the groups:
+    groups_list = [group for group in [rigid_gas, flexible_gas] if len(group) > 0]
+    return integrator_list, groups_list
 
 
 def initialize_velocities(snapshot, temperature, gas):
@@ -308,30 +527,34 @@ def main():
         # prefix to the atom type, and rename the types for the forcefield
         system = hoomd.deprecated.init.read_xml(filename=file_name)
         snapshot = system.take_snapshot()
-        updated_snapshot, catalyst, gas = rename_types(snapshot)
+        updated_snapshot, catalyst, gas = rename_crystal_types(snapshot)
         system.restore_snapshot(updated_snapshot)
+        hoomd.deprecated.dump.xml(group=hoomd.group.all(), filename="temp.xml", all=True)
+        exit()
 
         # Sort out any rigid bodies (if they exist)
         snapshot = system.take_snapshot()
-        updated_snapshot = create_rigid_bodies(snapshot)
+        rigid, updated_snapshot = create_rigid_bodies(snapshot)
         system.restore_snapshot(updated_snapshot)
+        rigid.validate_bodies()
+        hoomd.deprecated.dump.xml(group=hoomd.group.all(), filename="temp.xml", all=True)
+        exit()
 
-        # hoomd.deprecated.dump.xml(group=hoomd.group.all(), filename="temp.xml", all=True)
-        # exit()
+        # Create the integrators
+        hoomd.md.integrate.mode_standard(dt=args.timestep);
+        integrator_list, groups_list = get_integrators(
+            args, catalyst, gas, reduced_temperature
+        )
 
         # Apply the forcefield coefficients
         system, log_quantities = set_coeffs(
             file_name, system, args.distance_scale_unit, args.energy_scale_unit,
-            args.nl_type, args.r_cut
+            args.nl_type, args.r_cut, groups_list
         )
-
-        # Create the integrators
-        hoomd.md.integrate.mode_standard(dt=args.timestep);
-        integrator = hoomd.md.integrate.nvt(group=gas, tau=args.tau,
-                                            kT=reduced_temperature)
         try:
             # Use HOOMD 2.3's randomize_velocities
-            integrator.randomize_velocities(seed=42)
+            for integrator in integrator_list:
+                integrator.randomize_velocities(seed=42)
         except AttributeError:
             # Using a previous version of HOOMD - use the old initialization
             # function instead
@@ -341,6 +564,8 @@ def main():
             )
             system.restore_snapshot(updated_snapshot)
 
+        hoomd.deprecated.dump.xml(group=hoomd.group.all(), filename="temp.xml", all=True)
+        exit()
         hoomd.dump.gsd(filename=".".join(file_name.split(".")[:-1])
                        + "_traj.gsd", period=max([int(args.run_time/500), 1]),
                        group=hoomd.group.all(), overwrite=True)
