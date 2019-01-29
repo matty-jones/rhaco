@@ -199,7 +199,7 @@ def rename_crystal_types(snapshot):
     return snapshot, catalyst, gas
 
 
-def create_rigid_bodies(snapshot):
+def create_rigid_bodies(file_name, snapshot):
     # Firstly, return the snapshot if no bodies exist
     # Should be one rigid body for the crystal, and then one (-1) for the flexible
     # reactants == 2 total, or just one (-1) if we are integrating the surface.
@@ -212,7 +212,11 @@ def create_rigid_bodies(snapshot):
     # central particle and lists it first in the rigid body.
     # For HOOMD to honour the rigid specification, we just need
     # to:
-    # 1) Describe the relative positions of the constituent members of the body
+    # 1) Obtain the relative positions of the constituent members of the body from the
+    # input xml
+    rigid_relative_positions = get_rigid_relative_positions(file_name)
+    # 2) Assign a rotation quaternion
+    # First, work out what the AAIDs are for the rigid bodies
     rigid_IDs = list(rigid_IDs)
     rigid_body_AAIDs = {}
     for AAID, body in enumerate(snapshot.particles.body):
@@ -223,24 +227,29 @@ def create_rigid_bodies(snapshot):
             # This is the first element of a new rigid body
             rigid_body_AAIDs[body] = []
         rigid_body_AAIDs[body].append(AAID)
-    # NOTE: This will fail if we have multiple species of rigid bodies
+    # NOTE: This untested for multiple species of rigid bodies in the reactant
     rigid_type_assignments = {}
     all_rigid_body_types = []
     all_rigid_body_positions = []
     rolling_rigid_ID = 0
-    # 2) Assign a rotation quaternion
     for rigid_ID, AAIDs in rigid_body_AAIDs.items():
+        # We can use the types to increment the rolling_rigid_ID number
         rigid_body_types = get_rigid_body_types(
-            snapshot.particles, AAIDs
-        )
-        rigid_body_positions = get_rigid_body_positions(
             snapshot.particles, AAIDs
         )
         # Append our rigid body list with the important rigid body details
         if rigid_body_types not in all_rigid_body_types:
+            # NEW RIGID BODY SPECIES
             all_rigid_body_types.append(rigid_body_types)
+            # Check the species has the same number of rigid bodies as this one
+            assert len(AAIDs) == len(rigid_relative_positions[rolling_rigid_ID])
+            # Obtain the relative positions (skip the first element as it's the central
+            # particle)
+            rigid_body_positions = rigid_relative_positions[rolling_rigid_ID][1:]
             all_rigid_body_positions.append(rigid_body_positions)
+            # Create the new rigid body type
             rigid_body_type_ID = "R{}".format(rolling_rigid_ID)
+            # Prepare for the next rigid body type (if any)
             rolling_rigid_ID += 1
         rigid_type_assignments[AAIDs[0]] = rigid_body_type_ID
         euler_a, euler_b, euler_c = get_euler_angles(snapshot.particles, AAIDs)
@@ -308,6 +317,35 @@ def create_rigid_bodies(snapshot):
     return rigid, snapshot
 
 
+def get_rigid_relative_positions(file_name):
+    # The rigid relative positions are stored in the input xml:
+    with open(file_name, 'r') as xml_file:
+        xml_tree = ET.parse(xml_file)
+    root = xml_tree.getroot()
+    for config in root:
+        for child in config:
+            if "rigid_relative_positions" in child.tag:
+                rigid_relative_positions_unsplit = np.array(
+                    [
+                        np.fromiter(map(float, coords.split("\t")), dtype=np.float32)
+                        for coords in child.text.split("\n") if len(coords) > 0
+                    ]
+                )
+    # New rigid bodies in rigid_relative_positions begin with a [0, 0, 0], so split the
+    # array up around this element
+    split_indices = []
+    for index, row in enumerate(rigid_relative_positions_unsplit):
+        if np.isclose(row, [0, 0, 0]).all():
+            split_indices.append(index)
+    split_array = np.split(rigid_relative_positions_unsplit, split_indices)
+    # Since the rigid_relative_positions array begins with [0, 0, 0], we can skip the
+    # first element of split_array
+    rigid_relative_positions = []
+    for array in split_array[1:]:
+        rigid_relative_positions.append(array)
+    return rigid_relative_positions
+
+
 def get_euler_angles(particles, AAIDs):
     # Translate rigid body to origin
     CoM = np.array(particles.position[AAIDs[0]])
@@ -348,28 +386,16 @@ def get_rigid_body_types(particles, AAIDs):
     return types_in_body
 
 
-def get_rigid_body_positions(particles, AAIDs):
-    # Perform coordinate transformation s.t.:
-    # 1) Rigid body is at origin
-    CoM = np.array(particles.position[AAIDs[0]])
-    particle_positions = np.array(
-        [particles.position[AAID] for AAID in AAIDs[1:]]
-    ) - CoM
-    # 2) particle[0], particle[1], particle[2] form plane describing rigid body and
-    # has normal [0, 0, 1]
-    pos_A = particle_positions[0]
-    pos_B = particle_positions[1]
-    pos_C = particle_positions[2]
-    vec_AB = pos_B - pos_A
-    vec_AC = pos_C - pos_A
-    vec_BC = pos_C - pos_B
-    normal = np.cross(vec_AB, vec_AC)
-    normal /= np.linalg.norm(normal)
-    # Calculate the rotation matrix required to map the normal onto the baseline
-    # (0, 0, 1)
-    rotation_matrix = get_rotation_matrix(normal, np.array([0, 0, 1]))
-    # Now the rotation matrix is set up, rotate all atoms (positions at origin)
-    rotated_positions = np.matmul(rotation_matrix, particle_positions.T).T
+def get_rigid_body_positions(position_lookup, AAIDs):
+    with open(file_name, 'r') as xml_file:
+        xml_tree = ET.parse(xml_file)
+    root = xml_tree.getroot()
+    for config in root:
+        for child in config:
+            if "rigid_relative_positions" in child.tag:
+                print(np.array([np.fromiter(map(float, coords.split("\t")), dtype=np.float32) for coords in child.text.split("\n") if len(coords) > 0]))
+                #print([np.array(coords, dtype=np.float32) for coords in child.text.split("\n")])
+                exit()
     return np.array(rotated_positions, dtype=np.float32)
 
 
@@ -538,7 +564,7 @@ def main():
 
         # Sort out any rigid bodies (if they exist)
         snapshot = system.take_snapshot()
-        rigid, updated_snapshot = create_rigid_bodies(snapshot)
+        rigid, updated_snapshot = create_rigid_bodies(file_name, snapshot)
         system.restore_snapshot(updated_snapshot)
         rigid.validate_bodies()
         hoomd.deprecated.dump.xml(group=hoomd.group.all(), filename="post_rigid_bodies.xml", all=True)
