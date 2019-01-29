@@ -197,6 +197,9 @@ class crystal_system(mb.Compound):
         # Add both crystal planes to the system
         self.add(bottom_crystal)
         self.add(top_crystal)
+        self.rigid_positions = None
+        if not integrate_crystal:
+            self.rigid_positions = self.xyz
 
 
 class mbuild_template(mb.Compound):
@@ -228,6 +231,9 @@ class mbuild_template(mb.Compound):
                 reset_rigid_ids=False,
             )
         self.add(molecule, reset_rigid_ids=False)
+        self.rigid_positions = None
+        if rigid:
+            self.rigid_positions = self.xyz
 
     def get_mass(self, atom_types):
         mass = 0.0
@@ -343,6 +349,7 @@ def parse_reactant_positions(position_string):
 
 def create_morphology(args):
     output_file = create_output_file_name(args)
+    rigid_positions = []
     print("Generating first surface (bottom)...")
     surface1 = crystal_surface(args.dimensions, args.template,
                                args.stoichiometry, args.crystal_bonds,
@@ -355,6 +362,8 @@ def create_morphology(args):
     system = crystal_system(
         surface1, surface2, args.crystal_separation, args.integrate_crystal
     )
+    if system.rigid_positions is not None:
+        rigid_positions.append(system.rigid_positions)
     # Get the crystal IDs because we're going to need them later so that HOOMD
     # knows not to integrate them.
     crystal_IDs = range(system.n_particles)
@@ -423,6 +432,8 @@ def create_morphology(args):
                 nanoparticle.translate_to(np.array(position))
                 system.add(nanoparticle)
                 rolling_rigid_body_index += 1
+            if nanoparticle.rigid_positions is not None:
+                rigid_positions.append(nanoparticle.rigid_positions)
     if args.reactant_position is None:
         # Randomly place reactants using packmol
         if number_of_reactant_mols == 1:
@@ -435,17 +446,20 @@ def create_morphology(args):
                 1, box_top, seed=np.random.randint(0, 2**31 - 1)
             )
             system.add(reactant_top)
+            if reactant_top.rigid_positions is not None:
+                rigid_positions.append(reactant_top.rigid_positions)
             rolling_rigid_body_index += 1
         elif number_of_reactant_mols > 1:
             reactant_compounds = []
             n_compounds = []
             for compound_index, reactant_molecule in enumerate(reactant_components):
-                reactant_compounds.append(
-                    mbuild_template(
-                        reactant_molecule, args.reactant_rigid,
-                        rolling_rigid_body_index,
-                    )
+                new_reactant = mbuild_template(
+                    reactant_molecule, args.reactant_rigid,
+                    rolling_rigid_body_index,
                 )
+                reactant_compounds.append(new_reactant)
+                if new_reactant.rigid_positions is not None:
+                    rigid_positions.append(new_reactant.rigid_positions)
                 n_compounds.append(int(np.round(
                     reactant_probs[compound_index] * number_of_reactant_mols)))
                 rolling_rigid_body_index += 1
@@ -505,6 +519,10 @@ def create_morphology(args):
     # X_<PREVIOUS ATOM TYPE> so we know not to integrate them in HOOMD
     if args.integrate_crystal is False:
         morphology = rename_crystal_types(morphology, crystal_IDs)
+    # Also add in the rigid template relative positions for each rigid body to a new
+    # HOOMD tag
+    morphology["rigid_relative_positions_attrib"] = {"num": str(len(rigid_positions))}
+    morphology["rigid_relative_positions_text"] = [list(map(str, coords)) for pos_list in rigid_positions for coords in pos_list]
     write_morphology_xml(morphology, output_file)
     print("Output generated. Exitting...")
 
