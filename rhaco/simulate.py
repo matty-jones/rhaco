@@ -17,12 +17,11 @@ ANG_TO_M = 1E-10
 
 
 def set_coeffs(
-    file_name, system, distance_scaling, energy_scaling,
-    nl_type, r_cut, groups_list,
+    file_name, system, distance_scaling, energy_scaling, nl_type, r_cut, groups_list
 ):
-    '''
+    """
     Read in the molecular dynamics coefficients exported by Foyer
-    '''
+    """
     coeffs_dict = get_coeffs(file_name)
     if nl_type == "tree":
         nl = hoomd.md.nlist.tree()
@@ -34,121 +33,135 @@ def set_coeffs(
     for quantity in ["potential_energy", "kinetic_energy"]:
         for group in groups_list:
             log_quantities.append("_".join([quantity, group.name])),
-    if len(coeffs_dict['pair_coeffs']) != 0:
+    if len(coeffs_dict["pair_coeffs"]) != 0:
         print("Loading LJ pair coeffs...")
         if r_cut is None:
-            max_sigma = np.max(list(map(
-                float, np.array(coeffs_dict['pair_coeffs'])[:,2]
-            )))
+            max_sigma = np.max(
+                list(map(float, np.array(coeffs_dict["pair_coeffs"])[:, 2]))
+            )
             r_cut = 2.5 * max_sigma
             print("Setting r_cut to 2.5 * max_sigma =", r_cut)
         lj = hoomd.md.pair.lj(r_cut=r_cut, nlist=nl)
         lj.set_params(mode="xplor")
         if "pair_lj_energy" not in log_quantities:
-            log_quantities.append('pair_lj_energy')
-        for type1 in coeffs_dict['pair_coeffs']:
-            for type2 in coeffs_dict['pair_coeffs']:
-                lj.pair_coeff.set(type1[0], type2[0],
-                                  epsilon=np.sqrt(type1[1] * type2[1]) / (energy_scaling),
-                                  sigma=np.sqrt(type1[2] * type2[2]) / (distance_scaling),
-                                 )
-    if len(coeffs_dict['bond_coeffs']) != 0:
+            log_quantities.append("pair_lj_energy")
+        for type1 in coeffs_dict["pair_coeffs"]:
+            for type2 in coeffs_dict["pair_coeffs"]:
+                lj.pair_coeff.set(
+                    type1[0],
+                    type2[0],
+                    epsilon=np.sqrt(type1[1] * type2[1]) / (energy_scaling),
+                    sigma=np.sqrt(type1[2] * type2[2]) / (distance_scaling),
+                )
+    if len(coeffs_dict["bond_coeffs"]) != 0:
         print("Loading harmonic bond coeffs...")
         harmonic_bond = hoomd.md.bond.harmonic()
         if "bond_harmonic_energy" not in log_quantities:
-            log_quantities.append('bond_harmonic_energy')
-        for bond in coeffs_dict['bond_coeffs']:
-            harmonic_bond.bond_coeff.set(bond[0],
-                                         k=bond[1] / (energy_scaling / distance_scaling**2),
-                                         r0=bond[2] / distance_scaling,
-                                        )
+            log_quantities.append("bond_harmonic_energy")
+        for bond in coeffs_dict["bond_coeffs"]:
+            harmonic_bond.bond_coeff.set(
+                bond[0],
+                k=bond[1] / (energy_scaling / distance_scaling ** 2),
+                r0=bond[2] / distance_scaling,
+            )
 
-    if len(coeffs_dict['angle_coeffs']) != 0:
+    if len(coeffs_dict["angle_coeffs"]) != 0:
         print("Loading harmonic angle coeffs...")
         harmonic_angle = hoomd.md.angle.harmonic()
         if "angle_harmonic_energy" not in log_quantities:
-            log_quantities.append('angle_harmonic_energy')
-        for angle in coeffs_dict['angle_coeffs']:
-            harmonic_angle.angle_coeff.set(angle[0], k=angle[1] / energy_scaling, t0=angle[2])
+            log_quantities.append("angle_harmonic_energy")
+        for angle in coeffs_dict["angle_coeffs"]:
+            harmonic_angle.angle_coeff.set(
+                angle[0], k=angle[1] / energy_scaling, t0=angle[2]
+            )
 
-    if len(coeffs_dict['dihedral_coeffs']) != 0:
+    if len(coeffs_dict["dihedral_coeffs"]) != 0:
         print("Loading opls dihedral coeffs...")
         harmonic_dihedral = hoomd.md.dihedral.opls()
         if "dihedral_opls_energy" not in log_quantities:
-            log_quantities.append('dihedral_opls_energy')
-        for dihedral in coeffs_dict['dihedral_coeffs']:
-            harmonic_dihedral.dihedral_coeff.set(dihedral[0],
-                                                 k1=dihedral[1] / energy_scaling,
-                                                 k2=dihedral[2] / energy_scaling,
-                                                 k3=dihedral[3] / energy_scaling,
-                                                 k4=dihedral[4] / energy_scaling,
-                                                )
+            log_quantities.append("dihedral_opls_energy")
+        for dihedral in coeffs_dict["dihedral_coeffs"]:
+            harmonic_dihedral.dihedral_coeff.set(
+                dihedral[0],
+                k1=dihedral[1] / energy_scaling,
+                k2=dihedral[2] / energy_scaling,
+                k3=dihedral[3] / energy_scaling,
+                k4=dihedral[4] / energy_scaling,
+            )
     if len(coeffs_dict["external_forcefields"]) != 0:
         for forcefield_loc in coeffs_dict["external_forcefields"]:
             print("Loading external forcefield:", "".join([forcefield_loc, "..."]))
             if forcefield_loc[-7:] == ".eam.fs":
                 hoomd.metal.pair.eam(file=forcefield_loc, type="FS", nlist=nl)
                 if "pair_eam_energy" not in log_quantities:
-                    log_quantities.append('pair_eam_energy')
+                    log_quantities.append("pair_eam_energy")
             elif forcefield_loc[-10:] == ".eam.alloy":
                 hoomd.metal.pair.eam(file=forcefield_loc, type="Alloy", nlist=nl)
                 if "pair_eam_energy" not in log_quantities:
-                    log_quantities.append('pair_eam_energy')
+                    log_quantities.append("pair_eam_energy")
             else:
                 print("----==== UNABLE TO PARSE EXTERNAL FORCEFIELD ====----")
-                print(forcefield_loc, "is an unspecified file type and will be ignored."
-                      " Please code in how to treat this file in rhaco/simulate.py")
+                print(
+                    forcefield_loc,
+                    "is an unspecified file type and will be ignored."
+                    " Please code in how to treat this file in rhaco/simulate.py",
+                )
     for atomID, atom in enumerate(system.particles):
-        atom.mass = coeffs_dict['mass'][atomID]
+        atom.mass = coeffs_dict["mass"][atomID]
     # TODO: Support for charges
-    #pppmnl = hoomd.md.nlist.cell()
-    #pppm = hoomd.md.charge.pppm(group=hoomd.group.charged(), nlist = pppmnl)
-    #pppm.set_params(Nx=64,Ny=64,Nz=64,order=6,rcut=2.70)
+    # pppmnl = hoomd.md.nlist.cell()
+    # pppm = hoomd.md.charge.pppm(group=hoomd.group.charged(), nlist = pppmnl)
+    # pppm.set_params(Nx=64,Ny=64,Nz=64,order=6,rcut=2.70)
     return system, log_quantities
 
 
 def get_coeffs(file_name):
-    coeff_dictionary = {'pair_coeffs': [], 'bond_coeffs': [],
-                        'angle_coeffs': [], 'dihedral_coeffs': [],
-                        'external_forcefields': []}
-    with open(file_name, 'r') as xml_file:
+    coeff_dictionary = {
+        "pair_coeffs": [],
+        "bond_coeffs": [],
+        "angle_coeffs": [],
+        "dihedral_coeffs": [],
+        "external_forcefields": [],
+    }
+    with open(file_name, "r") as xml_file:
         xml_data = ET.parse(xml_file)
     root = xml_data.getroot()
     for config in root:
         for child in config:
             # First get the masses which are different
-            if child.tag == 'mass':
-                coeff_dictionary['mass'] = [float(mass) for mass in
-                                            child.text.split('\n') if
-                                            len(mass) > 0]
+            if child.tag == "mass":
+                coeff_dictionary["mass"] = [
+                    float(mass) for mass in child.text.split("\n") if len(mass) > 0
+                ]
             # Secondly, get the external forcefields, which are also different
-            elif child.tag == 'external_forcefields':
-                for line in child.text.split('\n'):
+            elif child.tag == "external_forcefields":
+                for line in child.text.split("\n"):
                     if len(line) > 0:
                         coeff_dictionary[child.tag].append(line)
             # Now the other coefficients
             elif child.tag in coeff_dictionary.keys():
                 if child.text is None:
                     continue
-                for line in child.text.split('\n'):
+                for line in child.text.split("\n"):
                     if len(line) == 0:
                         continue
                     coeff = line.split()
                     coeff_dictionary[child.tag].append(
-                        [coeff[0]] + list(map(float, coeff[1:])))
+                        [coeff[0]] + list(map(float, coeff[1:]))
+                    )
                 # coeff_dictionary[child.tag] = child.text.split('\n')
     return coeff_dictionary
 
 
 def rename_crystal_types(snapshot):
-    '''
+    """
     This function splits the system into atoms to integrate over and atoms to
     not integrate over, based on the specified atom types ('X_<ATOM TYPE>')
     means the atom is part of the catalyst and should not be integrated over.
 
     Additionally, it removes the X_ from all the atom types so the forcefield
     can be interpreted correctly.
-    '''
+    """
     # Attempt 1: Just rename the types in snapshot.particles.types so that X_A
     # is renamed to just A.
     # Attempt 1.5: This can't be done on an index-by-index basis - the particle
@@ -158,7 +171,7 @@ def rename_crystal_types(snapshot):
     new_types = []
     mapping = {}
     for type_index, atom_type in enumerate(snapshot.particles.types):
-        if atom_type[:2] == 'X_':
+        if atom_type[:2] == "X_":
             new_atom_type = atom_type[2:]
             catalyst_type_IDs.append(type_index)
         else:
@@ -170,8 +183,8 @@ def rename_crystal_types(snapshot):
     for atom_index, type_ID in enumerate(snapshot.particles.typeid):
         if type_ID in catalyst_type_IDs:
             catalyst_atom_IDs.append(atom_index)
-    catalyst = hoomd.group.tag_list(name='catalyst', tags=catalyst_atom_IDs)
-    gas = hoomd.group.difference(name='gas', a=hoomd.group.all(), b=catalyst)
+    catalyst = hoomd.group.tag_list(name="catalyst", tags=catalyst_atom_IDs)
+    gas = hoomd.group.difference(name="gas", a=hoomd.group.all(), b=catalyst)
     # Now use the mapping to remove any duplicate types (needed if the same atom
     # type is present in both the crystal and the reactant)
     snapshot.particles.types = new_types
@@ -208,7 +221,7 @@ def create_rigid_bodies(file_name, snapshot):
     rigid_IDs.discard(4294967295)
     if len(set(snapshot.particles.body)) <= 1:
         return snapshot
-    # Mbuild just updates the rigid body number, but rhaco-create-morph creates the 
+    # Mbuild just updates the rigid body number, but rhaco-create-morph creates the
     # central particle and lists it first in the rigid body.
     # For HOOMD to honour the rigid specification, we just need
     # to:
@@ -234,9 +247,7 @@ def create_rigid_bodies(file_name, snapshot):
     rolling_rigid_ID = 0
     for rigid_ID, AAIDs in rigid_body_AAIDs.items():
         # We can use the types to increment the rolling_rigid_ID number
-        rigid_body_types = get_rigid_body_types(
-            snapshot.particles, AAIDs
-        )
+        rigid_body_types = get_rigid_body_types(snapshot.particles, AAIDs)
         # Append our rigid body list with the important rigid body details
         if rigid_body_types not in all_rigid_body_types:
             # NEW RIGID BODY SPECIES
@@ -267,12 +278,12 @@ def create_rigid_bodies(file_name, snapshot):
         # )
 
         # Update the central atom type to include the rigid body species number
-        #snapshot.particles.types = snapshot.particles.types + [rigid_body_type_ID]
-        #print(snapshot.particles.types)
-        #for AAID in AAIDs:
+        # snapshot.particles.types = snapshot.particles.types + [rigid_body_type_ID]
+        # print(snapshot.particles.types)
+        # for AAID in AAIDs:
         #    snapshot.particles.typeid[AAID] = len(snapshot.particles.types)
-        #print(snapshot.particles.types)
-        #exit()
+        # print(snapshot.particles.types)
+        # exit()
 
     # Now assign the rigid atom types so constraint parameters can be set
     for central_particle_ID, atom_type in rigid_type_assignments.items():
@@ -307,19 +318,20 @@ def create_rigid_bodies(file_name, snapshot):
         type_ID = snapshot.particles.typeid[central_ID]
         body_IDs = [snapshot.particles.body[AAID] for AAID in AAIDs[1:]]
         rigid_type_name = rigid_type_assignments[central_ID]
-        print(rigid_type_name,
-              snapshot.particles.types[type_ID],
-              snapshot.particles.body[central_ID],
-              snapshot.particles.orientation[central_ID],
-              len(body_IDs),
-              len(all_rigid_body_positions[int(rigid_type_name.split("R")[-1])]),
-             )
+        print(
+            rigid_type_name,
+            snapshot.particles.types[type_ID],
+            snapshot.particles.body[central_ID],
+            snapshot.particles.orientation[central_ID],
+            len(body_IDs),
+            len(all_rigid_body_positions[int(rigid_type_name.split("R")[-1])]),
+        )
     return rigid, snapshot
 
 
 def get_rigid_relative_positions(file_name):
     # The rigid relative positions are stored in the input xml:
-    with open(file_name, 'r') as xml_file:
+    with open(file_name, "r") as xml_file:
         xml_tree = ET.parse(xml_file)
     root = xml_tree.getroot()
     for config in root:
@@ -328,7 +340,8 @@ def get_rigid_relative_positions(file_name):
                 rigid_relative_positions_unsplit = np.array(
                     [
                         np.fromiter(map(float, coords.split("\t")), dtype=np.float32)
-                        for coords in child.text.split("\n") if len(coords) > 0
+                        for coords in child.text.split("\n")
+                        if len(coords) > 0
                     ]
                 )
     # New rigid bodies in rigid_relative_positions begin with a [0, 0, 0], so split the
@@ -349,9 +362,9 @@ def get_rigid_relative_positions(file_name):
 def get_euler_angles(particles, AAIDs):
     # Translate rigid body to origin
     CoM = np.array(particles.position[AAIDs[0]])
-    particle_positions = np.array(
-        [particles.position[AAID] for AAID in AAIDs[1:]]
-    ) - CoM
+    particle_positions = (
+        np.array([particles.position[AAID] for AAID in AAIDs[1:]]) - CoM
+    )
     # Use three positions for the rest of the calculation: particle_positions[0] = A,
     # particle_positions[1] = B, particle_positions[2] = C
     pos_A = particle_positions[0]
@@ -387,14 +400,24 @@ def get_rigid_body_types(particles, AAIDs):
 
 
 def get_rigid_body_positions(position_lookup, AAIDs):
-    with open(file_name, 'r') as xml_file:
+    with open(file_name, "r") as xml_file:
         xml_tree = ET.parse(xml_file)
     root = xml_tree.getroot()
     for config in root:
         for child in config:
             if "rigid_relative_positions" in child.tag:
-                print(np.array([np.fromiter(map(float, coords.split("\t")), dtype=np.float32) for coords in child.text.split("\n") if len(coords) > 0]))
-                #print([np.array(coords, dtype=np.float32) for coords in child.text.split("\n")])
+                print(
+                    np.array(
+                        [
+                            np.fromiter(
+                                map(float, coords.split("\t")), dtype=np.float32
+                            )
+                            for coords in child.text.split("\n")
+                            if len(coords) > 0
+                        ]
+                    )
+                )
+                # print([np.array(coords, dtype=np.float32) for coords in child.text.split("\n")])
                 exit()
     return np.array(rotated_positions, dtype=np.float32)
 
@@ -442,14 +465,14 @@ def get_integrators(args, catalyst, gas, reduced_temperature):
     if len(rigid_gas) > 0:
         integrator_list.append(
             hoomd.md.integrate.nvt(
-                group=rigid_gas, tau=args.tau, kT=reduced_temperature,
+                group=rigid_gas, tau=args.tau, kT=reduced_temperature
             )
         )
     # Integrate over flexible bodies in the gas
     if len(flexible_gas) > 0:
         integrator_list.append(
             hoomd.md.integrate.nvt(
-                group=flexible_gas, tau=args.tau, kT=reduced_temperature,
+                group=flexible_gas, tau=args.tau, kT=reduced_temperature
             )
         )
     # Also get the groups:
@@ -464,7 +487,7 @@ def initialize_velocities(snapshot, temperature, gas):
     meanv2 = np.mean(v ** 2, 0)
     fs = np.sqrt(temperature / meanv2)
     # Shift the velocities such that the average is zero
-    v = (v - meanv)
+    v = v - meanv
     # Scale the velocities to match the required temperature
     v *= fs
     # Assign the velocities for this MD phase
@@ -475,80 +498,116 @@ def initialize_velocities(snapshot, temperature, gas):
 
 
 def main():
-    parser = argparse.ArgumentParser(prog='rhaco-run-hoomd',
-                                    formatter_class=argparse.
-                                    ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-T', '--temperature',
-                        type=float,
-                        default=633,
-                        required=False,
-                        help='''The desired temperature of the simulation in
+    parser = argparse.ArgumentParser(
+        prog="rhaco-run-hoomd", formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument(
+        "-T",
+        "--temperature",
+        type=float,
+        default=633,
+        required=False,
+        help="""The desired temperature of the simulation in
                         kelvin (this will be rescaled to produce a reduced
                         temperature that conforms with Foyer's default
-                        units (kcal/mol and angstroems).\n''')
-    parser.add_argument('-r', '--run_time',
-                        type=float,
-                        default=1E7,
-                        required=False,
-                        help='''The number of timesteps to run the MD
-                        simulation for.\n''')
-    parser.add_argument('-s', '--timestep',
-                        type=float,
-                        default=1E-3,
-                        required=False,
-                        help='''The integration timestep to use when running
-                        the NVT MD simulation.\n''')
-    parser.add_argument('-t', '--tau',
-                        type=float,
-                        default=1E-2,
-                        required=False,
-                        help='''The thermostat coupling to use when running
-                        the NVT MD simulation.\n''')
-    parser.add_argument('-e', '--energy_scale_unit',
-                        type=float,
-                        default=1.0,
-                        required=False,
-                        help='''The energy scaling unit rhaco should use to
+                        units (kcal/mol and angstroems).\n""",
+    )
+    parser.add_argument(
+        "-r",
+        "--run_time",
+        type=float,
+        default=1E7,
+        required=False,
+        help="""The number of timesteps to run the MD
+                        simulation for.\n""",
+    )
+    parser.add_argument(
+        "-s",
+        "--timestep",
+        type=float,
+        default=1E-3,
+        required=False,
+        help="""The integration timestep to use when running
+                        the NVT MD simulation.\n""",
+    )
+    parser.add_argument(
+        "-t",
+        "--tau",
+        type=float,
+        default=1E-2,
+        required=False,
+        help="""The thermostat coupling to use when running
+                        the NVT MD simulation.\n""",
+    )
+    parser.add_argument(
+        "-e",
+        "--energy_scale_unit",
+        type=float,
+        default=1.0,
+        required=False,
+        help="""The energy scaling unit rhaco should use to
                         set the correct temperature, and LJ epsilons in kcal/mol. Default
                         is Foyer's default unit (1.0 kcal/mol). A useful alternative is
                         23.060541945329334 kcal/mol, which corresponds to 1 eV, which is
                         the energy scaling unit for EAM.
-                        Be careful with this, it WILL frack everything up.''')
-    parser.add_argument('-d', '--distance_scale_unit',
-                        type=float,
-                        default=1.0,
-                        required=False,
-                        help='''The distance scaling unit rhaco should use to
+                        Be careful with this, it WILL frack everything up.""",
+    )
+    parser.add_argument(
+        "-d",
+        "--distance_scale_unit",
+        type=float,
+        default=1.0,
+        required=False,
+        help="""The distance scaling unit rhaco should use to
                         set the correct LJ sigmas in angstroems. Default is Foyer's
                         default unit (1.0 angstroem, same as EAM).
-                        Be careful with this, it WILL frack everything up.''')
-    parser.add_argument('-nl', '--nl_type',
-                        type=str,
-                        default="tree",
-                        required=False,
-                        help='''The neighbour list type to use. Default is tree,
-                        other option is "cell"''')
-    parser.add_argument('-rc', '--r_cut',
-                        type=float,
-                        default=None,
-                        required=False,
-                        help='''The r_cut value to use in the LJ interactions given
-                        in distance_scale_unit. Default = 2.5 * max_lj_sigma''')
+                        Be careful with this, it WILL frack everything up.""",
+    )
+    parser.add_argument(
+        "-nl",
+        "--nl_type",
+        type=str,
+        default="tree",
+        required=False,
+        help='''The neighbour list type to use. Default is tree,
+                        other option is "cell"''',
+    )
+    parser.add_argument(
+        "-rc",
+        "--r_cut",
+        type=float,
+        default=None,
+        required=False,
+        help="""The r_cut value to use in the LJ interactions given
+                        in distance_scale_unit. Default = 2.5 * max_lj_sigma""",
+    )
     args, file_list = parser.parse_known_args()
 
     # Foyer gives parameters in terms of kcal/mol for energies and angstroems
     # for distances. Convert these to reduced units for HOOMD using the
     # following conversion, and print a string to inform the user it has been
     # done.
-    reduced_temperature = args.temperature * BOLTZMANN * AVOGADRO / (KCAL_TO_J * args.energy_scale_unit)
-    timestep_SI = args.timestep * np.sqrt(AMU_TO_KG * (ANG_TO_M * args.distance_scale_unit)**2 * AVOGADRO
-                                          / (KCAL_TO_J * args.energy_scale_unit))
-    print("Using the units of <DISTANCE> =", args.distance_scale_unit, "Angstroem,"
-          " <ENERGY> =", args.energy_scale_unit, "kcal/mol, and <MASS> = 1 amu,"
-          " the input temperature of", args.temperature, "K corresponds to"
-          " {:.2E}".format(reduced_temperature),
-          "in dimensionless HOOMD kT units, and the input timestep",
-          args.timestep, "corresponds to {:.2E} s.".format(timestep_SI))
+    reduced_temperature = (
+        args.temperature * BOLTZMANN * AVOGADRO / (KCAL_TO_J * args.energy_scale_unit)
+    )
+    timestep_SI = args.timestep * np.sqrt(
+        AMU_TO_KG
+        * (ANG_TO_M * args.distance_scale_unit) ** 2
+        * AVOGADRO
+        / (KCAL_TO_J * args.energy_scale_unit)
+    )
+    print(
+        "Using the units of <DISTANCE> =",
+        args.distance_scale_unit,
+        "Angstroem," " <ENERGY> =",
+        args.energy_scale_unit,
+        "kcal/mol, and <MASS> = 1 amu," " the input temperature of",
+        args.temperature,
+        "K corresponds to" " {:.2E}".format(reduced_temperature),
+        "in dimensionless HOOMD kT units, and the input timestep",
+        args.timestep,
+        "corresponds to {:.2E} s.".format(timestep_SI),
+    )
 
     for file_name in file_list:
         hoomd.context.initialize("")
@@ -560,25 +619,34 @@ def main():
         snapshot = system.take_snapshot()
         updated_snapshot, catalyst, gas = rename_crystal_types(snapshot)
         system.restore_snapshot(updated_snapshot)
-        hoomd.deprecated.dump.xml(group=hoomd.group.all(), filename="pre_rigid_bodies.xml", all=True)
+        hoomd.deprecated.dump.xml(
+            group=hoomd.group.all(), filename="pre_rigid_bodies.xml", all=True
+        )
 
         # Sort out any rigid bodies (if they exist)
         snapshot = system.take_snapshot()
         rigid, updated_snapshot = create_rigid_bodies(file_name, snapshot)
         system.restore_snapshot(updated_snapshot)
         rigid.validate_bodies()
-        hoomd.deprecated.dump.xml(group=hoomd.group.all(), filename="post_rigid_bodies.xml", all=True)
+        hoomd.deprecated.dump.xml(
+            group=hoomd.group.all(), filename="post_rigid_bodies.xml", all=True
+        )
 
         # Create the integrators
-        hoomd.md.integrate.mode_standard(dt=args.timestep);
+        hoomd.md.integrate.mode_standard(dt=args.timestep)
         integrator_list, groups_list = get_integrators(
             args, catalyst, gas, reduced_temperature
         )
 
         # Apply the forcefield coefficients
         system, log_quantities = set_coeffs(
-            file_name, system, args.distance_scale_unit, args.energy_scale_unit,
-            args.nl_type, args.r_cut, groups_list
+            file_name,
+            system,
+            args.distance_scale_unit,
+            args.energy_scale_unit,
+            args.nl_type,
+            args.r_cut,
+            groups_list,
         )
         try:
             # Use HOOMD 2.3's randomize_velocities
@@ -588,22 +656,28 @@ def main():
             # Using a previous version of HOOMD - use the old initialization
             # function instead
             snapshot = system.take_snapshot()
-            updated_snapshot = initialize_velocities(
-                snapshot, reduced_temperature, gas
-            )
+            updated_snapshot = initialize_velocities(snapshot, reduced_temperature, gas)
             system.restore_snapshot(updated_snapshot)
 
-        hoomd.deprecated.dump.xml(group=hoomd.group.all(), filename="post_initialization.xml", all=True)
+        hoomd.deprecated.dump.xml(
+            group=hoomd.group.all(), filename="post_initialization.xml", all=True
+        )
         exit()
-        hoomd.dump.gsd(filename=".".join(file_name.split(".")[:-1])
-                       + "_traj.gsd", period=max([int(args.run_time/500), 1]),
-                       group=hoomd.group.all(), overwrite=True)
-        hoomd.analyze.log(filename='.'.join(file_name.split('.')[:-1])
-                          + ".log", quantities=log_quantities,
-                          period=max([int(args.run_time/10000), 1]),
-                          header_prefix='#', overwrite=True)
+        hoomd.dump.gsd(
+            filename=".".join(file_name.split(".")[:-1]) + "_traj.gsd",
+            period=max([int(args.run_time / 500), 1]),
+            group=hoomd.group.all(),
+            overwrite=True,
+        )
+        hoomd.analyze.log(
+            filename=".".join(file_name.split(".")[:-1]) + ".log",
+            quantities=log_quantities,
+            period=max([int(args.run_time / 10000), 1]),
+            header_prefix="#",
+            overwrite=True,
+        )
         ## Now incrementally ramp the charges
-        #for chargePhase in range(chargeIncrements + 1):
+        # for chargePhase in range(chargeIncrements + 1):
         #    print("Incrementing charge phase", chargePhase, "of",
         #          chargeIncrements + 1)
         #    for atom in system.particles:
@@ -614,6 +688,9 @@ def main():
 
         # Get the initial box size dynamically
         hoomd.run_upto(args.run_time)
-        hoomd.dump.gsd(filename=".".join(file_name.split(".")[:-1])
-                       + "_final.gsd", period=None,
-                       group=hoomd.group.all(), overwrite=True)
+        hoomd.dump.gsd(
+            filename=".".join(file_name.split(".")[:-1]) + "_final.gsd",
+            period=None,
+            group=hoomd.group.all(),
+            overwrite=True,
+        )
