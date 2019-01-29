@@ -522,7 +522,12 @@ def create_morphology(args):
     # Also add in the rigid template relative positions for each rigid body to a new
     # HOOMD tag
     morphology["rigid_relative_positions_attrib"] = {"num": str(len(rigid_positions))}
-    morphology["rigid_relative_positions_text"] = [list(map(str, coords)) for pos_list in rigid_positions for coords in pos_list]
+    # There is a factor of 10 here because we're going from nm
+    # (input: pdb, mbuild, openmm) to A (which is what rhaco/hoomd expects)
+    morphology["rigid_relative_positions_text"] = [
+        list(map(str, 10 * coords)) for pos_list in rigid_positions
+        for coords in pos_list
+    ]
     write_morphology_xml(morphology, output_file)
     print("Output generated. Exitting...")
 
