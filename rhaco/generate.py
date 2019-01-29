@@ -854,7 +854,7 @@ def main():
                         surfaces.\n
                         For example: -c 25.0.''')
     parser.add_argument("-b", "--crystal_bonds",
-                        action='store_true',
+                        action="store_true",
                         required=False,
                         help='''Enable the creation of bonds between unit cells
                         of the crystal. This is useful for visualisation, and
@@ -898,8 +898,7 @@ def main():
                         the corresponding values are interpreted as the
                         proportion by moles.\n''')
     parser.add_argument("-rr", "--reactant_rigid",
-                        type=bool,
-                        default=False,
+                        action="store_true",
                         required=False,
                         help='''If True, then each reactant molecule will be
                         treated as its own rigid body.''')
