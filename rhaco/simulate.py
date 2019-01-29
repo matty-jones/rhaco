@@ -244,14 +244,19 @@ def create_rigid_bodies(snapshot):
             rolling_rigid_ID += 1
         rigid_type_assignments[AAIDs[0]] = rigid_body_type_ID
         euler_a, euler_b, euler_c = get_euler_angles(snapshot.particles, AAIDs)
+        euler_a = euler_b = euler_c = 0.0
         body_rotation = quaternion.from_euler_angles(
             euler_a, beta=euler_b, gamma=euler_c
         )
-        # Convert the quaternion to the format that hoomd expects
-        # Assign rotation to the central rigid_body particle
-        snapshot.particles.orientation[AAIDs[0]] = np.array(
-            body_rotation.components, dtype=np.float32
-        )
+        print(euler_a, euler_b, euler_c)
+        print(body_rotation)
+
+        # # Convert the quaternion to the format that hoomd expects
+        # # Assign rotation to the central rigid_body particle
+        # snapshot.particles.orientation[AAIDs[0]] = np.array(
+        #     body_rotation.components, dtype=np.float32
+        # )
+
         # Update the central atom type to include the rigid body species number
         #snapshot.particles.types = snapshot.particles.types + [rigid_body_type_ID]
         #print(snapshot.particles.types)
@@ -309,11 +314,11 @@ def get_euler_angles(particles, AAIDs):
     particle_positions = np.array(
         [particles.position[AAID] for AAID in AAIDs[1:]]
     ) - CoM
-    # Use three positions for the rest of the calculation: particle_positions[1] = A,
-    # particle_positions[2] = B, particle_positions[3] = C
-    pos_A = particle_positions[1]
-    pos_B = particle_positions[2]
-    pos_C = particle_positions[3]
+    # Use three positions for the rest of the calculation: particle_positions[0] = A,
+    # particle_positions[1] = B, particle_positions[2] = C
+    pos_A = particle_positions[0]
+    pos_B = particle_positions[1]
+    pos_C = particle_positions[2]
     vec_AB = pos_B - pos_A
     vec_AC = pos_C - pos_A
     vec_BC = pos_C - pos_B
@@ -322,8 +327,8 @@ def get_euler_angles(particles, AAIDs):
     # Normalize to get the "z axis" of the body
     z_axis = normal / np.linalg.norm(normal)
     # Define the "x axis" of the body as the vector starting at C and passing through
-    # the midpoint of BC
-    x_axis = (pos_A + pos_B / 2.0) - pos_C
+    # the midpoint of AB
+    x_axis = ((pos_B + pos_A) / 2.0) - pos_C
     x_axis /= np.linalg.norm(x_axis)
     # The y axis is the cross of the x and z axes
     y_axis = np.cross(z_axis, x_axis)
@@ -352,9 +357,9 @@ def get_rigid_body_positions(particles, AAIDs):
     ) - CoM
     # 2) particle[0], particle[1], particle[2] form plane describing rigid body and
     # has normal [0, 0, 1]
-    pos_A = particle_positions[1]
-    pos_B = particle_positions[2]
-    pos_C = particle_positions[3]
+    pos_A = particle_positions[0]
+    pos_B = particle_positions[1]
+    pos_C = particle_positions[2]
     vec_AB = pos_B - pos_A
     vec_AC = pos_C - pos_A
     vec_BC = pos_C - pos_B
@@ -529,16 +534,14 @@ def main():
         snapshot = system.take_snapshot()
         updated_snapshot, catalyst, gas = rename_crystal_types(snapshot)
         system.restore_snapshot(updated_snapshot)
-        hoomd.deprecated.dump.xml(group=hoomd.group.all(), filename="temp.xml", all=True)
-        exit()
+        hoomd.deprecated.dump.xml(group=hoomd.group.all(), filename="pre_rigid_bodies.xml", all=True)
 
         # Sort out any rigid bodies (if they exist)
         snapshot = system.take_snapshot()
         rigid, updated_snapshot = create_rigid_bodies(snapshot)
         system.restore_snapshot(updated_snapshot)
         rigid.validate_bodies()
-        hoomd.deprecated.dump.xml(group=hoomd.group.all(), filename="temp.xml", all=True)
-        exit()
+        hoomd.deprecated.dump.xml(group=hoomd.group.all(), filename="post_rigid_bodies.xml", all=True)
 
         # Create the integrators
         hoomd.md.integrate.mode_standard(dt=args.timestep);
@@ -564,7 +567,7 @@ def main():
             )
             system.restore_snapshot(updated_snapshot)
 
-        hoomd.deprecated.dump.xml(group=hoomd.group.all(), filename="temp.xml", all=True)
+        hoomd.deprecated.dump.xml(group=hoomd.group.all(), filename="post_initialization.xml", all=True)
         exit()
         hoomd.dump.gsd(filename=".".join(file_name.split(".")[:-1])
                        + "_traj.gsd", period=max([int(args.run_time/500), 1]),
