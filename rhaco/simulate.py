@@ -263,28 +263,17 @@ def create_rigid_bodies(file_name, snapshot):
             # Prepare for the next rigid body type (if any)
             rolling_rigid_ID += 1
         rigid_type_assignments[AAIDs[0]] = rigid_body_type_ID
-        euler_a, euler_b, euler_c = get_euler_angles(snapshot.particles, AAIDs)
-        euler_a = euler_b = euler_c = 0.0
-        body_rotation = quaternion.from_euler_angles(
-            euler_a, beta=euler_b, gamma=euler_c
+        rotation_matrix = get_rotation_matrix(
+            rigid_body_positions, snapshot.particles, AAIDs
         )
-        print(euler_a, euler_b, euler_c)
-        print(body_rotation)
-
-        # # Convert the quaternion to the format that hoomd expects
-        # # Assign rotation to the central rigid_body particle
-        # snapshot.particles.orientation[AAIDs[0]] = np.array(
-        #     body_rotation.components, dtype=np.float32
-        # )
-
-        # Update the central atom type to include the rigid body species number
-        # snapshot.particles.types = snapshot.particles.types + [rigid_body_type_ID]
-        # print(snapshot.particles.types)
-        # for AAID in AAIDs:
-        #    snapshot.particles.typeid[AAID] = len(snapshot.particles.types)
-        # print(snapshot.particles.types)
-        # exit()
-
+        body_rotation = quaternion.from_rotation_matrix(
+            rotation_matrix
+        )
+        # Convert the quaternion to the data type that hoomd expects and then
+        # assign the rotation to the central rigid_body particle
+        snapshot.particles.orientation[AAIDs[0]] = np.array(
+            body_rotation.components, dtype=np.float32
+        )
     # Now assign the rigid atom types so constraint parameters can be set
     for central_particle_ID, atom_type in rigid_type_assignments.items():
         type_id = snapshot.particles.types.index(atom_type)
@@ -298,8 +287,8 @@ def create_rigid_bodies(file_name, snapshot):
             positions=all_rigid_body_positions[rigid_type_index],
         )
 
-    # # **ERROR**: constrain.rigid(): Central particles must have a body tag identical
-    # # to their contiguous tag.
+    # **ERROR**: constrain.rigid(): Central particles must have a body tag identical
+    # to their contiguous tag.
     tag_is = 0
     change_to = 0
     for AAID, body_tag in enumerate(snapshot.particles.body):
@@ -318,14 +307,6 @@ def create_rigid_bodies(file_name, snapshot):
         type_ID = snapshot.particles.typeid[central_ID]
         body_IDs = [snapshot.particles.body[AAID] for AAID in AAIDs[1:]]
         rigid_type_name = rigid_type_assignments[central_ID]
-        print(
-            rigid_type_name,
-            snapshot.particles.types[type_ID],
-            snapshot.particles.body[central_ID],
-            snapshot.particles.orientation[central_ID],
-            len(body_IDs),
-            len(all_rigid_body_positions[int(rigid_type_name.split("R")[-1])]),
-        )
     return rigid, snapshot
 
 
@@ -359,36 +340,51 @@ def get_rigid_relative_positions(file_name):
     return rigid_relative_positions
 
 
-def get_euler_angles(particles, AAIDs):
+def get_rotation_matrix(unrotated_body, particles, AAIDs):
     # Translate rigid body to origin
     CoM = np.array(particles.position[AAIDs[0]])
-    particle_positions = (
+    rotated_body = (
         np.array([particles.position[AAID] for AAID in AAIDs[1:]]) - CoM
     )
-    # Use three positions for the rest of the calculation: particle_positions[0] = A,
-    # particle_positions[1] = B, particle_positions[2] = C
-    pos_A = particle_positions[0]
-    pos_B = particle_positions[1]
-    pos_C = particle_positions[2]
-    vec_AB = pos_B - pos_A
-    vec_AC = pos_C - pos_A
-    vec_BC = pos_C - pos_B
-    # And the unit normal
-    normal = np.cross(vec_AB, vec_AC)
-    # Normalize to get the "z axis" of the body
+    # First, calculate the basis vectors of the unrotated body
+    unrotated_A = unrotated_body[0]
+    unrotated_B = unrotated_body[1]
+    unrotated_C = unrotated_body[2]
+    unrotated_AB = unrotated_B - unrotated_A
+    unrotated_AC = unrotated_C - unrotated_A
+    unrotated_BC = unrotated_C - unrotated_B
+    # Basis vectors are whatever we want, so let's use unrotated_AB = x, normal = z,
+    # and np.cross(x, z) = y
+    x_axis = unrotated_AB / np.linalg.norm(unrotated_AB)
+    normal = np.cross(unrotated_AB, unrotated_AC)
     z_axis = normal / np.linalg.norm(normal)
-    # Define the "x axis" of the body as the vector starting at C and passing through
-    # the midpoint of AB
-    x_axis = ((pos_B + pos_A) / 2.0) - pos_C
-    x_axis /= np.linalg.norm(x_axis)
-    # The y axis is the cross of the x and z axes
-    y_axis = np.cross(z_axis, x_axis)
+    y_axis = np.cross(x_axis, z_axis)
+    # Normalising shouldn't be necessary but let's be safe.
     y_axis /= np.linalg.norm(y_axis)
-    # Calculating euler angles using the x-convention:
-    alpha = np.arctan2(-z_axis[1], -z_axis[2])
-    beta = np.arcsin(z_axis[0])
-    gamma = np.arctan2(-y_axis[0], x_axis[0])
-    return alpha, beta, gamma
+
+    # # Now we have the basis set for our unrotated body. What is the basis set that
+    # # describes the rotated body using those same definitions?
+    rotated_A = rotated_body[0]
+    rotated_B = rotated_body[1]
+    rotated_C = rotated_body[2]
+    rotated_AB = rotated_B - rotated_A
+    rotated_AC = rotated_C - rotated_A
+    rotated_BC = rotated_C - rotated_B
+    # Same basis vectors as before
+    x_prime_axis = rotated_AB / np.linalg.norm(rotated_AB)
+    normal_prime = np.cross(rotated_AB, rotated_AC)
+    z_prime_axis = normal_prime / np.linalg.norm(normal_prime)
+    y_prime_axis = np.cross(x_prime_axis, z_prime_axis)
+    y_prime_axis /= np.linalg.norm(y_prime_axis)
+
+    # These vectors form the bases for our two coordinate systems
+    original_basis = np.array([x_axis, y_axis, z_axis])
+    new_basis = np.array([x_prime_axis, y_prime_axis, z_prime_axis])
+
+    # Given that A' = R A, we now have a coupled system of 9 simultaneous equations we
+    # can solve to obtain the rotation matrix
+    rotation_matrix = np.linalg.solve(original_basis, new_basis).T
+    return rotation_matrix
 
 
 def get_rigid_body_types(particles, AAIDs):
@@ -397,59 +393,6 @@ def get_rigid_body_types(particles, AAIDs):
         # Skip the first one because it's type "R"
         types_in_body.append(particles.types[particles.typeid[AAID]])
     return types_in_body
-
-
-def get_rigid_body_positions(position_lookup, AAIDs):
-    with open(file_name, "r") as xml_file:
-        xml_tree = ET.parse(xml_file)
-    root = xml_tree.getroot()
-    for config in root:
-        for child in config:
-            if "rigid_relative_positions" in child.tag:
-                print(
-                    np.array(
-                        [
-                            np.fromiter(
-                                map(float, coords.split("\t")), dtype=np.float32
-                            )
-                            for coords in child.text.split("\n")
-                            if len(coords) > 0
-                        ]
-                    )
-                )
-                # print([np.array(coords, dtype=np.float32) for coords in child.text.split("\n")])
-                exit()
-    return np.array(rotated_positions, dtype=np.float32)
-
-
-def get_rotation_matrix(vector1, vector2):
-    """
-    This function returns the rotation matrix around the origin that maps vector1 to
-    vector 2
-    """
-    cross_product = np.cross(vector1, vector2)
-    sin_angle = np.sqrt(
-        (
-            (cross_product[0] ** 2)
-            + ((cross_product[1]) ** 2)
-            + ((cross_product[2]) ** 2)
-        )
-    )
-    cos_angle = np.dot(vector1, vector2)
-    skew_matrix = np.array(
-        [
-            [0, -cross_product[2], cross_product[1]],
-            [cross_product[2], 0, -cross_product[0]],
-            [-cross_product[1], cross_product[0], 0],
-        ]
-    )
-    skew_matrix_squared = skew_matrix @ skew_matrix
-    rot_matrix = (
-        np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
-        + skew_matrix
-        + skew_matrix_squared * ((1 - cos_angle) / (sin_angle ** 2))
-    )
-    return rot_matrix
 
 
 def get_integrators(args, catalyst, gas, reduced_temperature):
@@ -619,18 +562,12 @@ def main():
         snapshot = system.take_snapshot()
         updated_snapshot, catalyst, gas = rename_crystal_types(snapshot)
         system.restore_snapshot(updated_snapshot)
-        hoomd.deprecated.dump.xml(
-            group=hoomd.group.all(), filename="pre_rigid_bodies.xml", all=True
-        )
 
         # Sort out any rigid bodies (if they exist)
         snapshot = system.take_snapshot()
         rigid, updated_snapshot = create_rigid_bodies(file_name, snapshot)
         system.restore_snapshot(updated_snapshot)
         rigid.validate_bodies()
-        hoomd.deprecated.dump.xml(
-            group=hoomd.group.all(), filename="post_rigid_bodies.xml", all=True
-        )
 
         # Create the integrators
         hoomd.md.integrate.mode_standard(dt=args.timestep)
@@ -659,10 +596,6 @@ def main():
             updated_snapshot = initialize_velocities(snapshot, reduced_temperature, gas)
             system.restore_snapshot(updated_snapshot)
 
-        hoomd.deprecated.dump.xml(
-            group=hoomd.group.all(), filename="post_initialization.xml", all=True
-        )
-        exit()
         hoomd.dump.gsd(
             filename=".".join(file_name.split(".")[:-1]) + "_traj.gsd",
             period=max([int(args.run_time / 500), 1]),
