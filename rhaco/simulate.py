@@ -7,6 +7,7 @@ import hoomd.deprecated
 import numpy as np
 import quaternion
 import xml.etree.cElementTree as ET
+from rhaco.definitions import ATOM_MASSES
 
 
 AVOGADRO = 6.022140857E23
@@ -258,6 +259,11 @@ def create_rigid_bodies(file_name, snapshot):
             # particle)
             rigid_body_positions = rigid_relative_positions[rolling_rigid_ID][1:]
             all_rigid_body_positions.append(rigid_body_positions)
+            # Calculate the moment of inertia tensor and diagonalize it to get the three
+            # components HOOMD needs
+            moment_of_inertia = get_moment_of_inertia_tensor(
+                rigid_body_positions, rigid_body_types
+            )
             # Create the new rigid body type
             rigid_body_type_ID = "R{}".format(rolling_rigid_ID)
             # Prepare for the next rigid body type (if any)
@@ -274,6 +280,8 @@ def create_rigid_bodies(file_name, snapshot):
         snapshot.particles.orientation[AAIDs[0]] = np.array(
             body_rotation.components, dtype=np.float32
         )
+        # And assign the moment of inertia we need
+        snapshot.particles.moment_inertia[AAIDs[0]] = moment_of_inertia
     # Now assign the rigid atom types so constraint parameters can be set
     for central_particle_ID, atom_type in rigid_type_assignments.items():
         type_id = snapshot.particles.types.index(atom_type)
@@ -338,6 +346,44 @@ def get_rigid_relative_positions(file_name):
     for array in split_array[1:]:
         rigid_relative_positions.append(array)
     return rigid_relative_positions
+
+
+def get_moment_of_inertia_tensor(positions, types):
+    # Calculate the 9 components of the moment_of_inertia_tensor
+    # I11 = sum((yi^2 + zi^2) * mi)
+    # I22 = sum((xi^2 + zi^2) * mi)
+    # I33 = sum((xi^2 + yi^2) * mi)
+    # I12 = I21 = -sum(xi * yi * mi)
+    # I23 = I32 = -sum(yi * zi * mi)
+    # I13 = I31 = -sum(xi * zi * mi)
+    I11 = np.sum(
+        (positions[:,1]**2 + positions[:,2]**2)
+        * np.array([ATOM_MASSES[atom_type] for atom_type in types])
+    )
+    I22 = np.sum(
+        (positions[:,0]**2 + positions[:,2]**2)
+        * np.array([ATOM_MASSES[atom_type] for atom_type in types])
+    )
+    I33 = np.sum(
+        (positions[:,0]**2 + positions[:,1]**2)
+        * np.array([ATOM_MASSES[atom_type] for atom_type in types])
+    )
+    I12 = I21 = -np.sum(
+        positions[:,0] * positions[:,1]
+        * np.array([ATOM_MASSES[atom_type] for atom_type in types])
+    )
+    I23 = I32 = -np.sum(
+        positions[:,1] * positions[:,2]
+        * np.array([ATOM_MASSES[atom_type] for atom_type in types])
+    )
+    I13 = I31 = -np.sum(
+        positions[:,0] * positions[:,2]
+        * np.array([ATOM_MASSES[atom_type] for atom_type in types])
+    )
+    MI_tensor = np.array([[I11, I12, I13], [I21, I22, I23], [I31, I32, I33]])
+    # Diagonalize the tensor (eigenvalues down lead diagonal)
+    eigen = np.linalg.eig(MI_tensor)
+    return eigen[0]
 
 
 def get_rotation_matrix(unrotated_body, particles, AAIDs):
