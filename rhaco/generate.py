@@ -212,8 +212,8 @@ class crystal_system(mb.Compound):
         top_crystal.translate([0, 0, -crystal_separation / 20.0])
         # If integrate_crystal, then not a rigid body
         if not integrate_crystal:
-            central_particle = mb.Particle(name="R0", pos=[0, 0, 0])
-            self.add(central_particle, label="R0")
+            central_particle = mb.Particle(name="_R0", pos=[0, 0, 0])
+            self.add(central_particle, label="_R0")
         # Add both crystal planes to the system
         self.add(bottom_crystal)
         self.add(top_crystal)
@@ -246,12 +246,12 @@ class mbuild_template(mb.Compound):
         if rigid:
             # Need to create a central particle first
             central_particle = mb.Particle(
-                name="R{}".format(rolling_rigid_body_index), pos=[0, 0, 0]
+                name="_R{}".format(rolling_rigid_body_index), pos=[0, 0, 0]
             )
             central_particle.rigid_id = 0
             self.add(
                 central_particle,
-                label="R{}".format(rolling_rigid_body_index),
+                label="_R{}".format(rolling_rigid_body_index),
                 reset_rigid_ids=False,
             )
         self.add(molecule, reset_rigid_ids=False)
@@ -590,7 +590,7 @@ def create_morphology(args):
             for particle_ID, particle in enumerate(system.particles())
             if (particle_ID in crystal_IDs)
             and (particle.name != "O")
-            and (particle.name != "R0")
+            and (particle.name != "_R0")
         ]
         # Ensure that this is the same as the stoichiometry dictionary keys
         assert np.array_equal(args.stoichiometry.keys(), set(names))
@@ -631,6 +631,7 @@ def create_morphology(args):
         # Create a new key here that we can use to tell the simulate.py what
         # forcefield input files it will need to care about (if they aren't
         # already covered by Foyer).
+        # TODO: Redundant now that all generate arguments are added to the XML
         if len(args.forcefield[1]) > 0:
             morphology["external_forcefields_attrib"] = {
                 "num": str(len(args.forcefield[1]))
@@ -650,6 +651,17 @@ def create_morphology(args):
         for pos_list in rigid_positions
         for coords in pos_list
     ]
+    # Let's also drop the generate.py arguments into the xml so we can always tell
+    # what we ran. Create the args dictionary and then drop the repr into the xml
+    arg_dict = {key: val for (key, val) in args._get_kwargs()}
+    morphology["generate_arguments_attrib"] = {}
+    morphology["generate_arguments_text"] = [
+        ["".join(["\n", key, ": ", repr(val)]) for key, val in sorted(arg_dict.items())]
+    ]
+    # Omit leading \n
+    morphology["generate_arguments_text"][0][0] = (
+        morphology["generate_arguments_text"][0][0][1:]
+    )
     write_morphology_xml(morphology, output_file)
     print("Output generated. Exitting...")
 
