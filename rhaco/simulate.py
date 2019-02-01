@@ -135,10 +135,27 @@ def get_coeffs(file_name):
                     float(mass) for mass in child.text.split("\n") if len(mass) > 0
                 ]
             # Secondly, get the external forcefields, which are also different
-            elif child.tag == "external_forcefields":
+            elif child.tag == "generate_arguments":
                 for line in child.text.split("\n"):
-                    if len(line) > 0:
-                        coeff_dictionary[child.tag].append(line)
+                    if "forcefield" in line:
+                        # First get rid of the key
+                        forcefield_info = line.split(":")[1]
+                        # Get last element (which is the list of external FFs)
+                        external_ff_str = forcefield_info.split("[")[-1]
+                        # Get each external_ff (in case there is more than 1)
+                        external_ff_list_untreated = external_ff_str.split(",")
+                        # Get rid of the symbols from each element using regex
+                        external_ff_list = [
+                            re.sub(r"[^\w]/.", "", ff_path)
+                            for ff_path in external_ff_list_untreated
+                        ]
+                        if len(external_ff_list) > 0:
+                            coeff_dictionary["external_forcefields"] += external_ff_list
+                        break
+            # elif child.tag == "external_forcefields":
+            #     for line in child.text.split("\n"):
+            #         if len(line) > 0:
+            #             coeff_dictionary[child.tag].append(line)
             # Now the other coefficients
             elif child.tag in coeff_dictionary.keys():
                 if child.text is None:
@@ -193,20 +210,18 @@ def rename_crystal_types(snapshot):
         snapshot.particles.typeid[AAID] = mapping[old_type]
     # Finally, add the surface atoms to the same rigid body
     # First get the number of rigid bodies already in the system
-    if len(set(snapshot.particles.body)) > 1:
+    if len(set(snapshot.particles.body)) >= 1:
         # Rigid bodies already defined, so 0 is already taken. Increment all rigid
         # bodies by one and then we can set the surface to be zero.
         # Skip rigid body 4294967295 (== -1 for uint32), as these are flexible
 
         # NOTE: Snapshots don't allow array assignment, gonna do it elementwise instead
-        # mask = (snapshot.particles.body != 4294967295).astype(np.uint32)
-        # incremented_body = snapshot.particles.body + mask
-        # snapshot.particles.body = incremented_body
         for index, rigid_ID in np.ndenumerate(snapshot.particles.body):
             if rigid_ID == 4294967295:
                 continue
             else:
                 snapshot.particles.body[index] = rigid_ID + 1
+
     snapshot.particles.body[catalyst_atom_IDs] = 0
     print("The catalyst group is", catalyst)
     print("The gas group is", gas)
@@ -265,7 +280,7 @@ def create_rigid_bodies(file_name, snapshot):
                 rigid_body_positions, rigid_body_types
             )
             # Create the new rigid body type
-            rigid_body_type_ID = "R{}".format(rolling_rigid_ID)
+            rigid_body_type_ID = "_R{}".format(rolling_rigid_ID)
             # Prepare for the next rigid body type (if any)
             rolling_rigid_ID += 1
         rigid_type_assignments[AAIDs[0]] = rigid_body_type_ID
@@ -290,7 +305,7 @@ def create_rigid_bodies(file_name, snapshot):
     rigid = hoomd.md.constrain.rigid()
     for rigid_type_index, rigid_body_types in enumerate(all_rigid_body_types):
         rigid.set_param(
-            "R{}".format(rigid_type_index),
+            "_R{}".format(rigid_type_index),
             types=rigid_body_types,
             positions=all_rigid_body_positions[rigid_type_index],
         )
@@ -436,7 +451,7 @@ def get_rotation_matrix(unrotated_body, particles, AAIDs):
 def get_rigid_body_types(particles, AAIDs):
     types_in_body = []
     for AAID in AAIDs[1:]:
-        # Skip the first one because it's type "R"
+        # Skip the first one because it's type "_R"
         types_in_body.append(particles.types[particles.typeid[AAID]])
     return types_in_body
 
@@ -655,6 +670,7 @@ def main():
             header_prefix="#",
             overwrite=True,
         )
+        hoomd.deprecated.dump.xml(group=hoomd.group.all(), filename="pre-run.xml", all=True)
         ## Now incrementally ramp the charges
         # for chargePhase in range(chargeIncrements + 1):
         #    print("Incrementing charge phase", chargePhase, "of",

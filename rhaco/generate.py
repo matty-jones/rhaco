@@ -628,15 +628,6 @@ def create_morphology(args):
         )
         # Fix the images because mbuild doesn't set them correctly
         morphology = fix_images(output_file)
-        # Create a new key here that we can use to tell the simulate.py what
-        # forcefield input files it will need to care about (if they aren't
-        # already covered by Foyer).
-        # TODO: Redundant now that all generate arguments are added to the XML
-        if len(args.forcefield[1]) > 0:
-            morphology["external_forcefields_attrib"] = {
-                "num": str(len(args.forcefield[1]))
-            }
-            morphology["external_forcefields_text"] = args.forcefield[1]
     # Identify the crystal atoms in the system by renaming their type to
     # X_<PREVIOUS ATOM TYPE> so we know not to integrate them in HOOMD
     if args.integrate_crystal is False:
