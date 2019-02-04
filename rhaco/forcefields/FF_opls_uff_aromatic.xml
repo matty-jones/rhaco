@@ -1,0 +1,38 @@
+<ForceField>
+ <AtomTypes>
+  <Type name="_R0" class="_R0" element="_R0" mass="1.0" def="_R0" desc="Placeholder element for the crystal rigid centre" doi="10.1021/ja9621760"/>
+  <Type name="_R1" class="_R1" element="_R1" mass="1.0" def="_R1" desc="Placeholder element for the first reactant rigid centre" doi="10.1021/ja9621760"/>
+  <Type name="C" class="C" element="C" mass="12.01100" def="C" doi="10.1021/ja9621760"/>
+  <Type name="H" class="H" element="H" mass="1.00800"  def="H" desc="benzene H" doi="10.1021/ja9621760"/>
+  <Type name="O" class="O" element="O" mass="15.9990"  def="O" desc="uff_O: oxygen, all geometries" doi="10.1021/ja00051a040"/>
+  <Type name="Te" class="TE" element="Te" mass="127.60000"  def="Te" desc="uff_Te: Tetrahedral Te2+" doi="10.1021/ja00051a040"/>
+  <Type name="Nb" class="NB" element="Nb" mass="92.90638"  def="Nb" desc="uff_Nb: Tetrahedral Nb5+" doi="10.1021/ja00051a040"/>
+  <Type name="Mo" class="TE" element="Te" mass="95.94000"  def="Mo" desc="uff_Mo: Tetrahedral Mo6+" doi="10.1021/ja00051a040"/>
+  <Type name="V" class="V" element="V" mass="50.9415"  def="V" desc="uff_V: Tetrahedral V5+" doi="10.1021/ja00051a040"/>
+  <Type name="He" class="HE" element="He" mass="4.0026"  def="He" desc="uff_He: Square Planar He4+" doi="10.1021/ja00051a040"/>
+ </AtomTypes>
+ <HarmonicBondForce>
+  <Bond class1="C" class2="H" length="0.108" k="307105.6"/>
+  <Bond class1="C" class2="C" length="0.14" k="392459.2"/>
+  <Bond class1="O" class2="O" length="0.1208" k="300000.0"/>
+ </HarmonicBondForce>
+ <HarmonicAngleForce>
+  <Angle class1="C" class2="C" class3="C" angle="2.09439510239" k="527.184"/>
+  <Angle class1="C" class2="C" class3="H" angle="2.09439510239" k="292.88"/>
+ </HarmonicAngleForce>
+ <RBTorsionForce>
+  <Proper class1="H" class2="C" class3="C" class4="H" c0="0.6276" c1="1.8828" c2="0.0" c3="-2.5104" c4="0.0" c5="0.0"/>
+ </RBTorsionForce>
+ <NonbondedForce coulomb14scale="0.5" lj14scale="0.5">
+  <Atom type="_R0" charge="0.00" sigma="0.0000" epsilon="0.000000"/>
+  <Atom type="_R1" charge="0.00" sigma="0.0000" epsilon="0.000000"/>
+  <Atom type="C" charge="-0.18" sigma="0.3500" epsilon="0.276144"/>
+  <Atom type="H" charge="0.06" sigma="0.2500" epsilon="0.12552"/>
+  <Atom type="O" charge="0.00" sigma="0.3115" epsilon="0.25104"/>
+  <Atom type="Te" charge="0.00" sigma="0.3980" epsilon="1.665232"/>
+  <Atom type="Nb" charge="0.00" sigma="0.2817" epsilon="0.246856"/>
+  <Atom type="Mo" charge="0.00" sigma="0.2716" epsilon="0.234304"/>
+  <Atom type="V" charge="0.00" sigma="0.2798" epsilon="0.066944"/>
+  <Atom type="He" charge="0.00" sigma="0.2102" epsilon="0.234304"/>
+ </NonbondedForce>
+</ForceField>
