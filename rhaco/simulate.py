@@ -224,21 +224,6 @@ def rename_crystal_types(snapshot, generate_arguments):
     snapshot.particles.types = new_types
     for AAID, old_type in enumerate(snapshot.particles.typeid):
         snapshot.particles.typeid[AAID] = mapping[old_type]
-    if not generate_arguments["integrate_crystal"]:
-        # Add the surface atoms to the same rigid body
-        # First get the number of rigid bodies already in the system
-        if len(set(snapshot.particles.body)) >= 1:
-            # Rigid bodies already defined, so 0 is already taken. Increment all rigid
-            # bodies by one and then we can set the surface to be zero.
-            # Skip rigid body 4294967295 (== -1 for uint32), as these are flexible
-
-            # NOTE: Snapshots don't allow array assignment, gonna do it elementwise instead
-            for index, rigid_ID in np.ndenumerate(snapshot.particles.body):
-                if rigid_ID == 4294967295:
-                    continue
-                else:
-                    snapshot.particles.body[index] = rigid_ID + 1
-        snapshot.particles.body[catalyst_atom_IDs] = 0
     print("The catalyst group is", catalyst)
     print("The gas group is", gas)
     return snapshot, catalyst, gas
@@ -319,6 +304,7 @@ def create_rigid_bodies(file_name, snapshot, generate_arguments):
         )
         # And assign the moment of inertia we need
         snapshot.particles.moment_inertia[AAIDs[0]] = moment_of_inertia
+
     # Now assign the rigid atom types so constraint parameters can be set
     for central_particle_ID, atom_type in rigid_type_assignments.items():
         type_id = snapshot.particles.types.index(atom_type)
@@ -639,23 +625,26 @@ def main():
         hoomd.context.initialize("")
         # hoomd.context.initialize("--notice-level=99", memory_traceback=True)
 
-        # Get the integration groups by ignoring anything that has the X_
-        # prefix to the atom type, and rename the types for the forcefield
         system = hoomd.deprecated.init.read_xml(filename=file_name)
-        snapshot = system.take_snapshot()
         generate_arguments = get_generate_arguments(file_name)
-        updated_snapshot, catalyst, gas = rename_crystal_types(
-            snapshot, generate_arguments
-        )
-        system.restore_snapshot(updated_snapshot)
 
-        # Sort out any rigid bodies (if they exist)
+        # Sort out the rigid bodies (if they exist)
         snapshot = system.take_snapshot()
         rigid, updated_snapshot = create_rigid_bodies(
             file_name, snapshot, generate_arguments
         )
         system.restore_snapshot(updated_snapshot)
+        hoomd.deprecated.dump.xml(group=hoomd.group.all(), filename="post_rigid.xml", all=True)
         rigid.validate_bodies()
+
+        # Get the integration groups by ignoring anything that has the X_
+        # prefix to the atom type, and rename the types for the forcefield
+        snapshot = system.take_snapshot()
+        updated_snapshot, catalyst, gas = rename_crystal_types(
+            snapshot, generate_arguments
+        )
+        system.restore_snapshot(updated_snapshot)
+        hoomd.deprecated.dump.xml(group=hoomd.group.all(), filename="post_typing.xml", all=True)
 
         # Create the integrators
         hoomd.md.integrate.mode_standard(dt=args.timestep)
