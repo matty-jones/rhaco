@@ -51,11 +51,20 @@ def set_coeffs(
             log_quantities.append("pair_lj_energy")
         for type1 in coeffs_dict["pair_coeffs"]:
             for type2 in coeffs_dict["pair_coeffs"]:
+                if (
+                    not generate_arguments["integrate_crystal"]
+                    and type1[0][:2] == "X_"
+                    and type2[0][:2] == "X_"
+                ):
+                    lj_r_cut = 0.0
+                else:
+                    lj_r_cut = r_cut
                 lj.pair_coeff.set(
                     type1[0],
                     type2[0],
                     epsilon=np.sqrt(type1[1] * type2[1]) / (energy_scaling),
                     sigma=np.sqrt(type1[2] * type2[2]) / (distance_scaling),
+                    r_cut=lj_r_cut
                 )
     if len(coeffs_dict["bond_coeffs"]) != 0:
         print("Loading harmonic bond coeffs...")
@@ -219,11 +228,12 @@ def rename_crystal_types(snapshot, generate_arguments):
             catalyst_atom_IDs.append(atom_index)
     catalyst = hoomd.group.tag_list(name="catalyst", tags=catalyst_atom_IDs)
     gas = hoomd.group.difference(name="gas", a=hoomd.group.all(), b=catalyst)
-    # Now use the mapping to remove any duplicate types (needed if the same atom
-    # type is present in both the crystal and the reactant)
-    snapshot.particles.types = new_types
-    for AAID, old_type in enumerate(snapshot.particles.typeid):
-        snapshot.particles.typeid[AAID] = mapping[old_type]
+    # NOTE: Can no longer use the rigid body to assign the crystal any more.
+    # # Now use the mapping to remove any duplicate types (needed if the same atom
+    # # type is present in both the crystal and the reactant)
+    # snapshot.particles.types = new_types
+    # for AAID, old_type in enumerate(snapshot.particles.typeid):
+    #     snapshot.particles.typeid[AAID] = mapping[old_type]
     print("The catalyst group is", catalyst)
     print("The gas group is", gas)
     return snapshot, catalyst, gas
