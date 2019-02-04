@@ -4,8 +4,10 @@ import hoomd
 import hoomd.md
 import hoomd.metal
 import hoomd.deprecated
-import numpy as np
+import json
+import re
 import quaternion
+import numpy as np
 import xml.etree.cElementTree as ET
 from rhaco.definitions import ATOM_MASSES
 
@@ -18,12 +20,13 @@ ANG_TO_M = 1E-10
 
 
 def set_coeffs(
-    file_name, system, distance_scaling, energy_scaling, nl_type, r_cut, groups_list
+    file_name, system, distance_scaling, energy_scaling, nl_type, r_cut, groups_list,
+    generate_arguments
 ):
     """
     Read in the molecular dynamics coefficients exported by Foyer
     """
-    coeffs_dict = get_coeffs(file_name)
+    coeffs_dict = get_coeffs(file_name, generate_arguments)
     if nl_type == "tree":
         nl = hoomd.md.nlist.tree()
     else:
@@ -116,13 +119,13 @@ def set_coeffs(
     return system, log_quantities
 
 
-def get_coeffs(file_name):
+def get_coeffs(file_name, generate_arguments):
     coeff_dictionary = {
         "pair_coeffs": [],
         "bond_coeffs": [],
         "angle_coeffs": [],
         "dihedral_coeffs": [],
-        "external_forcefields": [],
+        "external_forcefields": generate_arguments["forcefield"][1],
     }
     with open(file_name, "r") as xml_file:
         xml_data = ET.parse(xml_file)
@@ -134,28 +137,6 @@ def get_coeffs(file_name):
                 coeff_dictionary["mass"] = [
                     float(mass) for mass in child.text.split("\n") if len(mass) > 0
                 ]
-            # Secondly, get the external forcefields, which are also different
-            elif child.tag == "generate_arguments":
-                for line in child.text.split("\n"):
-                    if "forcefield" in line:
-                        # First get rid of the key
-                        forcefield_info = line.split(":")[1]
-                        # Get last element (which is the list of external FFs)
-                        external_ff_str = forcefield_info.split("[")[-1]
-                        # Get each external_ff (in case there is more than 1)
-                        external_ff_list_untreated = external_ff_str.split(",")
-                        # Get rid of the symbols from each element using regex
-                        external_ff_list = [
-                            re.sub(r"[^\w]/.", "", ff_path)
-                            for ff_path in external_ff_list_untreated
-                        ]
-                        if len(external_ff_list) > 0:
-                            coeff_dictionary["external_forcefields"] += external_ff_list
-                        break
-            # elif child.tag == "external_forcefields":
-            #     for line in child.text.split("\n"):
-            #         if len(line) > 0:
-            #             coeff_dictionary[child.tag].append(line)
             # Now the other coefficients
             elif child.tag in coeff_dictionary.keys():
                 if child.text is None:
@@ -171,7 +152,42 @@ def get_coeffs(file_name):
     return coeff_dictionary
 
 
-def rename_crystal_types(snapshot):
+
+def get_generate_arguments(file_name):
+    with open(file_name, "r") as xml_file:
+        xml_data = ET.parse(xml_file)
+    root = xml_data.getroot()
+    for config in root:
+        all_args = [
+            arg[:-1] for arg in config.find("generate_arguments").text.split("\n")
+            if len(arg) > 0
+        ]
+        break
+    argument_dict = {}
+    for argument in all_args:
+        key = argument.split(": ")[0]
+        val = ": ".join(argument.split(": ")[1:])
+        # Many different value types, all as strings currently
+        if val == "True":
+            argument_dict[key] = True
+        elif val == "False":
+            argument_dict[key] = False
+        elif val == "None":
+            argument_dict[key] = None
+        elif ("[" in val) or ("{" in val):
+            argument_dict[key] = json.loads(val.replace("'", '"'))
+        else:
+            try:
+                argument_dict[key] = int(val)
+            except ValueError:
+                try:
+                    argument_dict[key] = float(val)
+                except ValueError:
+                    argument_dict[key] = str(val)
+    return argument_dict
+
+
+def rename_crystal_types(snapshot, generate_arguments):
     """
     This function splits the system into atoms to integrate over and atoms to
     not integrate over, based on the specified atom types ('X_<ATOM TYPE>')
@@ -208,34 +224,40 @@ def rename_crystal_types(snapshot):
     snapshot.particles.types = new_types
     for AAID, old_type in enumerate(snapshot.particles.typeid):
         snapshot.particles.typeid[AAID] = mapping[old_type]
-    # Finally, add the surface atoms to the same rigid body
-    # First get the number of rigid bodies already in the system
-    if len(set(snapshot.particles.body)) >= 1:
-        # Rigid bodies already defined, so 0 is already taken. Increment all rigid
-        # bodies by one and then we can set the surface to be zero.
-        # Skip rigid body 4294967295 (== -1 for uint32), as these are flexible
+    if not generate_arguments["integrate_crystal"]:
+        # Add the surface atoms to the same rigid body
+        # First get the number of rigid bodies already in the system
+        if len(set(snapshot.particles.body)) >= 1:
+            # Rigid bodies already defined, so 0 is already taken. Increment all rigid
+            # bodies by one and then we can set the surface to be zero.
+            # Skip rigid body 4294967295 (== -1 for uint32), as these are flexible
 
-        # NOTE: Snapshots don't allow array assignment, gonna do it elementwise instead
-        for index, rigid_ID in np.ndenumerate(snapshot.particles.body):
-            if rigid_ID == 4294967295:
-                continue
-            else:
-                snapshot.particles.body[index] = rigid_ID + 1
-
-    snapshot.particles.body[catalyst_atom_IDs] = 0
+            # NOTE: Snapshots don't allow array assignment, gonna do it elementwise instead
+            for index, rigid_ID in np.ndenumerate(snapshot.particles.body):
+                if rigid_ID == 4294967295:
+                    continue
+                else:
+                    snapshot.particles.body[index] = rigid_ID + 1
+        snapshot.particles.body[catalyst_atom_IDs] = 0
     print("The catalyst group is", catalyst)
     print("The gas group is", gas)
     return snapshot, catalyst, gas
 
 
-def create_rigid_bodies(file_name, snapshot):
-    # Firstly, return the snapshot if no bodies exist
-    # Should be one rigid body for the crystal, and then one (-1) for the flexible
-    # reactants == 2 total, or just one (-1) if we are integrating the surface.
+def create_rigid_bodies(file_name, snapshot, generate_arguments):
+    # Firstly, return the snapshot if no bodies exist. Return under the following
+    # conditions:
+    # If integrate_crystal && 0 rigid IDs in system
+    # If not integrate_crystal && 1 rigid ID in system
     rigid_IDs = set(snapshot.particles.body)
     # Discard -1 (== 4294967295 in uint32)
     rigid_IDs.discard(4294967295)
-    if len(set(snapshot.particles.body)) <= 1:
+    if not generate_arguments["integrate_crystal"]:
+        # If we assigned rigid body ID = 0 to the crystal and are not integrating over
+        # it, we can remove it (so we don't have to set central particle/rotation etc.,
+        # which causes an issue with self-interaction of the surface).
+        rigid_IDs.discard(0)
+    if len(rigid_IDs) == 0:
         return snapshot
     # Mbuild just updates the rigid body number, but rhaco-create-morph creates the
     # central particle and lists it first in the rigid body.
@@ -621,12 +643,17 @@ def main():
         # prefix to the atom type, and rename the types for the forcefield
         system = hoomd.deprecated.init.read_xml(filename=file_name)
         snapshot = system.take_snapshot()
-        updated_snapshot, catalyst, gas = rename_crystal_types(snapshot)
+        generate_arguments = get_generate_arguments(file_name)
+        updated_snapshot, catalyst, gas = rename_crystal_types(
+            snapshot, generate_arguments
+        )
         system.restore_snapshot(updated_snapshot)
 
         # Sort out any rigid bodies (if they exist)
         snapshot = system.take_snapshot()
-        rigid, updated_snapshot = create_rigid_bodies(file_name, snapshot)
+        rigid, updated_snapshot = create_rigid_bodies(
+            file_name, snapshot, generate_arguments
+        )
         system.restore_snapshot(updated_snapshot)
         rigid.validate_bodies()
 
@@ -645,6 +672,7 @@ def main():
             args.nl_type,
             args.r_cut,
             groups_list,
+            generate_arguments,
         )
         try:
             # Use HOOMD 2.3's randomize_velocities

@@ -210,16 +210,13 @@ class crystal_system(mb.Compound):
         # in nm
         bottom_crystal.translate([0, 0, crystal_separation / 20.0])
         top_crystal.translate([0, 0, -crystal_separation / 20.0])
-        # If integrate_crystal, then not a rigid body
-        if not integrate_crystal:
-            central_particle = mb.Particle(name="_R0", pos=[0, 0, 0])
-            self.add(central_particle, label="_R0")
+        # # If integrate_crystal, then not a rigid body
+        # if not integrate_crystal:
+        #     central_particle = mb.Particle(name="_R0", pos=[0, 0, 0])
+        #     self.add(central_particle, label="_R0")
         # Add both crystal planes to the system
         self.add(bottom_crystal)
         self.add(top_crystal)
-        self.rigid_positions = None
-        if not integrate_crystal:
-            self.rigid_positions = self.xyz
 
 
 class mbuild_template(mb.Compound):
@@ -422,14 +419,12 @@ def create_morphology(args):
     system = crystal_system(
         surface1, surface2, args.crystal_separation, args.integrate_crystal
     )
-    if system.rigid_positions is not None:
-        rigid_positions.append(system.rigid_positions)
     # Get the crystal IDs because we're going to need them later so that HOOMD
     # knows not to integrate them.
     crystal_IDs = range(system.n_particles)
     # Now we can populate the box with reactant
     print("Surfaces generated. Generating reactant...")
-    rolling_rigid_body_index = int(not args.integrate_crystal)
+    rolling_rigid_body_index = 0
     reactant_components, reactant_probs, reactant_masses = calculate_probabilities(
         args.reactant_composition, ratio_type="number"
     )
