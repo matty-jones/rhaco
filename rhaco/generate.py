@@ -837,9 +837,17 @@ def write_morphology_xml(morphology_dictionary, output_file_name):
 
 
 def rename_crystal_types(input_dictionary, AAIDs):
+    list_of_previous_types = []
     for atom_index in AAIDs:
         previous_type = input_dictionary["type_text"][atom_index][0]
+        list_of_previous_types.append(previous_type)
         input_dictionary["type_text"][atom_index] = ["X_" + previous_type]
+    # Need to now create some additional pair coefficients for the crystal atoms
+    pair_coeff_lookup = {coeff[0]: [coeff[1], coeff[2]] for coeff in input_dictionary["pair_coeffs_text"]}
+    for atom_type in list(set(list_of_previous_types)):
+        input_dictionary["pair_coeffs_text"].append(
+            ["".join(["X_", atom_type])] + pair_coeff_lookup[atom_type]
+        )
     return input_dictionary
 
 

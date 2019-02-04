@@ -253,7 +253,7 @@ def create_rigid_bodies(file_name, snapshot, generate_arguments):
         # which causes an issue with self-interaction of the surface).
         rigid_IDs.discard(0)
     if len(rigid_IDs) == 0:
-        return snapshot
+        return None, snapshot
     # Mbuild just updates the rigid body number, but rhaco-create-morph creates the
     # central particle and lists it first in the rigid body.
     # For HOOMD to honour the rigid specification, we just need
@@ -641,11 +641,12 @@ def main():
         # Sort out the rigid bodies (if they exist)
         snapshot = system.take_snapshot()
         rigid, updated_snapshot = create_rigid_bodies(
-            file_name, snapshot, generate_arguments
+            file_name, snapshot, generate_arguments,
         )
         system.restore_snapshot(updated_snapshot)
         hoomd.deprecated.dump.xml(group=hoomd.group.all(), filename="post_rigid.xml", all=True)
-        rigid.validate_bodies()
+        if rigid is not None:
+            rigid.validate_bodies()
 
         # Get the integration groups by ignoring anything that has the X_
         # prefix to the atom type, and rename the types for the forcefield
