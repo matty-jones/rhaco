@@ -20,8 +20,14 @@ ANG_TO_M = 1E-10
 
 
 def set_coeffs(
-    file_name, system, distance_scaling, energy_scaling, nl_type, r_cut, groups_list,
-    generate_arguments
+    file_name,
+    system,
+    distance_scaling,
+    energy_scaling,
+    nl_type,
+    r_cut,
+    groups_list,
+    generate_arguments,
 ):
     """
     Read in the molecular dynamics coefficients exported by Foyer
@@ -64,7 +70,7 @@ def set_coeffs(
                     type2[0],
                     epsilon=np.sqrt(type1[1] * type2[1]) / (energy_scaling),
                     sigma=np.sqrt(type1[2] * type2[2]) / (distance_scaling),
-                    r_cut=lj_r_cut
+                    r_cut=lj_r_cut,
                 )
     if len(coeffs_dict["bond_coeffs"]) != 0:
         print("Loading harmonic bond coeffs...")
@@ -161,14 +167,14 @@ def get_coeffs(file_name, generate_arguments):
     return coeff_dictionary
 
 
-
 def get_generate_arguments(file_name):
     with open(file_name, "r") as xml_file:
         xml_data = ET.parse(xml_file)
     root = xml_data.getroot()
     for config in root:
         all_args = [
-            arg[:-1] for arg in config.find("generate_arguments").text.split("\n")
+            arg[:-1]
+            for arg in config.find("generate_arguments").text.split("\n")
             if len(arg) > 0
         ]
         break
@@ -302,9 +308,7 @@ def create_rigid_bodies(file_name, snapshot, generate_arguments):
         rotation_matrix = get_rotation_matrix(
             rigid_body_positions, snapshot.particles, AAIDs
         )
-        body_rotation = quaternion.from_rotation_matrix(
-            rotation_matrix
-        )
+        body_rotation = quaternion.from_rotation_matrix(rotation_matrix)
         # Convert the quaternion to the data type that hoomd expects and then
         # assign the rotation to the central rigid_body particle
         snapshot.particles.orientation[AAIDs[0]] = np.array(
@@ -388,27 +392,30 @@ def get_moment_of_inertia_tensor(positions, types):
     # I23 = I32 = -sum(yi * zi * mi)
     # I13 = I31 = -sum(xi * zi * mi)
     I11 = np.sum(
-        (positions[:,1]**2 + positions[:,2]**2)
+        (positions[:, 1] ** 2 + positions[:, 2] ** 2)
         * np.array([ATOM_MASSES[atom_type] for atom_type in types])
     )
     I22 = np.sum(
-        (positions[:,0]**2 + positions[:,2]**2)
+        (positions[:, 0] ** 2 + positions[:, 2] ** 2)
         * np.array([ATOM_MASSES[atom_type] for atom_type in types])
     )
     I33 = np.sum(
-        (positions[:,0]**2 + positions[:,1]**2)
+        (positions[:, 0] ** 2 + positions[:, 1] ** 2)
         * np.array([ATOM_MASSES[atom_type] for atom_type in types])
     )
     I12 = I21 = -np.sum(
-        positions[:,0] * positions[:,1]
+        positions[:, 0]
+        * positions[:, 1]
         * np.array([ATOM_MASSES[atom_type] for atom_type in types])
     )
     I23 = I32 = -np.sum(
-        positions[:,1] * positions[:,2]
+        positions[:, 1]
+        * positions[:, 2]
         * np.array([ATOM_MASSES[atom_type] for atom_type in types])
     )
     I13 = I31 = -np.sum(
-        positions[:,0] * positions[:,2]
+        positions[:, 0]
+        * positions[:, 2]
         * np.array([ATOM_MASSES[atom_type] for atom_type in types])
     )
     MI_tensor = np.array([[I11, I12, I13], [I21, I22, I23], [I31, I32, I33]])
@@ -420,9 +427,7 @@ def get_moment_of_inertia_tensor(positions, types):
 def get_rotation_matrix(unrotated_body, particles, AAIDs):
     # Translate rigid body to origin
     CoM = np.array(particles.position[AAIDs[0]])
-    rotated_body = (
-        np.array([particles.position[AAID] for AAID in AAIDs[1:]]) - CoM
-    )
+    rotated_body = np.array([particles.position[AAID] for AAID in AAIDs[1:]]) - CoM
     # First, calculate the basis vectors of the unrotated body
     unrotated_A = unrotated_body[0]
     unrotated_B = unrotated_body[1]
@@ -639,7 +644,7 @@ def main():
         # Sort out the rigid bodies (if they exist)
         snapshot = system.take_snapshot()
         rigid, updated_snapshot = create_rigid_bodies(
-            file_name, snapshot, generate_arguments,
+            file_name, snapshot, generate_arguments
         )
         system.restore_snapshot(updated_snapshot)
         if rigid is not None:

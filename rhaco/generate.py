@@ -645,9 +645,9 @@ def create_morphology(args):
         ["".join(["\n", key, ": ", repr(val)]) for key, val in sorted(arg_dict.items())]
     ]
     # Omit leading \n
-    morphology["generate_arguments_text"][0][0] = (
-        morphology["generate_arguments_text"][0][0][1:]
-    )
+    morphology["generate_arguments_text"][0][0] = morphology["generate_arguments_text"][
+        0
+    ][0][1:]
     write_morphology_xml(morphology, output_file)
     print("Output generated. Exitting...")
 
@@ -843,7 +843,9 @@ def rename_crystal_types(input_dictionary, AAIDs):
         list_of_previous_types.append(previous_type)
         input_dictionary["type_text"][atom_index] = ["X_" + previous_type]
     # Need to now create some additional pair coefficients for the crystal atoms
-    pair_coeff_lookup = {coeff[0]: [coeff[1], coeff[2]] for coeff in input_dictionary["pair_coeffs_text"]}
+    pair_coeff_lookup = {
+        coeff[0]: [coeff[1], coeff[2]] for coeff in input_dictionary["pair_coeffs_text"]
+    }
     for atom_type in list(set(list_of_previous_types)):
         input_dictionary["pair_coeffs_text"].append(
             ["".join(["X_", atom_type])] + pair_coeff_lookup[atom_type]
