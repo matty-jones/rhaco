@@ -107,6 +107,7 @@ def set_coeffs(
                 k3=dihedral[3] / energy_scaling,
                 k4=dihedral[4] / energy_scaling,
             )
+
     if len(coeffs_dict["external_forcefields"]) != 0:
         for forcefield_loc in coeffs_dict["external_forcefields"]:
             print("Loading external forcefield:", "".join([forcefield_loc, "..."]))
@@ -140,7 +141,6 @@ def get_coeffs(file_name, generate_arguments):
         "bond_coeffs": [],
         "angle_coeffs": [],
         "dihedral_coeffs": [],
-        "external_forcefields": generate_arguments["forcefield"][1],
     }
     with open(file_name, "r") as xml_file:
         xml_data = ET.parse(xml_file)
@@ -164,7 +164,36 @@ def get_coeffs(file_name, generate_arguments):
                         [coeff[0]] + list(map(float, coeff[1:]))
                     )
                 # coeff_dictionary[child.tag] = child.text.split('\n')
+    coeff_dictionary["external_forcefields"] = generate_arguments["forcefield"][1]
     return coeff_dictionary
+
+
+def create_generate_arguments(file_name):
+    print("------------============ WARNING ============------------")
+    print("Your input file contains no generate arguments.")
+    print("This likely means that it was created using Rhaco 1.2 or earlier.")
+    print("The following assumptions will be made. If they do not correspond to your"
+          " system, then please regenerate your morphologies with rhaco-create-morph"
+          " using Rhaco 1.3 or later:")
+    print("1) integrate_crystal is False")
+    print("2) reactant_rigid is False")
+    print("Additionally, forcefields will be read using the old syntax.")
+    print("This feature will no longer be supported after Rhaco 1.5 is released.")
+    generate_arguments = {
+        "integrate_crystal": False,
+        "reactant_rigid": False,
+    }
+    with open(file_name, "r") as xml_file:
+        xml_data = ET.parse(xml_file)
+    root = xml_data.getroot()
+    for config in root:
+        generate_arguments["forcefield"] = [[], [
+            FF_data
+            for FF_data in config.find("external_forcefields").text.split("\n")
+            if len(FF_data) > 0
+        ]]
+        break
+    return generate_arguments
 
 
 def get_generate_arguments(file_name):
@@ -172,12 +201,16 @@ def get_generate_arguments(file_name):
         xml_data = ET.parse(xml_file)
     root = xml_data.getroot()
     for config in root:
-        all_args = [
-            arg[:-1]
-            for arg in config.find("generate_arguments").text.split("\n")
-            if len(arg) > 0
-        ]
-        break
+        try:
+            all_args = [
+                arg[:-1]
+                for arg in config.find("generate_arguments").text.split("\n")
+                if len(arg) > 0
+            ]
+            break
+        except AttributeError:
+            # Generate arguments does not exist (version < 1.3) 
+            return None
     argument_dict = {}
     for argument in all_args:
         key = argument.split(": ")[0]
@@ -238,6 +271,11 @@ def rename_crystal_types(snapshot, generate_arguments):
     # atoms to all have the same rigid_ID and get a speedup.
     if generate_arguments["reactant_rigid"] is False:
         snapshot.particles.body[catalyst_atom_IDs] = 0
+    # If we are specifying an external forcefield (i.e. EAM), then we will need to
+    # remove the X_ from the surface atom types otherwise it will break.
+    if len(generate_arguments["forcefield"][1]) > 0:
+        print("Renaming crystal atoms to remove the X_ for EAM...")
+        snapshot.particles.types = new_types
     print("The catalyst group is", catalyst)
     print("The gas group is", gas)
     return snapshot, catalyst, gas
@@ -640,6 +678,8 @@ def main():
 
         system = hoomd.deprecated.init.read_xml(filename=file_name)
         generate_arguments = get_generate_arguments(file_name)
+        if generate_arguments is None:
+            generate_arguments = create_generate_arguments(file_name)
 
         # Sort out the rigid bodies (if they exist)
         snapshot = system.take_snapshot()
@@ -708,6 +748,10 @@ def main():
         #        atom.charge = charges[atom.type] * (chargePhase /
         #                                            float(chargeIncrements))
         #    hoomd.run(chargeTimesteps)
+
+        # hoomd.deprecated.dump.xml(
+        #     group=hoomd.group.all(), filename="pre_run.xml", all=True
+        # )
 
         # Get the initial box size dynamically
         hoomd.run_upto(args.run_time)
