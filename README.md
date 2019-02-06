@@ -16,10 +16,10 @@
 
 ## Version History
 
-v1.0 - Release of Rhaco, set up for small hydrocarbon interactions on an M1 catalyst surface
-v1.1 - Rhaco generalized to work with other systems, specifically the interactions of polydimethylsiloxane on Ni-Mn-Ga shape memory alloy
+v1.3 - Added functionality for rigid bodies in HOOMD 2 (including orientation quaternions and moments of inertia tensor eigenvalues)
 v1.2 - Additional functionality added to permit the simulation of metallic nanoparticles on a surface.
-
+v1.1 - Rhaco generalized to work with other systems, specifically the interactions of polydimethylsiloxane on Ni-Mn-Ga shape memory alloy
+v1.0 - Release of Rhaco, set up for small hydrocarbon interactions on an M1 catalyst surface
 
 ## Important Citations
 
