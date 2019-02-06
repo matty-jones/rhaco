@@ -169,7 +169,7 @@ def get_coeffs(file_name, generate_arguments):
 
 
 def create_generate_arguments(file_name):
-    print("------------============ WARNING ============------------")
+    print("\n------------============ WARNING ============------------")
     print("Your input file contains no generate arguments.")
     print("This likely means that it was created using Rhaco 1.2 or earlier.")
     print("The following assumptions will be made. If they do not correspond to your"
@@ -178,7 +178,7 @@ def create_generate_arguments(file_name):
     print("1) integrate_crystal is False")
     print("2) reactant_rigid is False")
     print("Additionally, forcefields will be read using the old syntax.")
-    print("This feature will no longer be supported after Rhaco 1.5 is released.")
+    print("This feature will no longer be supported after Rhaco 1.5 is released.\n")
     generate_arguments = {
         "integrate_crystal": False,
         "reactant_rigid": False,
