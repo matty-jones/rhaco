@@ -228,12 +228,10 @@ def rename_crystal_types(snapshot, generate_arguments):
             catalyst_atom_IDs.append(atom_index)
     catalyst = hoomd.group.tag_list(name="catalyst", tags=catalyst_atom_IDs)
     gas = hoomd.group.difference(name="gas", a=hoomd.group.all(), b=catalyst)
-    # NOTE: Can no longer use the rigid body to assign the crystal any more.
-    # # Now use the mapping to remove any duplicate types (needed if the same atom
-    # # type is present in both the crystal and the reactant)
-    # snapshot.particles.types = new_types
-    # for AAID, old_type in enumerate(snapshot.particles.typeid):
-    #     snapshot.particles.typeid[AAID] = mapping[old_type]
+    # If we're not using rigid bodies in the reactant, then we can assign the surface
+    # atoms to all have the same rigid_ID and get a speedup.
+    if generate_arguments["reactant_rigid"] is False:
+        snapshot.particles.body[catalyst_atom_IDs] = 0
     print("The catalyst group is", catalyst)
     print("The gas group is", gas)
     return snapshot, catalyst, gas
@@ -644,7 +642,6 @@ def main():
             file_name, snapshot, generate_arguments,
         )
         system.restore_snapshot(updated_snapshot)
-        hoomd.deprecated.dump.xml(group=hoomd.group.all(), filename="post_rigid.xml", all=True)
         if rigid is not None:
             rigid.validate_bodies()
 
@@ -655,7 +652,6 @@ def main():
             snapshot, generate_arguments
         )
         system.restore_snapshot(updated_snapshot)
-        hoomd.deprecated.dump.xml(group=hoomd.group.all(), filename="post_typing.xml", all=True)
 
         # Create the integrators
         hoomd.md.integrate.mode_standard(dt=args.timestep)
@@ -698,7 +694,6 @@ def main():
             header_prefix="#",
             overwrite=True,
         )
-        hoomd.deprecated.dump.xml(group=hoomd.group.all(), filename="pre-run.xml", all=True)
         ## Now incrementally ramp the charges
         # for chargePhase in range(chargeIncrements + 1):
         #    print("Incrementing charge phase", chargePhase, "of",
