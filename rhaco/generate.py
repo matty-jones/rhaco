@@ -1059,6 +1059,9 @@ def main():
                         For example: -rc "{'C2H6': 3, 'O2': 2, 'He': 5}" will
                         set a relative reactant proportion to 0.6:0.4:1
                         respectively by number of molecules.\n
+                        Specifying 'pos' as the dictionary key allows -rp to be
+                        used when combining multiple reactant definitions:
+                        -rc "{'5nm_nanoparticle': 'pos', 'He': 1, 'O2': 2}".\n
                         Note that keys in the dictionary must be the same as
                         the pdb files located in the PDB_LIBRARY of Rhaco, and
                         the corresponding values are interpreted as the
@@ -1110,6 +1113,9 @@ def main():
                         For example: -rp [[-50, 0, 50], [50, 0, 50]].\n
                         If unspecified, then reactants will be packed randomly
                         using packmol.
+                        Note that the number of reactants is not needed when
+                        specifying positions (args.reactant_num_mol ==
+                        len(args.reactant_position)).\n
                         """,
     )
     parser.add_argument("--gecko", action="store_true", help=argparse.SUPPRESS)
