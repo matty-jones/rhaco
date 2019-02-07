@@ -64,7 +64,10 @@ def split_argument_into_dictionary(argument):
             (key[0] == "'") and (key[-1] == "'")
         ):
             key = key[1:-1]
-        dictionary[key] = float(val)
+        try:
+            dictionary[key] = float(val)
+        except ValueError:
+            dictionary[key] = str(val)
     return dictionary
 
 
