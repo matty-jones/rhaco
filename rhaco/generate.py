@@ -82,7 +82,7 @@ class crystal_unit_cell(mb.Compound):
         # Note: In both Py2 and Py3, subsequent calls to keys() and values()
         # with no intervening modifications will directly correspond
         # \cite{PyDocumentation}
-        atom_types, atom_probs, _ = calculate_probabilities(stoichiometry_dict)
+        [atom_types, atom_probs, _, _] = calculate_probabilities(stoichiometry_dict)
         for particle in self.particles():
             if particle.name == "X":
                 # `Randomly' select an atom type based on the biases given in
@@ -428,9 +428,13 @@ def create_morphology(args):
     # Now we can populate the box with reactant
     print("Surfaces generated. Generating reactant...")
     rolling_rigid_body_index = 0
-    reactant_components, reactant_probs, reactant_masses = calculate_probabilities(
+    reactant_details = calculate_probabilities(
         args.reactant_composition, ratio_type="number"
     )
+    reactant_components = reactant_details[0]
+    reactant_probs = reactant_details[1]
+    reactant_masses = reactant_details[2]
+    positional_reactant = reactant_details[3]
     # Define the regions that the hydrocarbons can go in, so we don't end
     # up with them between layers
     box_top = mb.Box(
@@ -461,9 +465,44 @@ def create_morphology(args):
     box_bottom_vol = np.prod(box_bottom.maxs - box_bottom.mins)
     reactor_vol = box_top_vol + box_bottom_vol
 
-    # No reactant specified
-    if (args.reactant_density is None) and (args.reactant_num_mol is None):
+    # Calculate the number of reactants using the following priority: -rp, -rn, -rd
+    reactant_flags = [
+        "-rp, --reactant_position", "-rn, --reactant_num_mol",
+        "-rd, --reactant_density"
+    ]
+    reactant_args = [
+        args.reactant_position, args.reactant_num_mol, args.reactant_density
+    ]
+    if reactant_args.count(None) == 3:
+        # No reactant specified
         number_of_reactant_mols = 0
+    elif reactant_args.count(None) <= 1:
+        print("Multiple conflicting reactant data specified:")
+        for priority, argument in enumerate(zip(reactant_flags, reactant_args)):
+            print(
+                "".join(
+                    [
+                        "Priority ", priority + 1, ": ", argument[0], " == ",
+                        repr(argument[1])
+                    ]
+                )
+            )
+            print(
+                "The specification with the highest priority (lowest integer) will"
+                " be used."
+            )
+
+
+    # NOTE: Stop, it is more complicated than this.
+
+    if (
+        (args.reactant_density is None) and (args.reactant_num_mol is None) and
+        (args.reactant_position is None)
+    ):
+    # Calculate the number of reactants using the following priority: -rp, -rn, -rd
+
+
+
     # Both specified - print error and use the number
     elif (args.reactant_density is not None) and (args.reactant_num_mol is not None):
         print(
@@ -509,21 +548,19 @@ def create_morphology(args):
                 "reactant molecules have been requested!",
             )
             print(
-                "Ignoring specified positions and using packmol to randomly place reactant."
+                "Ignoring specified -rn and instead just using the length of -rp list."
             )
-            args.reactant_position = None
-        else:
-            for _, position in enumerate(args.reactant_position):
-                nanoparticle = mbuild_template(
-                    reactant_components[0],
-                    args.reactant_rigid,
-                    rolling_rigid_body_index,
-                )
-                nanoparticle.translate_to(np.array(position))
-                system.add(nanoparticle)
-                rolling_rigid_body_index += 1
-            if nanoparticle.rigid_positions is not None:
-                rigid_positions.append(nanoparticle.rigid_positions)
+        for _, position in enumerate(args.reactant_position):
+            nanoparticle = mbuild_template(
+                reactant_components[0],
+                args.reactant_rigid,
+                rolling_rigid_body_index,
+            )
+            nanoparticle.translate_to(np.array(position))
+            system.add(nanoparticle)
+            rolling_rigid_body_index += 1
+        if nanoparticle.rigid_positions is not None:
+            rigid_positions.append(nanoparticle.rigid_positions)
     if args.reactant_position is None:
         # Randomly place reactants using packmol
         if number_of_reactant_mols == 1:
@@ -872,13 +909,29 @@ def calculate_probabilities(input_dictionary, ratio_type="stoic"):
     ratios of some parameter, then returns normalized probabilities for each
     option that can be used to make choices with appropriate bias.
     """
+    # First, we need to pop anything that says `pos' as that will be dealt with
+    # separately
+    pos_count = list(input_dictionary,values()).count("pos")
+    positional_reactant = None
+    if pos_count == 1:
+        for key in input_dictionary:
+            if input_dictionary[key] == "pos":
+                positional_reactant = input_dictionary.pop(key)
+    elif pos_count > 1:
+        print(
+            "Multiple different positional reactants specified in reactant_composition"
+            " argument."
+        )
+        print("-rc, --reactant_composition =", input_dictionary)
+        print("This is not yet supported. Please modify -rc and rerun. Exitting...")
+        exit()
     choices = list(input_dictionary.keys())
     number_ratios = np.array(list(input_dictionary.values()))
     mass_dict = None
     if ratio_type == "number":
         mass_dict = get_masses(input_dictionary.keys())
     probabilities = list(number_ratios / np.sum(number_ratios))
-    return choices, probabilities, mass_dict
+    return [choices, probabilities, mass_dict, positional_reactant]
 
 
 def get_masses(reactant_names):
