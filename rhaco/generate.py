@@ -446,35 +446,6 @@ def create_morphology(args):
         )
         print("Positional reactant will be ignored.")
         positional_reactant = None
-    # Define the regions that the hydrocarbons can go in, so we don't end
-    # up with them between layers
-    box_top = mb.Box(
-        mins=[
-            -(args.crystal_x * args.dimensions[0]) / 2.0,
-            -(args.crystal_y * args.dimensions[1]) / 2.0,
-            args.crystal_separation / 20.0 + (args.crystal_z * args.dimensions[2]),
-        ],
-        maxs=[
-            (args.crystal_x * args.dimensions[0]) / 2.0,
-            (args.crystal_y * args.dimensions[1]) / 2.0,
-            args.z_reactor_size / 2.0,
-        ],
-    )
-    box_bottom = mb.Box(
-        mins=[
-            -(args.crystal_x * args.dimensions[0]) / 2.0,
-            -(args.crystal_y * args.dimensions[1]) / 2.0,
-            -args.z_reactor_size / 2.0,
-        ],
-        maxs=[
-            (args.crystal_x * args.dimensions[0]) / 2.0,
-            (args.crystal_y * args.dimensions[1]) / 2.0,
-            -args.crystal_separation / 20.0 - (args.crystal_z * args.dimensions[2]),
-        ],
-    )
-    box_top_vol = np.prod(box_top.maxs - box_top.mins)
-    box_bottom_vol = np.prod(box_bottom.maxs - box_bottom.mins)
-    reactor_vol = box_top_vol + box_bottom_vol
 
     # No reactant specified
     if (args.reactant_density is None) and (args.reactant_num_mol is None):
@@ -516,6 +487,7 @@ def create_morphology(args):
         number_of_reactant_mols = int(reactant_density_conv * reactor_vol / mass_per_n)
 
     # Now deal with the positional reactants
+    positional_bounding_boxes = []
     if args.reactant_position is not None:
         for _, position in enumerate(args.reactant_position):
             positional_reactant = mbuild_template(
@@ -528,6 +500,38 @@ def create_morphology(args):
             rolling_rigid_body_index += 1
         if positional_reactant.rigid_positions is not None:
             rigid_positions.append(positional_reactant.rigid_positions)
+
+    # Define the regions that the hydrocarbons can go in, so we don't end
+    # up with them between layers (or inside the positional reactant)
+    box_top = mb.Box(
+        mins=[
+            -(args.crystal_x * args.dimensions[0]) / 2.0,
+            -(args.crystal_y * args.dimensions[1]) / 2.0,
+            args.crystal_separation / 20.0 + (args.crystal_z * args.dimensions[2]),
+        ],
+        maxs=[
+            (args.crystal_x * args.dimensions[0]) / 2.0,
+            (args.crystal_y * args.dimensions[1]) / 2.0,
+            args.z_reactor_size / 2.0,
+        ],
+    )
+    box_bottom = mb.Box(
+        mins=[
+            -(args.crystal_x * args.dimensions[0]) / 2.0,
+            -(args.crystal_y * args.dimensions[1]) / 2.0,
+            -args.z_reactor_size / 2.0,
+        ],
+        maxs=[
+            (args.crystal_x * args.dimensions[0]) / 2.0,
+            (args.crystal_y * args.dimensions[1]) / 2.0,
+            -args.crystal_separation / 20.0 - (args.crystal_z * args.dimensions[2]),
+        ],
+    )
+    box_top_vol = np.prod(box_top.maxs - box_top.mins)
+    box_bottom_vol = np.prod(box_bottom.maxs - box_bottom.mins)
+    reactor_vol = box_top_vol + box_bottom_vol
+
+
 
     # Now place the remaining reactant species with packmol
     # Randomly place reactants using packmol
