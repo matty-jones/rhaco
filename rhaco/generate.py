@@ -447,6 +447,54 @@ def create_morphology(args):
         print("Positional reactant will be ignored.")
         positional_reactant = None
 
+    # Deal with the positional reactants
+    positional_bounding_boxes = []
+    if args.reactant_position is not None:
+        for _, position in enumerate(args.reactant_position):
+            positional_reactant = mbuild_template(
+                positional_reactant,
+                args.reactant_rigid,
+                rolling_rigid_body_index,
+            )
+            positional_reactant.translate_to(np.array(position))
+            positional_bounding_boxes.append(positional_reactant.boundingbox)
+            system.add(positional_reactant)
+            rolling_rigid_body_index += 1
+        if positional_reactant.rigid_positions is not None:
+            rigid_positions.append(positional_reactant.rigid_positions)
+
+    # print(positional_bounding_boxes)
+    # exit()
+    # Define the regions that the hydrocarbons can go in, so we don't end
+    # up with them between layers (or inside the positional reactant)
+    box_top = mb.Box(
+        mins=[
+            -(args.crystal_x * args.dimensions[0]) / 2.0,
+            -(args.crystal_y * args.dimensions[1]) / 2.0,
+            args.crystal_separation / 20.0 + (args.crystal_z * args.dimensions[2]),
+        ],
+        maxs=[
+            (args.crystal_x * args.dimensions[0]) / 2.0,
+            (args.crystal_y * args.dimensions[1]) / 2.0,
+            args.z_reactor_size / 2.0,
+        ],
+    )
+    box_bottom = mb.Box(
+        mins=[
+            -(args.crystal_x * args.dimensions[0]) / 2.0,
+            -(args.crystal_y * args.dimensions[1]) / 2.0,
+            -args.z_reactor_size / 2.0,
+        ],
+        maxs=[
+            (args.crystal_x * args.dimensions[0]) / 2.0,
+            (args.crystal_y * args.dimensions[1]) / 2.0,
+            -args.crystal_separation / 20.0 - (args.crystal_z * args.dimensions[2]),
+        ],
+    )
+    box_top_vol = np.prod(box_top.maxs - box_top.mins)
+    box_bottom_vol = np.prod(box_bottom.maxs - box_bottom.mins)
+    reactor_vol = box_top_vol + box_bottom_vol
+
     # No reactant specified
     if (args.reactant_density is None) and (args.reactant_num_mol is None):
         number_of_reactant_mols = 0
@@ -485,52 +533,6 @@ def create_morphology(args):
         # Need to convert from CGS (g/cm^{3} -> AMU/nm^{3})
         reactant_density_conv = args.reactant_density * G_TO_AMU / (CM_TO_NM ** 3)
         number_of_reactant_mols = int(reactant_density_conv * reactor_vol / mass_per_n)
-
-    # Now deal with the positional reactants
-    positional_bounding_boxes = []
-    if args.reactant_position is not None:
-        for _, position in enumerate(args.reactant_position):
-            positional_reactant = mbuild_template(
-                positional_reactant,
-                args.reactant_rigid,
-                rolling_rigid_body_index,
-            )
-            positional_reactant.translate_to(np.array(position))
-            system.add(positional_reactant)
-            rolling_rigid_body_index += 1
-        if positional_reactant.rigid_positions is not None:
-            rigid_positions.append(positional_reactant.rigid_positions)
-
-    # Define the regions that the hydrocarbons can go in, so we don't end
-    # up with them between layers (or inside the positional reactant)
-    box_top = mb.Box(
-        mins=[
-            -(args.crystal_x * args.dimensions[0]) / 2.0,
-            -(args.crystal_y * args.dimensions[1]) / 2.0,
-            args.crystal_separation / 20.0 + (args.crystal_z * args.dimensions[2]),
-        ],
-        maxs=[
-            (args.crystal_x * args.dimensions[0]) / 2.0,
-            (args.crystal_y * args.dimensions[1]) / 2.0,
-            args.z_reactor_size / 2.0,
-        ],
-    )
-    box_bottom = mb.Box(
-        mins=[
-            -(args.crystal_x * args.dimensions[0]) / 2.0,
-            -(args.crystal_y * args.dimensions[1]) / 2.0,
-            -args.z_reactor_size / 2.0,
-        ],
-        maxs=[
-            (args.crystal_x * args.dimensions[0]) / 2.0,
-            (args.crystal_y * args.dimensions[1]) / 2.0,
-            -args.crystal_separation / 20.0 - (args.crystal_z * args.dimensions[2]),
-        ],
-    )
-    box_top_vol = np.prod(box_top.maxs - box_top.mins)
-    box_bottom_vol = np.prod(box_bottom.maxs - box_bottom.mins)
-    reactor_vol = box_top_vol + box_bottom_vol
-
 
 
     # Now place the remaining reactant species with packmol
@@ -855,13 +857,18 @@ def rename_crystal_types(input_dictionary, AAIDs):
         list_of_previous_types.append(previous_type)
         input_dictionary["type_text"][atom_index] = ["X_" + previous_type]
     # Need to now create some additional pair coefficients for the crystal atoms
-    pair_coeff_lookup = {
-        coeff[0]: [coeff[1], coeff[2]] for coeff in input_dictionary["pair_coeffs_text"]
-    }
-    for atom_type in list(set(list_of_previous_types)):
-        input_dictionary["pair_coeffs_text"].append(
-            ["".join(["X_", atom_type])] + pair_coeff_lookup[atom_type]
-        )
+    # (if a forcefield has been specified)
+    try:
+        pair_coeff_lookup = {
+            coeff[0]: [coeff[1], coeff[2]] for coeff in input_dictionary["pair_coeffs_text"]
+        }
+        for atom_type in list(set(list_of_previous_types)):
+            input_dictionary["pair_coeffs_text"].append(
+                ["".join(["X_", atom_type])] + pair_coeff_lookup[atom_type]
+            )
+    except KeyError:
+        # No forcefield specified because no pair_coeffs tag
+        pass
     return input_dictionary
 
 
