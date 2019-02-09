@@ -463,11 +463,9 @@ def create_morphology(args):
         if positional_reactant.rigid_positions is not None:
             rigid_positions.append(positional_reactant.rigid_positions)
 
-    # print(positional_bounding_boxes)
-    # exit()
     # Define the regions that the hydrocarbons can go in, so we don't end
     # up with them between layers (or inside the positional reactant)
-    box_top = mb.Box(
+    top_half = mb.Box(
         mins=[
             -(args.crystal_x * args.dimensions[0]) / 2.0,
             -(args.crystal_y * args.dimensions[1]) / 2.0,
@@ -479,7 +477,7 @@ def create_morphology(args):
             args.z_reactor_size / 2.0,
         ],
     )
-    box_bottom = mb.Box(
+    bottom_half = mb.Box(
         mins=[
             -(args.crystal_x * args.dimensions[0]) / 2.0,
             -(args.crystal_y * args.dimensions[1]) / 2.0,
@@ -491,6 +489,15 @@ def create_morphology(args):
             -args.crystal_separation / 20.0 - (args.crystal_z * args.dimensions[2]),
         ],
     )
+
+    print("Top Half =", top_half)
+    print("Bottom Half =", bottom_half)
+    print("Pos Boxes =", positional_bounding_boxes)
+    box_top, box_bottom = calculate_box_exclusions(
+        top_half, bottom_half, positional_bounding_boxes
+    )
+    exit()
+
     box_top_vol = np.prod(box_top.maxs - box_top.mins)
     box_bottom_vol = np.prod(box_bottom.maxs - box_bottom.mins)
     reactor_vol = box_top_vol + box_bottom_vol
@@ -664,6 +671,102 @@ def create_morphology(args):
     ][0][1:]
     write_morphology_xml(morphology, output_file)
     print("Output generated. Exitting...")
+
+
+def calculate_box_exclusions(top_half, bottom_half, exclusions):
+
+    # Now construct the critical points of the top boxes along each axis
+    for axis in range(3):
+        critical_points = [top_half.mins[axis]]
+        for box in exclusions:
+            if (box.mins[axis] > top_half.mins[axis]) and (box.maxs[axis] < top_half.maxs[axis]):
+                critical_points.append(box.mins[axis])
+                critical_points.append(box.maxs[axis])
+        critical_points.append(top_half.maxs[axis])
+        print(axis)
+        input(sorted(critical_points))
+    exit()
+
+    top_exclusions = []
+    bottom_exclusions = []
+    for box in exclusions:
+        # Begin with assumption that box is in both top and bottom
+        box_in_top = True
+        box_in_bottom = True
+        for axis in range(3):
+            # Now iterate over all axes to check. If any axis ISN'T, then the box isn't
+            if (
+                (box.mins[axis] > top_half.mins[axis])
+                and (box.maxs[axis] < top_half.maxs[axis])
+                and (box_in_top)
+            ):
+                # Exclusion box exists in top along this axis
+                pass
+            else:
+                box_in_top = False
+            if (
+                (box.mins[axis] > bottom_half.mins[axis])
+                and (box.maxs[axis] < bottom_half.maxs[axis])
+                and (box_in_bottom)
+            ):
+                # Exclusion box exists in bottom along this axis
+                pass
+            else:
+                box_in_bottom = False
+        if box_in_top and not box_in_bottom:
+            top_exclusions.append(box_in_top)
+        elif box_in_bottom and not box_in_top:
+            bottom_exclusions.append(box_in_bottom)
+        else:
+            print("Top Half =", top_half)
+            print("Bottom Half =", bottom_half)
+            print("Excluded Volume =", box)
+            raise SystemError(
+                "Excluded volume found in both top and bottom."
+            )
+
+
+
+
+
+    top_exclusions = []
+    bottom_exclusions = []
+    for box in exclusions:
+        # Begin with assumption that box is in both top and bottom
+        box_in_top = True
+        box_in_bottom = True
+        for axis in range(3):
+            # Now iterate over all axes to check. If any axis ISN'T, then the box isn't
+            if (
+                (box.mins[axis] > top_half.mins[axis])
+                and (box.maxs[axis] < top_half.maxs[axis])
+                and (box_in_top)
+            ):
+                # Exclusion box exists in top along this axis
+                pass
+            else:
+                box_in_top = False
+            if (
+                (box.mins[axis] > bottom_half.mins[axis])
+                and (box.maxs[axis] < bottom_half.maxs[axis])
+                and (box_in_bottom)
+            ):
+                # Exclusion box exists in bottom along this axis
+                pass
+            else:
+                box_in_bottom = False
+        if box_in_top and not box_in_bottom:
+            top_exclusions.append(box_in_top)
+        elif box_in_bottom and not box_in_top:
+            bottom_exclusions.append(box_in_bottom)
+        else:
+            print("Top Half =", top_half)
+            print("Bottom Half =", bottom_half)
+            print("Excluded Volume =", box)
+            raise SystemError(
+                "Excluded volume found in both top and bottom."
+            )
+
 
 
 def check_bonds(morphology, bond_dict, box_dims):
