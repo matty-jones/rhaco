@@ -493,9 +493,11 @@ def create_morphology(args):
     print("Top Half =", top_half)
     print("Bottom Half =", bottom_half)
     print("Pos Boxes =", positional_bounding_boxes)
-    box_top, box_bottom = calculate_box_exclusions(
+    top_regions, bottom_regions = calculate_box_exclusions(
         top_half, bottom_half, positional_bounding_boxes
     )
+    print("Top regions =", top_regions)
+    print("Bottom regions =", bottom_regions)
     exit()
 
     box_top_vol = np.prod(box_top.maxs - box_top.mins)
@@ -674,18 +676,55 @@ def create_morphology(args):
 
 
 def calculate_box_exclusions(top_half, bottom_half, exclusions):
-
     # Now construct the critical points of the top boxes along each axis
+    top_critical = calculate_critical_points(top_half, exclusions)
+    bottom_critical = calculate_critical_points(bottom_half, exclusions)
+    # From the critical points, we can make several boxes (cubelets) around each
+    # exclusion (Imagine a Rubik's cube, where 26 cubelets surround one excluded
+    # cubelet in the middle)
+    top_regions = calculate_cubelets(top_critical)
+    bottom_regions = calculate_cubelets(bottom_critical)
+    return top_regions, bottom_regions
+
+
+def calculate_critical_points(large_box, exclusions):
+    critical_list = []
     for axis in range(3):
-        critical_points = [top_half.mins[axis]]
+        critical_points = [large_box.mins[axis]]
         for box in exclusions:
-            if (box.mins[axis] > top_half.mins[axis]) and (box.maxs[axis] < top_half.maxs[axis]):
+            if (box.mins[axis] > large_box.mins[axis]) and (box.maxs[axis] < large_box.maxs[axis]):
                 critical_points.append(box.mins[axis])
                 critical_points.append(box.maxs[axis])
-        critical_points.append(top_half.maxs[axis])
-        print(axis)
-        input(sorted(critical_points))
-    exit()
+        critical_points.append(large_box.maxs[axis])
+        critical_list.append(sorted(critical_points))
+    return critical_list
+
+
+def calculate_cubelets(criticals):
+    # Decompose the boxes into 27 cubelets
+    cubelets = []
+    for x_index in range(len(criticals[0]) - 1):
+        for y_index in range(len(criticals[1]) - 1):
+            for z_index in range(len(criticals[2]) - 1):
+                # Since each critical point is of the form:
+                # [solvent_box_start, solvent_box_end, solvent_box_start,...] along
+                # each axis, if x_index, y_index, and z_index are ALL odd, then we are
+                # looking at a cubelet that is inside an exclusion box, and we need to
+                # skip it
+                if (x_index%2) + (y_index%2) + (z_index%2) == 3:
+                    continue
+                min_x = criticals[0][x_index]
+                max_x = criticals[0][x_index + 1]
+                min_y = criticals[1][y_index]
+                max_y = criticals[1][y_index + 1]
+                min_z = criticals[2][z_index]
+                max_z = criticals[2][z_index + 1]
+                cubelets.append(
+                    mb.Box(mins=[min_x, min_y, min_z], maxs=[max_x, max_y, max_z])
+                )
+    return cubelets
+
+
 
     top_exclusions = []
     bottom_exclusions = []
