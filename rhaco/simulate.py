@@ -108,7 +108,10 @@ def set_coeffs(
                 k4=dihedral[4] / energy_scaling,
             )
 
-    if len(coeffs_dict["external_forcefields"]) != 0:
+    if (
+        (coeffs_dict["external_forcefields"] is not None)
+        and (len(coeffs_dict["external_forcefields"]) != 0)
+    ):
         for forcefield_loc in coeffs_dict["external_forcefields"]:
             print("Loading external forcefield:", "".join([forcefield_loc, "..."]))
             if forcefield_loc[-7:] == ".eam.fs":
@@ -164,7 +167,10 @@ def get_coeffs(file_name, generate_arguments):
                         [coeff[0]] + list(map(float, coeff[1:]))
                     )
                 # coeff_dictionary[child.tag] = child.text.split('\n')
-    coeff_dictionary["external_forcefields"] = generate_arguments["forcefield"][1]
+    try:
+        coeff_dictionary["external_forcefields"] = generate_arguments["forcefield"][1]
+    except TypeError:
+        coeff_dictionary["external_forcefields"] = None
     return coeff_dictionary
 
 
@@ -187,12 +193,15 @@ def create_generate_arguments(file_name):
         xml_data = ET.parse(xml_file)
     root = xml_data.getroot()
     for config in root:
-        generate_arguments["forcefield"] = [[], [
-            FF_data
-            for FF_data in config.find("external_forcefields").text.split("\n")
-            if len(FF_data) > 0
-        ]]
-        break
+        try:
+            generate_arguments["forcefield"] = [[], [
+                FF_data
+                for FF_data in config.find("external_forcefields").text.split("\n")
+                if len(FF_data) > 0
+            ]]
+            break
+        except TypeError:
+            generate_arguments["forcefield"] = None
     return generate_arguments
 
 
@@ -273,7 +282,10 @@ def rename_crystal_types(snapshot, generate_arguments):
         snapshot.particles.body[catalyst_atom_IDs] = 0
     # If we are specifying an external forcefield (i.e. EAM), then we will need to
     # remove the X_ from the surface atom types otherwise it will break.
-    if len(generate_arguments["forcefield"][1]) > 0:
+    if (
+        (generate_arguments["forcefield"] is not None)
+        and (len(generate_arguments["forcefield"][1]) > 0)
+    ):
         print("Renaming crystal atoms to remove the X_ for EAM...")
         snapshot.particles.types = new_types
     print("The catalyst group is", catalyst)
@@ -287,6 +299,7 @@ def create_rigid_bodies(file_name, snapshot, generate_arguments):
     # If integrate_crystal && 0 rigid IDs in system
     # If not integrate_crystal && 1 rigid ID in system
     rigid_IDs = set(snapshot.particles.body)
+    print("Rigid_IDs =", rigid_IDs)
     # Discard -1 (== 4294967295 in uint32)
     rigid_IDs.discard(4294967295)
     if not generate_arguments["integrate_crystal"]:
@@ -303,6 +316,7 @@ def create_rigid_bodies(file_name, snapshot, generate_arguments):
     # 1) Obtain the relative positions of the constituent members of the body from the
     # input xml
     rigid_relative_positions = get_rigid_relative_positions(file_name)
+    print("len(rigid_relative_positions) =", len(rigid_relative_positions))
     # 2) Assign a rotation quaternion
     # First, work out what the AAIDs are for the rigid bodies
     rigid_IDs = list(rigid_IDs)
@@ -375,6 +389,8 @@ def create_rigid_bodies(file_name, snapshot, generate_arguments):
     for AAID, body_tag in enumerate(snapshot.particles.body):
         if AAID == 0:
             previous_body_tag = body_tag
+            continue
+        if body_tag == 4294967295:
             continue
         if body_tag != previous_body_tag:
             tag_is = body_tag
@@ -687,6 +703,10 @@ def main():
             file_name, snapshot, generate_arguments
         )
         system.restore_snapshot(updated_snapshot)
+        # hoomd.deprecated.dump.xml(
+        #     group=hoomd.group.all(), filename="post_bodies.xml", all=True
+        # )
+
         if rigid is not None:
             rigid.validate_bodies()
 
