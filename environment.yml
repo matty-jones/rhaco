@@ -17,3 +17,5 @@ dependencies:
 - signac-flow
 - gsd=1.5.2
 - cython
+- quaternion
+- numba  
