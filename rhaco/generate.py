@@ -904,12 +904,20 @@ def fill_boxes_with_reactants(
         list_of_n = [list_of_compound_names.count(name) for name in unique_names]
         if len(list_of_compounds) > 0:
             print(box, list_of_compounds, list_of_n)
-            filled_boxes.append(
-                mb.packing.fill_box(
-                    list_of_compounds, list_of_n, box,
-                    seed=np.random.randint(0, 2 ** 31 - 1),
+            try:
+                filled_boxes.append(
+                    mb.packing.fill_box(
+                        list_of_compounds, list_of_n, box,
+                        seed=np.random.randint(0, 2 ** 31 - 1),
+                    )
                 )
-            )
+            except RuntimeError:
+                print(
+                    "Packmol couldn't pack in this cubelet (box probably too small)."
+                    " Skipping this cubelet - < 5 of these messages is probably"
+                    " fine, but too many will mean the requested numbers/density"
+                    " will not be adequately fulfilled."
+                )
     # Bottom next
     for box_ID, box in enumerate(bottom_boxes):
         n_mols = bottom_n[box_ID]
@@ -921,12 +929,20 @@ def fill_boxes_with_reactants(
         list_of_n = [list_of_compound_names.count(name) for name in unique_names]
         if len(list_of_compounds) > 0:
             print(box, list_of_compounds, list_of_n)
-            filled_boxes.append(
-                mb.packing.fill_box(
-                    list_of_compounds, list_of_n, box,
-                    seed=np.random.randint(0, 2 ** 31 - 1),
+            try:
+                filled_boxes.append(
+                    mb.packing.fill_box(
+                        list_of_compounds, list_of_n, box,
+                        seed=np.random.randint(0, 2 ** 31 - 1),
+                    )
                 )
-            )
+            except RuntimeError:
+                print(
+                    "Packmol couldn't pack in this cubelet (box probably too small)."
+                    " Skipping this cubelet - < 5 of these messages is probably"
+                    " fine, but too many will mean the requested numbers/density"
+                    " will not be adequately fulfilled."
+                )
     return filled_boxes
 
 
