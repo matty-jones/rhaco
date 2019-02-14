@@ -16,6 +16,7 @@
 
 ## Version History
 
+v1.4 - Combinations of positional, rigid, and flexible reactants can now be specified in the system. The --reactant_composition and --reactant_rigid options have been improved to reflect the new functionality.
 v1.3 - Added functionality for rigid bodies in HOOMD 2 (including orientation quaternions and moments of inertia tensor eigenvalues)
 v1.2 - Additional functionality added to permit the simulation of metallic nanoparticles on a surface.
 v1.1 - Rhaco generalized to work with other systems, specifically the interactions of polydimethylsiloxane on Ni-Mn-Ga shape memory alloy
