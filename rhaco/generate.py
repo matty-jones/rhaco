@@ -451,17 +451,17 @@ def create_morphology(args):
     positional_bounding_boxes = []
     if args.reactant_position is not None:
         for _, position in enumerate(args.reactant_position):
-            positional_reactant = mbuild_template(
+            positional_reactant_compound = mbuild_template(
                 positional_reactant,
                 args.reactant_rigid,
                 rolling_rigid_body_index,
             )
-            positional_reactant.translate_to(np.array(position))
-            positional_bounding_boxes.append(positional_reactant.boundingbox)
-            system.add(positional_reactant)
+            positional_reactant_compound.translate_to(np.array(position))
+            positional_bounding_boxes.append(positional_reactant_compound.boundingbox)
+            system.add(positional_reactant_compound)
             rolling_rigid_body_index += 1
-        if positional_reactant.rigid_positions is not None:
-            rigid_positions.append(positional_reactant.rigid_positions)
+        if positional_reactant_compound.rigid_positions is not None:
+            rigid_positions.append(positional_reactant_compound.rigid_positions)
 
     # Define the regions that the hydrocarbons can go in, so we don't end
     # up with them between layers (or inside the positional reactant)
