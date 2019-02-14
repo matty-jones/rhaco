@@ -2,6 +2,7 @@ import mbuild as mb
 import numpy as np
 import argparse
 import copy
+import json
 import os
 import re
 import zlib
@@ -453,13 +454,13 @@ def create_morphology(args):
         for _, position in enumerate(args.reactant_position):
             positional_reactant_compound = mbuild_template(
                 positional_reactant,
-                args.positional_rigid,
+                positional_reactant in args.reactant_rigid,
                 rolling_rigid_body_index,
             )
             positional_reactant_compound.translate_to(np.array(position))
             positional_bounding_boxes.append(positional_reactant_compound.boundingbox)
             system.add(positional_reactant_compound)
-            rolling_rigid_body_index += 1
+            rolling_rigid_body_index += int(positional_reactant in args.reactant_rigid)
         if positional_reactant_compound.rigid_positions is not None:
             rigid_positions.append(positional_reactant_compound.rigid_positions)
 
@@ -490,14 +491,9 @@ def create_morphology(args):
         ],
     )
 
-    print("Top Half =", top_half)
-    print("Bottom Half =", bottom_half)
-    print("Pos Boxes =", positional_bounding_boxes)
     top_regions, bottom_regions = calculate_box_exclusions(
         top_half, bottom_half, positional_bounding_boxes
     )
-    print("Top regions =", top_regions)
-    print("Bottom regions =", bottom_regions)
 
     top_reactant_n, bottom_reactant_n = calculate_reactant_quantities(
         args, top_regions, bottom_regions, reactant_masses, reactant_probs,
@@ -699,8 +695,7 @@ def calculate_reactant_quantities(
         # Only 1 molecule to place, so put it on top of the crystals
         reactant_top = mb.packing.fill_box(
             mbuild_template(
-                reactant_components[0],
-                args.reactant_rigid,
+                reactant_components[0], reactant_components[0] in args.reactant_rigid,
                 rolling_rigid_body_index,
             ),
             1,
@@ -716,7 +711,8 @@ def calculate_reactant_quantities(
         n_compounds = []
         for compound_index, reactant_molecule in enumerate(reactant_components):
             new_reactant = mbuild_template(
-                reactant_molecule, args.reactant_rigid, rolling_rigid_body_index
+                reactant_molecule, reactant_molecule in args.reactant_rigid,
+                rolling_rigid_body_index,
             )
             reactant_compounds.append(new_reactant)
             if new_reactant.rigid_positions is not None:
@@ -728,7 +724,7 @@ def calculate_reactant_quantities(
                     )
                 )
             )
-            rolling_rigid_body_index += 1
+            rolling_rigid_body_index += int(reactant_molecule in args.reactant_rigid)
         # Split the n_compounds to the top and bottom. Note: Top will always have
         # the extra molecule for odd n_compounds
         top_n = list(map(int, np.ceil(np.array(n_compounds) / 2.0)))
@@ -889,10 +885,11 @@ def fill_boxes_with_reactants(
     filled_boxes = []
     for compound_index, reactant_name in enumerate(reactant_components):
         new_reactant = mbuild_template(
-            reactant_name, args.reactant_rigid, rolling_rigid_body_index
+            reactant_name, reactant_name in args.reactant_rigid,
+            rolling_rigid_body_index,
         )
         reactant_compounds[reactant_name] = new_reactant
-        rolling_rigid_body_index += 1
+        rolling_rigid_body_index += int(reactant_name in args.reactant_rigid)
     # Top first
     for box_ID, box in enumerate(top_boxes):
         n_mols = top_n[box_ID]
@@ -903,7 +900,6 @@ def fill_boxes_with_reactants(
         list_of_compounds = [reactant_compounds[name] for name in unique_names]
         list_of_n = [list_of_compound_names.count(name) for name in unique_names]
         if len(list_of_compounds) > 0:
-            print(box, list_of_compounds, list_of_n)
             try:
                 filled_boxes.append(
                     mb.packing.fill_box(
@@ -928,7 +924,6 @@ def fill_boxes_with_reactants(
         list_of_compounds = [reactant_compounds[name] for name in unique_names]
         list_of_n = [list_of_compound_names.count(name) for name in unique_names]
         if len(list_of_compounds) > 0:
-            print(box, list_of_compounds, list_of_n)
             try:
                 filled_boxes.append(
                     mb.packing.fill_box(
@@ -1233,6 +1228,10 @@ def create_output_file_name(args, file_type="hoomdxml"):
                 for key, val in sorted(arg_val.items()):
                     output_file += str(key) + ":" + str(val) + "_"
                 output_file = output_file[:-1]
+            elif arg_name == "reactant_rigid":
+                output_file += "RR"
+                for rigid in arg_val:
+                    output_file += "_" + rigid
             elif arg_name == "dimensions":
                 output_file += "D_" + "x".join(list(map(str, arg_val)))
             elif arg_name == "template":
@@ -1384,18 +1383,18 @@ def main():
     parser.add_argument(
         "-rr",
         "--reactant_rigid",
-        action="store_true",
+        type=lambda list_string: json.loads(list_string.replace("'", '"')),
+        default=[],
         required=False,
-        help="""If True, then each non-positional reactant molecule will be
-                        treated as its own rigid body.""",
-    )
-    parser.add_argument(
-        "-pr",
-        "--positional_rigid",
-        action="store_true",
-        required=False,
-        help="""If True, then each positional reactant molecule will be
-                        treated as its own rigid body.""",
+        help="""Specify which of the reactants (if any) should be rigid. Any
+        reactants not included in this list will be treated as flexible (and so
+        will need forcefield parameters specified in the file passed in with the
+        --forcefield flag).\n
+        For example, in a system containing perylene, C2H6, and O2 reactants:
+        -rr "['perylene', 'C2H6']" will treat the perylene and ethane molecules as
+        rigid bodies, but the O2 molecules as flexible.\n
+        Default: All flexible.
+        """,
     )
     parser.add_argument(
         "-rn",

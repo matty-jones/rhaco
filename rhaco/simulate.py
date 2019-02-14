@@ -176,12 +176,12 @@ def create_generate_arguments(file_name):
           " system, then please regenerate your morphologies with rhaco-create-morph"
           " using Rhaco 1.3 or later:")
     print("1) integrate_crystal is False")
-    print("2) reactant_rigid is False")
+    print("2) reactant_rigid is []")
     print("Additionally, forcefields will be read using the old syntax.")
     print("This feature will no longer be supported after Rhaco 1.5 is released.\n")
     generate_arguments = {
         "integrate_crystal": False,
-        "reactant_rigid": False,
+        "reactant_rigid": [],
     }
     with open(file_name, "r") as xml_file:
         xml_data = ET.parse(xml_file)
@@ -269,7 +269,7 @@ def rename_crystal_types(snapshot, generate_arguments):
     gas = hoomd.group.difference(name="gas", a=hoomd.group.all(), b=catalyst)
     # If we're not using rigid bodies in the reactant, then we can assign the surface
     # atoms to all have the same rigid_ID and get a speedup.
-    if generate_arguments["reactant_rigid"] is False:
+    if len(generate_arguments["reactant_rigid"]) == 0:
         snapshot.particles.body[catalyst_atom_IDs] = 0
     # If we are specifying an external forcefield (i.e. EAM), then we will need to
     # remove the X_ from the surface atom types otherwise it will break.
