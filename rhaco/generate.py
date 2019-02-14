@@ -499,9 +499,9 @@ def create_morphology(args):
         args, top_regions, bottom_regions, reactant_masses, reactant_probs,
         reactant_components,
     )
-    reactant_box_list = fill_boxes_with_reactants(
+    reactant_box_list, rigid_positions = fill_boxes_with_reactants(
         args, top_regions, bottom_regions, top_reactant_n, bottom_reactant_n,
-        reactant_probs, reactant_components,
+        reactant_probs, reactant_components, rigid_positions,
     )
     for system_component in reactant_box_list:
         system.add(system_component)
@@ -878,7 +878,8 @@ def calculate_cubelets(criticals):
 
 
 def fill_boxes_with_reactants(
-    args, top_boxes, bottom_boxes, top_n, bottom_n, reactant_probs, reactant_components
+    args, top_boxes, bottom_boxes, top_n, bottom_n, reactant_probs,
+    reactant_components, rigid_positions,
 ):
     rolling_rigid_body_index = 0
     reactant_compounds = {}
@@ -890,6 +891,8 @@ def fill_boxes_with_reactants(
         )
         reactant_compounds[reactant_name] = new_reactant
         rolling_rigid_body_index += int(reactant_name in args.reactant_rigid)
+        if new_reactant.rigid_positions is not None:
+            rigid_positions.append(new_reactant.rigid_positions)
     # Top first
     for box_ID, box in enumerate(top_boxes):
         n_mols = top_n[box_ID]
@@ -938,7 +941,7 @@ def fill_boxes_with_reactants(
                     " fine, but too many will mean the requested numbers/density"
                     " will not be adequately fulfilled."
                 )
-    return filled_boxes
+    return filled_boxes, rigid_positions
 
 
 def check_bonds(morphology, bond_dict, box_dims):
