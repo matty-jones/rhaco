@@ -10,6 +10,7 @@
   <Type name="Mo" class="TE" element="Te" mass="95.94000"  def="Mo" desc="uff_Mo: Tetrahedral Mo6+" doi="10.1021/ja00051a040"/>
   <Type name="V" class="V" element="V" mass="50.9415"  def="V" desc="uff_V: Tetrahedral V5+" doi="10.1021/ja00051a040"/>
   <Type name="He" class="HE" element="He" mass="4.0026"  def="He" desc="uff_He: Square Planar He4+" doi="10.1021/ja00051a040"/>
+  <Type name="Ag" class="Ag" element="Ag" mass="107.8682"  def="Ag"/>
  </AtomTypes>
  <HarmonicBondForce>
   <Bond class1="C" class2="H" length="0.108" k="307105.6"/>
@@ -34,5 +35,6 @@
   <Atom type="Mo" charge="0.00" sigma="0.2716" epsilon="0.234304"/>
   <Atom type="V" charge="0.00" sigma="0.2798" epsilon="0.066944"/>
   <Atom type="He" charge="0.00" sigma="0.2102" epsilon="0.234304"/>
+  <Atom type="Ag" charge="0.00" sigma="0.280172" epsilon="0.150624"/>
  </NonbondedForce>
 </ForceField>
