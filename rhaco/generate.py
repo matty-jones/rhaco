@@ -1225,12 +1225,12 @@ def create_output_file_name(args, file_type="hoomdxml"):
             output_file += "-"
             if arg_name == "stoichiometry":
                 output_file += "S_"
-                for key, val in arg_val.items():
+                for key, val in sorted(arg_val.items()):
                     output_file += str(key) + ":" + str(val) + "_"
                 output_file = output_file[:-1]
             elif arg_name == "reactant_composition":
                 output_file += "RC_"
-                for key, val in arg_val.items():
+                for key, val in sorted(arg_val.items()):
                     output_file += str(key) + ":" + str(val) + "_"
                 output_file = output_file[:-1]
             elif arg_name == "dimensions":
