@@ -108,9 +108,8 @@ def set_coeffs(
                 k4=dihedral[4] / energy_scaling,
             )
 
-    if (
-        (coeffs_dict["external_forcefields"] is not None)
-        and (len(coeffs_dict["external_forcefields"]) != 0)
+    if (coeffs_dict["external_forcefields"] is not None) and (
+        len(coeffs_dict["external_forcefields"]) != 0
     ):
         for forcefield_loc in coeffs_dict["external_forcefields"]:
             print("Loading external forcefield:", "".join([forcefield_loc, "..."]))
@@ -178,27 +177,29 @@ def create_generate_arguments(file_name):
     print("\n------------============ WARNING ============------------")
     print("Your input file contains no generate arguments.")
     print("This likely means that it was created using Rhaco 1.2 or earlier.")
-    print("The following assumptions will be made. If they do not correspond to your"
-          " system, then please regenerate your morphologies with rhaco-create-morph"
-          " using Rhaco 1.3 or later:")
+    print(
+        "The following assumptions will be made. If they do not correspond to your"
+        " system, then please regenerate your morphologies with rhaco-create-morph"
+        " using Rhaco 1.3 or later:"
+    )
     print("1) integrate_crystal is False")
     print("2) reactant_rigid is []")
     print("Additionally, forcefields will be read using the old syntax.")
     print("This feature will no longer be supported after Rhaco 1.5 is released.\n")
-    generate_arguments = {
-        "integrate_crystal": False,
-        "reactant_rigid": [],
-    }
+    generate_arguments = {"integrate_crystal": False, "reactant_rigid": []}
     with open(file_name, "r") as xml_file:
         xml_data = ET.parse(xml_file)
     root = xml_data.getroot()
     for config in root:
         try:
-            generate_arguments["forcefield"] = [[], [
-                FF_data
-                for FF_data in config.find("external_forcefields").text.split("\n")
-                if len(FF_data) > 0
-            ]]
+            generate_arguments["forcefield"] = [
+                [],
+                [
+                    FF_data
+                    for FF_data in config.find("external_forcefields").text.split("\n")
+                    if len(FF_data) > 0
+                ],
+            ]
             break
         except TypeError:
             generate_arguments["forcefield"] = None
@@ -218,7 +219,7 @@ def get_generate_arguments(file_name):
             ]
             break
         except AttributeError:
-            # Generate arguments does not exist (version < 1.3) 
+            # Generate arguments does not exist (version < 1.3)
             return None
     argument_dict = {}
     for argument in all_args:
@@ -282,9 +283,8 @@ def rename_crystal_types(snapshot, generate_arguments):
         snapshot.particles.body[catalyst_atom_IDs] = 0
     # If we are specifying an external forcefield (i.e. EAM), then we will need to
     # remove the X_ from the surface atom types otherwise it will break.
-    if (
-        (generate_arguments["forcefield"] is not None)
-        and (len(generate_arguments["forcefield"][1]) > 0)
+    if (generate_arguments["forcefield"] is not None) and (
+        len(generate_arguments["forcefield"][1]) > 0
     ):
         print("Renaming crystal atoms to remove the X_ for EAM...")
         snapshot.particles.types = new_types
@@ -299,7 +299,6 @@ def create_rigid_bodies(file_name, snapshot, generate_arguments):
     # If integrate_crystal && 0 rigid IDs in system
     # If not integrate_crystal && 1 rigid ID in system
     rigid_IDs = set(snapshot.particles.body)
-    print("Rigid_IDs =", rigid_IDs)
     # Discard -1 (== 4294967295 in uint32)
     rigid_IDs.discard(4294967295)
     if not generate_arguments["integrate_crystal"]:
@@ -316,7 +315,6 @@ def create_rigid_bodies(file_name, snapshot, generate_arguments):
     # 1) Obtain the relative positions of the constituent members of the body from the
     # input xml
     rigid_relative_positions = get_rigid_relative_positions(file_name)
-    print("len(rigid_relative_positions) =", len(rigid_relative_positions))
     # 2) Assign a rotation quaternion
     # First, work out what the AAIDs are for the rigid bodies
     rigid_IDs = list(rigid_IDs)

@@ -496,12 +496,22 @@ def create_morphology(args):
     )
 
     top_reactant_n, bottom_reactant_n = calculate_reactant_quantities(
-        args, top_regions, bottom_regions, reactant_masses, reactant_probs,
+        args,
+        top_regions,
+        bottom_regions,
+        reactant_masses,
+        reactant_probs,
         reactant_components,
     )
     reactant_box_list, rigid_positions = fill_boxes_with_reactants(
-        args, top_regions, bottom_regions, top_reactant_n, bottom_reactant_n,
-        reactant_probs, reactant_components, rigid_positions,
+        args,
+        top_regions,
+        bottom_regions,
+        top_reactant_n,
+        bottom_reactant_n,
+        reactant_probs,
+        reactant_components,
+        rigid_positions,
     )
     for system_component in reactant_box_list:
         system.add(system_component)
@@ -582,9 +592,12 @@ def create_morphology(args):
     print("Output generated. Exitting...")
 
 
-
 def calculate_reactant_quantities(
-    args, top_regions, bottom_regions, reactant_masses, reactant_probs,
+    args,
+    top_regions,
+    bottom_regions,
+    reactant_masses,
+    reactant_probs,
     reactant_components,
 ):
     number_of_reactant_mols = None
@@ -667,8 +680,6 @@ def calculate_reactant_quantities(
                 bottom_box_n = reactant_dict["bottom"]
     return top_box_n, bottom_box_n
 
-
-
     # Density specified but not numbers
     if True:
         pass
@@ -688,14 +699,14 @@ def calculate_reactant_quantities(
         reactant_density_conv = args.reactant_density * G_TO_AMU / (CM_TO_NM ** 3)
         number_of_reactant_mols = int(reactant_density_conv * reactor_vol / mass_per_n)
 
-
     # Now place the remaining reactant species with packmol
     # Randomly place reactants using packmol
     if number_of_reactant_mols == 1:
         # Only 1 molecule to place, so put it on top of the crystals
         reactant_top = mb.packing.fill_box(
             mbuild_template(
-                reactant_components[0], reactant_components[0] in args.reactant_rigid,
+                reactant_components[0],
+                reactant_components[0] in args.reactant_rigid,
                 rolling_rigid_body_index,
             ),
             1,
@@ -711,18 +722,15 @@ def calculate_reactant_quantities(
         n_compounds = []
         for compound_index, reactant_molecule in enumerate(reactant_components):
             new_reactant = mbuild_template(
-                reactant_molecule, reactant_molecule in args.reactant_rigid,
+                reactant_molecule,
+                reactant_molecule in args.reactant_rigid,
                 rolling_rigid_body_index,
             )
             reactant_compounds.append(new_reactant)
             if new_reactant.rigid_positions is not None:
                 rigid_positions.append(new_reactant.rigid_positions)
             n_compounds.append(
-                int(
-                    np.round(
-                        reactant_probs[compound_index] * number_of_reactant_mols
-                    )
-                )
+                int(np.round(reactant_probs[compound_index] * number_of_reactant_mols))
             )
             rolling_rigid_body_index += int(reactant_molecule in args.reactant_rigid)
         # Split the n_compounds to the top and bottom. Note: Top will always have
@@ -730,10 +738,7 @@ def calculate_reactant_quantities(
         top_n = list(map(int, np.ceil(np.array(n_compounds) / 2.0)))
         bot_n = list(map(int, np.floor(np.array(n_compounds) / 2.0)))
         reactant_top = mb.packing.fill_box(
-            reactant_compounds,
-            top_n,
-            box_top,
-            seed=np.random.randint(0, 2 ** 31 - 1),
+            reactant_compounds, top_n, box_top, seed=np.random.randint(0, 2 ** 31 - 1)
         )
         reactant_bottom = mb.packing.fill_box(
             reactant_compounds,
@@ -762,7 +767,9 @@ def calculate_critical_points(large_box, exclusions):
     for axis in range(3):
         critical_points = [large_box.mins[axis]]
         for box in exclusions:
-            if (box.mins[axis] > large_box.mins[axis]) and (box.maxs[axis] < large_box.maxs[axis]):
+            if (box.mins[axis] > large_box.mins[axis]) and (
+                box.maxs[axis] < large_box.maxs[axis]
+            ):
                 critical_points.append(box.mins[axis])
                 critical_points.append(box.maxs[axis])
         critical_points.append(large_box.maxs[axis])
@@ -781,7 +788,7 @@ def calculate_cubelets(criticals):
                 # each axis, if x_index, y_index, and z_index are ALL odd, then we are
                 # looking at a cubelet that is inside an exclusion box, and we need to
                 # skip it
-                if (x_index%2) + (y_index%2) + (z_index%2) == 3:
+                if (x_index % 2) + (y_index % 2) + (z_index % 2) == 3:
                     continue
                 min_x = criticals[0][x_index]
                 max_x = criticals[0][x_index + 1]
@@ -794,7 +801,41 @@ def calculate_cubelets(criticals):
                 )
     return cubelets
 
-
+    top_exclusions = []
+    bottom_exclusions = []
+    for box in exclusions:
+        # Begin with assumption that box is in both top and bottom
+        box_in_top = True
+        box_in_bottom = True
+        for axis in range(3):
+            # Now iterate over all axes to check. If any axis ISN'T, then the box isn't
+            if (
+                (box.mins[axis] > top_half.mins[axis])
+                and (box.maxs[axis] < top_half.maxs[axis])
+                and (box_in_top)
+            ):
+                # Exclusion box exists in top along this axis
+                pass
+            else:
+                box_in_top = False
+            if (
+                (box.mins[axis] > bottom_half.mins[axis])
+                and (box.maxs[axis] < bottom_half.maxs[axis])
+                and (box_in_bottom)
+            ):
+                # Exclusion box exists in bottom along this axis
+                pass
+            else:
+                box_in_bottom = False
+        if box_in_top and not box_in_bottom:
+            top_exclusions.append(box_in_top)
+        elif box_in_bottom and not box_in_top:
+            bottom_exclusions.append(box_in_bottom)
+        else:
+            print("Top Half =", top_half)
+            print("Bottom Half =", bottom_half)
+            print("Excluded Volume =", box)
+            raise SystemError("Excluded volume found in both top and bottom.")
 
     top_exclusions = []
     bottom_exclusions = []
@@ -830,63 +871,26 @@ def calculate_cubelets(criticals):
             print("Top Half =", top_half)
             print("Bottom Half =", bottom_half)
             print("Excluded Volume =", box)
-            raise SystemError(
-                "Excluded volume found in both top and bottom."
-            )
-
-
-
-
-
-    top_exclusions = []
-    bottom_exclusions = []
-    for box in exclusions:
-        # Begin with assumption that box is in both top and bottom
-        box_in_top = True
-        box_in_bottom = True
-        for axis in range(3):
-            # Now iterate over all axes to check. If any axis ISN'T, then the box isn't
-            if (
-                (box.mins[axis] > top_half.mins[axis])
-                and (box.maxs[axis] < top_half.maxs[axis])
-                and (box_in_top)
-            ):
-                # Exclusion box exists in top along this axis
-                pass
-            else:
-                box_in_top = False
-            if (
-                (box.mins[axis] > bottom_half.mins[axis])
-                and (box.maxs[axis] < bottom_half.maxs[axis])
-                and (box_in_bottom)
-            ):
-                # Exclusion box exists in bottom along this axis
-                pass
-            else:
-                box_in_bottom = False
-        if box_in_top and not box_in_bottom:
-            top_exclusions.append(box_in_top)
-        elif box_in_bottom and not box_in_top:
-            bottom_exclusions.append(box_in_bottom)
-        else:
-            print("Top Half =", top_half)
-            print("Bottom Half =", bottom_half)
-            print("Excluded Volume =", box)
-            raise SystemError(
-                "Excluded volume found in both top and bottom."
-            )
+            raise SystemError("Excluded volume found in both top and bottom.")
 
 
 def fill_boxes_with_reactants(
-    args, top_boxes, bottom_boxes, top_n, bottom_n, reactant_probs,
-    reactant_components, rigid_positions,
+    args,
+    top_boxes,
+    bottom_boxes,
+    top_n,
+    bottom_n,
+    reactant_probs,
+    reactant_components,
+    rigid_positions,
 ):
     rolling_rigid_body_index = 0
     reactant_compounds = {}
     filled_boxes = []
     for compound_index, reactant_name in enumerate(reactant_components):
         new_reactant = mbuild_template(
-            reactant_name, reactant_name in args.reactant_rigid,
+            reactant_name,
+            reactant_name in args.reactant_rigid,
             rolling_rigid_body_index,
         )
         reactant_compounds[reactant_name] = new_reactant
@@ -906,7 +910,9 @@ def fill_boxes_with_reactants(
             try:
                 filled_boxes.append(
                     mb.packing.fill_box(
-                        list_of_compounds, list_of_n, box,
+                        list_of_compounds,
+                        list_of_n,
+                        box,
                         seed=np.random.randint(0, 2 ** 31 - 1),
                     )
                 )
@@ -930,7 +936,9 @@ def fill_boxes_with_reactants(
             try:
                 filled_boxes.append(
                     mb.packing.fill_box(
-                        list_of_compounds, list_of_n, box,
+                        list_of_compounds,
+                        list_of_n,
+                        box,
                         seed=np.random.randint(0, 2 ** 31 - 1),
                     )
                 )
@@ -1138,7 +1146,8 @@ def rename_crystal_types(input_dictionary, AAIDs):
     # (if a forcefield has been specified)
     try:
         pair_coeff_lookup = {
-            coeff[0]: [coeff[1], coeff[2]] for coeff in input_dictionary["pair_coeffs_text"]
+            coeff[0]: [coeff[1], coeff[2]]
+            for coeff in input_dictionary["pair_coeffs_text"]
         }
         for atom_type in list(set(list_of_previous_types)):
             input_dictionary["pair_coeffs_text"].append(
