@@ -453,7 +453,7 @@ def create_morphology(args):
         for _, position in enumerate(args.reactant_position):
             positional_reactant_compound = mbuild_template(
                 positional_reactant,
-                args.reactant_rigid,
+                args.positional_rigid,
                 rolling_rigid_body_index,
             )
             positional_reactant_compound.translate_to(np.array(position))
@@ -1386,7 +1386,15 @@ def main():
         "--reactant_rigid",
         action="store_true",
         required=False,
-        help="""If True, then each reactant molecule will be
+        help="""If True, then each non-positional reactant molecule will be
+                        treated as its own rigid body.""",
+    )
+    parser.add_argument(
+        "-pr",
+        "--positional_rigid",
+        action="store_true",
+        required=False,
+        help="""If True, then each positional reactant molecule will be
                         treated as its own rigid body.""",
     )
     parser.add_argument(
