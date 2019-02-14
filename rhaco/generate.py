@@ -498,106 +498,17 @@ def create_morphology(args):
     )
     print("Top regions =", top_regions)
     print("Bottom regions =", bottom_regions)
-    exit()
 
-    box_top_vol = np.prod(box_top.maxs - box_top.mins)
-    box_bottom_vol = np.prod(box_bottom.maxs - box_bottom.mins)
-    reactor_vol = box_top_vol + box_bottom_vol
-
-    # No reactant specified
-    if (args.reactant_density is None) and (args.reactant_num_mol is None):
-        number_of_reactant_mols = 0
-    # Both specified - print error and use the number
-    elif (args.reactant_density is not None) and (args.reactant_num_mol is not None):
-        print(
-            "".join(
-                [
-                    "Both -rn (",
-                    str(args.reactant_num_mol),
-                    ") and -rd (",
-                    str(args.reactant_density),
-                    ") specified. Using -rn ",
-                    str(args.reactant_num_mol),
-                    "...",
-                ]
-            )
-        )
-        number_of_reactant_mols = args.reactant_num_mol
-    # Number specified and not density
-    elif (args.reactant_density is None) and (args.reactant_num_mol is not None):
-        number_of_reactant_mols = args.reactant_num_mol
-    # Density specified but not numbers
-    elif (args.reactant_density is not None) and (args.reactant_num_mol is None):
-        # Work backwards to come up with how many reactant molecules are needed
-        # to get the specified density.
-        # Get the average mass for each molecule based on reactant probabilities
-        mass_per_n = np.sum(
-            [
-                reactant_masses[key] * reactant_probs[index]
-                for index, key in enumerate(reactant_components)
-            ]
-        )
-        # Given the reactor volume and the specified reactant density, calculate
-        # the total number of reactant molecules needed.
-        # Need to convert from CGS (g/cm^{3} -> AMU/nm^{3})
-        reactant_density_conv = args.reactant_density * G_TO_AMU / (CM_TO_NM ** 3)
-        number_of_reactant_mols = int(reactant_density_conv * reactor_vol / mass_per_n)
-
-
-    # Now place the remaining reactant species with packmol
-    # Randomly place reactants using packmol
-    if number_of_reactant_mols == 1:
-        # Only 1 molecule to place, so put it on top of the crystals
-        reactant_top = mb.packing.fill_box(
-            mbuild_template(
-                reactant_components[0],
-                args.reactant_rigid,
-                rolling_rigid_body_index,
-            ),
-            1,
-            box_top,
-            seed=np.random.randint(0, 2 ** 31 - 1),
-        )
-        system.add(reactant_top)
-        if reactant_top.rigid_positions is not None:
-            rigid_positions.append(reactant_top.rigid_positions)
-        rolling_rigid_body_index += 1
-    elif number_of_reactant_mols > 1:
-        reactant_compounds = []
-        n_compounds = []
-        for compound_index, reactant_molecule in enumerate(reactant_components):
-            new_reactant = mbuild_template(
-                reactant_molecule, args.reactant_rigid, rolling_rigid_body_index
-            )
-            reactant_compounds.append(new_reactant)
-            if new_reactant.rigid_positions is not None:
-                rigid_positions.append(new_reactant.rigid_positions)
-            n_compounds.append(
-                int(
-                    np.round(
-                        reactant_probs[compound_index] * number_of_reactant_mols
-                    )
-                )
-            )
-            rolling_rigid_body_index += 1
-        # Split the n_compounds to the top and bottom. Note: Top will always have
-        # the extra molecule for odd n_compounds
-        top_n = list(map(int, np.ceil(np.array(n_compounds) / 2.0)))
-        bot_n = list(map(int, np.floor(np.array(n_compounds) / 2.0)))
-        reactant_top = mb.packing.fill_box(
-            reactant_compounds,
-            top_n,
-            box_top,
-            seed=np.random.randint(0, 2 ** 31 - 1),
-        )
-        reactant_bottom = mb.packing.fill_box(
-            reactant_compounds,
-            bot_n,
-            box_bottom,
-            seed=np.random.randint(0, 2 ** 31 - 1),
-        )
-        system.add(reactant_top)
-        system.add(reactant_bottom)
+    top_reactant_n, bottom_reactant_n = calculate_reactant_quantities(
+        args, top_regions, bottom_regions, reactant_masses, reactant_probs,
+        reactant_components,
+    )
+    reactant_box_list = fill_boxes_with_reactants(
+        args, top_regions, bottom_regions, top_reactant_n, bottom_reactant_n,
+        reactant_probs, reactant_components,
+    )
+    for system_component in reactant_box_list:
+        system.add(system_component)
 
     if "M1UnitCell.pdb" in args.template:
         # Check the separation of crystal and reactant that we will use later is
@@ -673,6 +584,169 @@ def create_morphology(args):
     ][0][1:]
     write_morphology_xml(morphology, output_file)
     print("Output generated. Exitting...")
+
+
+
+def calculate_reactant_quantities(
+    args, top_regions, bottom_regions, reactant_masses, reactant_probs,
+    reactant_components,
+):
+    number_of_reactant_mols = None
+    # No reactant specified
+    if (args.reactant_density is None) and (args.reactant_num_mol is None):
+        return [0] * len(top_regions), [0] * len(bottom_regions)
+    # Both specified - print error and use the number
+    elif (args.reactant_density is not None) and (args.reactant_num_mol is not None):
+        print(
+            "".join(
+                [
+                    "Both -rn (",
+                    str(args.reactant_num_mol),
+                    ") and -rd (",
+                    str(args.reactant_density),
+                    ") specified. Using -rn ",
+                    str(args.reactant_num_mol),
+                    "...",
+                ]
+            )
+        )
+        number_of_reactant_mols = args.reactant_num_mol
+    # Number specified and not density
+    elif (args.reactant_density is None) and (args.reactant_num_mol is not None):
+        number_of_reactant_mols = args.reactant_num_mol
+    # Now we know the number of reactant molecules in the system, we can calculate the
+    # effective density for all boxes in the system
+    mass_per_n = np.sum(
+        [
+            reactant_masses[key] * reactant_probs[index]
+            for index, key in enumerate(reactant_components)
+        ]
+    )
+    if number_of_reactant_mols is not None:
+        total_volume = np.sum(
+            [np.prod(box.lengths) for box in top_regions + bottom_regions]
+        )
+        effective_density = mass_per_n * number_of_reactant_mols / total_volume
+    else:
+        effective_density = args.reactant_density * G_TO_AMU / (CM_TO_NM ** 3)
+    # With an effective density calculated, we can now obtain the number of molecules
+    # to put in each box in the system and return those numbers
+    # The top boxes first
+    top_box_n = []
+    for top_box in top_regions:
+        box_vol = np.prod(top_box.lengths)
+        n_mols = np.floor((effective_density * box_vol) / mass_per_n)
+        top_box_n.append(int(n_mols))
+    # The bottom boxes second
+    bottom_box_n = []
+    for bottom_box in bottom_regions:
+        box_vol = np.prod(bottom_box.lengths)
+        n_mols = np.floor((effective_density * box_vol) / mass_per_n)
+        bottom_box_n.append(int(n_mols))
+    # Check that the right number of molecules exist in the system, if specified
+    if number_of_reactant_mols is not None:
+        actual_number_of_reactants = np.sum(top_box_n) + np.sum(bottom_box_n)
+        if actual_number_of_reactants != number_of_reactant_mols:
+            print(
+                "Requested {:d} reactants, but only got {:d}".format(
+                    number_of_reactant_mols, actual_number_of_reactants
+                )
+            )
+            while actual_number_of_reactants != number_of_reactant_mols:
+                reactant_dict = {"top": top_box_n, "bottom": bottom_box_n}
+                # Pick a random side to add to
+                box_side = np.random.choice(list(reactant_dict.keys()))
+                # Pick a random box from that side
+                box_ID = np.random.randint(len(reactant_dict[box_side]))
+                print(
+                    "Adding another reactant to box {} on the {}.".format(
+                        box_ID, box_side
+                    )
+                )
+                # Increment the n_reactants
+                reactant_dict[box_side][box_ID] += 1
+                actual_number_of_reactants += 1
+                # Update the original variables
+                top_box_n = reactant_dict["top"]
+                bottom_box_n = reactant_dict["bottom"]
+    return top_box_n, bottom_box_n
+
+
+
+    # Density specified but not numbers
+    if True:
+        pass
+    elif (args.reactant_density is not None) and (args.reactant_num_mol is None):
+        # Work backwards to come up with how many reactant molecules are needed
+        # to get the specified density.
+        # Get the average mass for each molecule based on reactant probabilities
+        mass_per_n = np.sum(
+            [
+                reactant_masses[key] * reactant_probs[index]
+                for index, key in enumerate(reactant_components)
+            ]
+        )
+        # Given the reactor volume and the specified reactant density, calculate
+        # the total number of reactant molecules needed.
+        # Need to convert from CGS (g/cm^{3} -> AMU/nm^{3})
+        reactant_density_conv = args.reactant_density * G_TO_AMU / (CM_TO_NM ** 3)
+        number_of_reactant_mols = int(reactant_density_conv * reactor_vol / mass_per_n)
+
+
+    # Now place the remaining reactant species with packmol
+    # Randomly place reactants using packmol
+    if number_of_reactant_mols == 1:
+        # Only 1 molecule to place, so put it on top of the crystals
+        reactant_top = mb.packing.fill_box(
+            mbuild_template(
+                reactant_components[0],
+                args.reactant_rigid,
+                rolling_rigid_body_index,
+            ),
+            1,
+            box_top,
+            seed=np.random.randint(0, 2 ** 31 - 1),
+        )
+        system.add(reactant_top)
+        if reactant_top.rigid_positions is not None:
+            rigid_positions.append(reactant_top.rigid_positions)
+        rolling_rigid_body_index += 1
+    elif number_of_reactant_mols > 1:
+        reactant_compounds = []
+        n_compounds = []
+        for compound_index, reactant_molecule in enumerate(reactant_components):
+            new_reactant = mbuild_template(
+                reactant_molecule, args.reactant_rigid, rolling_rigid_body_index
+            )
+            reactant_compounds.append(new_reactant)
+            if new_reactant.rigid_positions is not None:
+                rigid_positions.append(new_reactant.rigid_positions)
+            n_compounds.append(
+                int(
+                    np.round(
+                        reactant_probs[compound_index] * number_of_reactant_mols
+                    )
+                )
+            )
+            rolling_rigid_body_index += 1
+        # Split the n_compounds to the top and bottom. Note: Top will always have
+        # the extra molecule for odd n_compounds
+        top_n = list(map(int, np.ceil(np.array(n_compounds) / 2.0)))
+        bot_n = list(map(int, np.floor(np.array(n_compounds) / 2.0)))
+        reactant_top = mb.packing.fill_box(
+            reactant_compounds,
+            top_n,
+            box_top,
+            seed=np.random.randint(0, 2 ** 31 - 1),
+        )
+        reactant_bottom = mb.packing.fill_box(
+            reactant_compounds,
+            bot_n,
+            box_bottom,
+            seed=np.random.randint(0, 2 ** 31 - 1),
+        )
+        system.add(reactant_top)
+        system.add(reactant_bottom)
 
 
 def calculate_box_exclusions(top_half, bottom_half, exclusions):
@@ -806,6 +880,54 @@ def calculate_cubelets(criticals):
                 "Excluded volume found in both top and bottom."
             )
 
+
+def fill_boxes_with_reactants(
+    args, top_boxes, bottom_boxes, top_n, bottom_n, reactant_probs, reactant_components
+):
+    rolling_rigid_body_index = 0
+    reactant_compounds = {}
+    filled_boxes = []
+    for compound_index, reactant_name in enumerate(reactant_components):
+        new_reactant = mbuild_template(
+            reactant_name, args.reactant_rigid, rolling_rigid_body_index
+        )
+        reactant_compounds[reactant_name] = new_reactant
+        rolling_rigid_body_index += 1
+    # Top first
+    for box_ID, box in enumerate(top_boxes):
+        n_mols = top_n[box_ID]
+        list_of_compound_names = list(
+            np.random.choice(reactant_components, size=n_mols, p=reactant_probs)
+        )
+        unique_names = list(set(list_of_compound_names))
+        list_of_compounds = [reactant_compounds[name] for name in unique_names]
+        list_of_n = [list_of_compound_names.count(name) for name in unique_names]
+        if len(list_of_compounds) > 0:
+            print(box, list_of_compounds, list_of_n)
+            filled_boxes.append(
+                mb.packing.fill_box(
+                    list_of_compounds, list_of_n, box,
+                    seed=np.random.randint(0, 2 ** 31 - 1),
+                )
+            )
+    # Bottom next
+    for box_ID, box in enumerate(bottom_boxes):
+        n_mols = bottom_n[box_ID]
+        list_of_compound_names = list(
+            np.random.choice(reactant_components, size=n_mols, p=reactant_probs)
+        )
+        unique_names = list(set(list_of_compound_names))
+        list_of_compounds = [reactant_compounds[name] for name in unique_names]
+        list_of_n = [list_of_compound_names.count(name) for name in unique_names]
+        if len(list_of_compounds) > 0:
+            print(box, list_of_compounds, list_of_n)
+            filled_boxes.append(
+                mb.packing.fill_box(
+                    list_of_compounds, list_of_n, box,
+                    seed=np.random.randint(0, 2 ** 31 - 1),
+                )
+            )
+    return filled_boxes
 
 
 def check_bonds(morphology, bond_dict, box_dims):
