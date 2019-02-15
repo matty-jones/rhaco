@@ -1,12 +1,18 @@
 import copy
+from rhaco.definitions import ATOM_MASSES
 
 
-if __name__ == "__main__":
-    # Create a hybrid 3-element forcefield based on the silver forcefield
-    with open("./Ag_Zhou04.eam.alloy", "r") as original_FF:
+def update_EAM_forcefield(file_name, elements_list):
+    # Load the forcefield
+    with open(file_name, "r") as original_FF:
         FF_lines = original_FF.readlines()
+
     # Number of Elements Line
     n_elements = FF_lines[3]
+    # Update the element line
+    new_n_elements = len(elements_list)
+    FF_lines[3] = "{0} {1}\n".format(len(elements_list), " ".join(elements_list))
+
     # Number of Points Line
     n_points = FF_lines[4]
     split_n_points = n_points.split()
@@ -15,11 +21,10 @@ if __name__ == "__main__":
     nr = int(split_n_points[2])
     dr = float(split_n_points[3])
     cutoff = float(split_n_points[4])
-    # Update the element line
-    new_n_elements = 3
-    elements = ["Ag", "Al", "O"]
-    FF_lines[3] = "3 Ag Al O\n"
+
+    # Complete header
     file_header = FF_lines[:5]
+
     # First element line: Atomic Number, Atomic Mass (AMU), Lattice Constant (Ang), Lattice Type (fcc, bcc, etc.)
     first_element_line = [FF_lines[5]]
 
@@ -41,17 +46,16 @@ if __name__ == "__main__":
     print(first_element_emb_func[0], "...", first_element_emb_func[-1])
     print(first_element_dens_func[0], "...", first_element_dens_func[-1])
     print(first_element_potentials[0], "...", first_element_potentials[-1])
-    #FF_lines[3] = " ".join([new_n_elements] + [elements])
 
-    # Al
-    second_element_line = ["   ".join(["13", "{:24.16E}".format(26.981539), "{:24.16E}".format(0.0), "fcc\n"])]
-    # O
-    third_element_line = ["   ".join(["8", "{:24.16E}".format(15.999), "{:24.16E}".format(0.0), "fcc\n"])]
+    # Now create the additional element lines
+    new_element_lines = create_element_lines(
+        first_element_line, elements_list
+    )
 
     # Now we want to add in a ton of zeroes corresponding to the other interactions
-    blank_line = [" ".join(["{:24.16E}" * 5, "\n"]).format(*[0.0]*5)]
-
-
+    blank_line = [" ".join(["{:24.16E}" * numbers_per_line, "\n"]).format(
+        *[0.0] * numbers_per_line
+    )]
 
     # LAMMPS documentation http://www.afs.enea.it/software/lammps/doc15/pair_eam.html
     # and cross-checking with *.eam.alloy files available through NIST:
@@ -66,38 +70,82 @@ if __name__ == "__main__":
     # Element 3 emb fn
     # Element 3 dens fn
     # All potentials ([1, 1], [1, 2], [1, 3], [2, 2], [2, 3], [3, 3])
+    # For n elements, the number of potential sets we have is the nth triangle number
+    # = (n^{2} + n) / 2
 
     # For the potentials:
     # We already have E1-E1 interactions in first_element_potentials
-    # Add E1-E2 and E1-E3 interactions to forcefield
     potentials = copy.deepcopy(first_element_potentials)
-    # Firstly, Element 1 interacting with Element 2
-    potentials += blank_line * (nr // numbers_per_line)
-    # Then, Element 1 interacting with Element 3
-    potentials += blank_line * (nr // numbers_per_line)
-    # Now add in Element 2 interacting with Element 2
-    potentials += blank_line * (nr // numbers_per_line)
-    # Then, Element 2 interacting with Element 3
-    potentials += blank_line * (nr // numbers_per_line)
-    # And finally, Element 3 interacting with Element 3
-    potentials += blank_line * (nr // numbers_per_line)
+    # Add all the other interactions to forcefield
+    for _ in range(int(((new_n_elements ** 2) + new_n_elements) / 2) - 1):
+        potentials += blank_line * (nr // numbers_per_line)
+
+    # For the embedding function and the density function
+    embedding_function_lines = []
+    density_function_lines = []
+    for _ in range(new_n_elements):
+        embedding_function_lines.append(blank_line * (nrho // numbers_per_line))
+        density_function_lines.append(blank_line * (nrho // numbers_per_line))
+
+    # Now reformat the EAM components
+    print("Reformatting the EAM file components...")
+    reformatted_EAM = reformat_EAM_components(
+        file_header, new_element_lines, embedding_function_lines,
+        density_function_lines,
+    )
 
 
-    # Element 2:
-    # Firstly, we need the embedding function
-    second_element_emb_func = blank_line * (nrho // numbers_per_line)
-    # Then, the density function
-    second_element_dens_func = blank_line * (nrho // numbers_per_line)
+def create_element_lines(first_element_line, elements_list):
+    # OLD CODE:
+    # # Al
+    # second_element_line = ["   ".join(["13", "{:24.16E}".format(26.981539), "{:24.16E}".format(0.0), "fcc\n"])]
+    # # O
+    # third_element_line = ["   ".join(["8", "{:24.16E}".format(15.999), "{:24.16E}".format(0.0), "fcc\n"])]
+    additional_element_lines = first_element_line
+    for element in elements_list:
+        additional_element_lines.append(
+            ["   ".join(
+                [
+                    "13", "{:24.16E}".format(ATOM_MASSES[element]),
+                    "{:24.16E}".format(0.0), "fcc\n"
+                ]
+            )]
+        )
+    return additional_element_lines
 
-    # Element 3:
-    # Firstly, we need the embedding function
-    third_element_emb_func = blank_line * (nrho // numbers_per_line)
-    # Then, the density function
-    third_element_dens_func = blank_line * (nrho // numbers_per_line)
+
+def reformat_EAM_components(
+    file_header, element_lines, embed_func_lines, dens_func_lines,
+    new_numbers_per_line=4,
+):
+    new_FF_lines = file_header
+    for element_ID, element_line in enumerate(element_lines):
+        element_floats = [
+            list(map(float, embed_func_lines[element_ID][:-1].split())),
+            list(map(float, dens_func_lines[element_ID][:-1].split())),
+        ]
+        
+        
+        ***THIS IS WHERE I AM UP TO ***
+        new_line_format = "".join(["{:20.12E}" * new_numbers_per_line, "\n"])
+        new_FF_lines += element_names[elementID]
+        # Create a set of iterators of dynamic length to iterate through the number list
+        # effectively creating a rolling `window' of new_numbers_per_line to format
+        iterators = [[iter(element_floats[i::new_numbers_per_line]) for i in range(new_numbers_per_line)]]
+        line_of_floats = [list(zip(*iterator)) for iterator in iterators][0]
+        for values in line_of_floats:
+            new_FF_lines += new_line_format.format(*values)
+
+
+
+
+if __name__ == "__main__":
+    update_EAM_forcefield("Ag_Zhou04.eam.alloy", ["Ag", "Al", "O"])
+
+
 
 
     new_FF_lines = file_header
-    print("Reformatting the eam file components...")
     new_numbers_per_line = 4
     element_names = {0: first_element_line,
                      1: second_element_line,
@@ -112,14 +160,6 @@ if __name__ == "__main__":
         for element_props in element_properties[elementID]:
             for line in element_props:
                 element_floats += list(map(float, line[:-1].split()))
-        new_line_format = "".join(["{:20.12E}" * new_numbers_per_line, "\n"])
-        new_FF_lines += element_names[elementID]
-        # Create a set of iterators of dynamic length to iterate through the number list
-        # effectively creating a rolling `window' of new_numbers_per_line to format
-        iterators = [[iter(element_floats[i::new_numbers_per_line]) for i in range(new_numbers_per_line)]]
-        line_of_floats = [list(zip(*iterator)) for iterator in iterators][0]
-        for values in line_of_floats:
-            new_FF_lines += new_line_format.format(*values)
 
     # print("Concatenating the eam file components...")
     # # Now we have all the components needed to write the file:
