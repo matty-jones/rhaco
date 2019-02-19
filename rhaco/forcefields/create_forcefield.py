@@ -131,7 +131,6 @@ def reformat_EAM_components(
     new_FF_lines = file_header
     new_line_format = "".join(["{:20.12E}" * new_numbers_per_line, "\n"])
     for element_ID, element_line in enumerate(element_lines):
-        print([value for sublist in [list(map(float, line.split())) for line in embed_func_lines[element_ID]] for value in sublist])
         # Obtain a flat list of the floats for the embedding function
         embed = [
             value for sublist in
@@ -158,7 +157,6 @@ def reformat_EAM_components(
         for values in line_of_floats:
             new_FF_lines += new_line_format.format(*values)
     # Finally, add on the potentials to the end
-    print(potentials[:10])
     potn = [
         value for sublist in
         [list(map(float, line.split())) for line in potentials]
@@ -175,8 +173,6 @@ def reformat_EAM_components(
 
 
 def write_new_EAM_file(original_file_name, reformatted_EAM, elements_list):
-    print(elements_list)
-    print()
     file_name = original_file_name.replace(
         ".eam", "".join(["_".join(["_inc"] + elements_list), ".eam"])
     )
