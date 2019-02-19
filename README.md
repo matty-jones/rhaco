@@ -16,11 +16,12 @@
 
 ## Version History
 
-v1.4 - Combinations of positional, rigid, and flexible reactants can now be specified in the system. The --reactant_composition and --reactant_rigid options have been improved to reflect the new functionality.
-v1.3 - Added functionality for rigid bodies in HOOMD 2 (including orientation quaternions and moments of inertia tensor eigenvalues)
-v1.2 - Additional functionality added to permit the simulation of metallic nanoparticles on a surface.
-v1.1 - Rhaco generalized to work with other systems, specifically the interactions of polydimethylsiloxane on Ni-Mn-Ga shape memory alloy
-v1.0 - Release of Rhaco, set up for small hydrocarbon interactions on an M1 catalyst surface
+v1.4.1 - Merged in the ad-hoc "create_forcefield" script to the rhaco simulate pipeline so that the required EAM forcefield can be produced at runtime
+v1.4.0 - Combinations of positional, rigid, and flexible reactants can now be specified in the system. The --reactant_composition and --reactant_rigid options have been improved to reflect the new functionality.
+v1.3.0 - Added functionality for rigid bodies in HOOMD 2 (including orientation quaternions and moments of inertia tensor eigenvalues)
+v1.2.0 - Additional functionality added to permit the simulation of metallic nanoparticles on a surface.
+v1.1.0 - Rhaco generalized to work with other systems, specifically the interactions of polydimethylsiloxane on Ni-Mn-Ga shape memory alloy
+v1.0.0 - Release of Rhaco, set up for small hydrocarbon interactions on an M1 catalyst surface
 
 ## Important Citations
 

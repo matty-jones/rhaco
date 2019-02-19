@@ -29,7 +29,7 @@ defaults_dict = {
     "dimensions": [1, 1, 1],
     "template": "templateM1.pdb",
     "reactant_composition": {"C2H6": 1},
-    "reactant_rigid": False,
+    "reactant_rigid": [],
     "crystal_separation": 25.0,
     "z_reactor_size": 20.0,
     "reactant_num_mol": None,
@@ -503,18 +503,21 @@ def create_morphology(args):
         reactant_probs,
         reactant_components,
     )
-    reactant_box_list, rigid_positions = fill_boxes_with_reactants(
-        args,
-        top_regions,
-        bottom_regions,
-        top_reactant_n,
-        bottom_reactant_n,
-        reactant_probs,
-        reactant_components,
-        rigid_positions,
-    )
-    for system_component in reactant_box_list:
-        system.add(system_component)
+
+    # Skip adding reactant if the user didn't specify any
+    if np.sum(top_reactant_n + bottom_reactant_n) > 0:
+        reactant_box_list, rigid_positions = fill_boxes_with_reactants(
+            args,
+            top_regions,
+            bottom_regions,
+            top_reactant_n,
+            bottom_reactant_n,
+            reactant_probs,
+            reactant_components,
+            rigid_positions,
+        )
+        for system_component in reactant_box_list:
+            system.add(system_component)
 
     if "M1UnitCell.pdb" in args.template:
         # Check the separation of crystal and reactant that we will use later is
