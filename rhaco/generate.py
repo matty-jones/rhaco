@@ -29,7 +29,7 @@ defaults_dict = {
     "dimensions": [1, 1, 1],
     "template": "templateM1.pdb",
     "reactant_composition": {"C2H6": 1},
-    "reactant_rigid": False,
+    "reactant_rigid": [],
     "crystal_separation": 25.0,
     "z_reactor_size": 20.0,
     "reactant_num_mol": None,
