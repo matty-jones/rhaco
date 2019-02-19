@@ -9,6 +9,7 @@ import re
 import quaternion
 import numpy as np
 import xml.etree.cElementTree as ET
+from rhaco.modify_EAM_forcefield import update_EAM_forcefield
 from rhaco.definitions import ATOM_MASSES
 
 
@@ -113,20 +114,22 @@ def set_coeffs(
     ):
         for forcefield_loc in coeffs_dict["external_forcefields"]:
             print("Loading external forcefield:", "".join([forcefield_loc, "..."]))
-            if forcefield_loc[-7:] == ".eam.fs":
-                hoomd.metal.pair.eam(file=forcefield_loc, type="FS", nlist=nl)
-                if "pair_eam_energy" not in log_quantities:
-                    log_quantities.append("pair_eam_energy")
-            elif forcefield_loc[-10:] == ".eam.alloy":
-                hoomd.metal.pair.eam(file=forcefield_loc, type="Alloy", nlist=nl)
-                if "pair_eam_energy" not in log_quantities:
-                    log_quantities.append("pair_eam_energy")
-            else:
-                print("----==== UNABLE TO PARSE EXTERNAL FORCEFIELD ====----")
-                print(
-                    forcefield_loc,
-                    "is an unspecified file type and will be ignored."
-                    " Please code in how to treat this file in rhaco/simulate.py",
+            try:
+                log_quantities = load_external_forcefield(
+                    log_quantities, forcefield_loc, nl,
+                )
+            except RuntimeError:
+                # Even though it failed, the hoomd.context object got a new EAM force
+                # that we need to get rid of, otherwise it will crash
+                _ = hoomd.context.current.forces.pop(-1)
+                print("Constructing new zeroed-out EAM file to account for additional"
+                      " atom types, using the specified {}".format(forcefield_loc),
+                      "as a base...")
+                new_forcefield = update_EAM_forcefield(
+                    forcefield_loc, list(system.particles.types)
+                )
+                log_quantities = load_external_forcefield(
+                    log_quantities, new_forcefield, nl,
                 )
     for atomID, atom in enumerate(system.particles):
         atom.mass = coeffs_dict["mass"][atomID]
@@ -135,6 +138,25 @@ def set_coeffs(
     # pppm = hoomd.md.charge.pppm(group=hoomd.group.charged(), nlist = pppmnl)
     # pppm.set_params(Nx=64,Ny=64,Nz=64,order=6,rcut=2.70)
     return system, log_quantities
+
+
+def load_external_forcefield(log_quantities, forcefield_loc, nl):
+    if forcefield_loc[-7:] == ".eam.fs":
+        hoomd.metal.pair.eam(file=forcefield_loc, type="FS", nlist=nl)
+        if "pair_eam_energy" not in log_quantities:
+            log_quantities.append("pair_eam_energy")
+    elif forcefield_loc[-10:] == ".eam.alloy":
+        hoomd.metal.pair.eam(file=forcefield_loc, type="Alloy", nlist=nl)
+        if "pair_eam_energy" not in log_quantities:
+            log_quantities.append("pair_eam_energy")
+    else:
+        print("----==== UNABLE TO PARSE EXTERNAL FORCEFIELD ====----")
+        print(
+            forcefield_loc,
+            "is an unspecified file type and will be ignored."
+            " Please code in how to treat this file in rhaco/simulate.py",
+        )
+    return log_quantities
 
 
 def get_coeffs(file_name, generate_arguments):
