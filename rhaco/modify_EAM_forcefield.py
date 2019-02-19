@@ -4,6 +4,7 @@ from rhaco.definitions import ATOMIC_NUMBERS
 
 
 def update_EAM_forcefield(file_name, elements_list):
+    elements_list = sorted(elements_list)
     # Load the forcefield
     with open(file_name, "r") as original_FF:
         FF_lines = original_FF.readlines()
@@ -101,7 +102,8 @@ def update_EAM_forcefield(file_name, elements_list):
         potentials,
     )
     print("Writing the new EAM file...")
-    write_new_EAM_file(file_name, reformatted_EAM, elements_list)
+    new_file_name = write_new_EAM_file(file_name, reformatted_EAM, elements_list)
+    return new_file_name
 
 
 def create_element_lines(first_element_line, elements_list):
@@ -179,7 +181,8 @@ def write_new_EAM_file(original_file_name, reformatted_EAM, elements_list):
     with open(file_name, "w+") as new_FF_file:
         new_FF_file.writelines(reformatted_EAM)
     print("EAM file written to", file_name)
+    return file_name
 
 
 if __name__ == "__main__":
-    update_EAM_forcefield("Ag_Zhou04.eam.alloy", ["Ag", "Al", "O"])
+    _ = update_EAM_forcefield("Ag_Zhou04.eam.alloy", ["Ag", "Al", "O"])
