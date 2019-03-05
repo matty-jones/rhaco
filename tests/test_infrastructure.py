@@ -1,4 +1,4 @@
-import subprocess
+import subprocess as sp
 
 def test_imports():
     import rhaco
@@ -8,5 +8,5 @@ def test_imports():
     from rhaco import modify_EAM_forcefield
 
 def test_entry_points():
-    subprocess.Popen(["rhaco-create-morph", "-h"])
-    subprocess.Popen(["rhaco-run-hoomd", "-h"])
+    sp.Popen(["rhaco-create-morph", "-h"])
+    sp.Popen(["rhaco-run-hoomd", "-h"])
