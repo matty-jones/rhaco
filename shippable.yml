@@ -5,13 +5,6 @@ language: python
 python:
   - "3.5"
 
-integrations:
-  notifications:
-    - integrationName: slack
-      type: slack
-      recipients:
-        - "#rhaco"
-
 branches:
   only:
     - master
