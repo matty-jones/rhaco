@@ -27,7 +27,7 @@ build:
   cache_dir_list:
     - /opt/conda/envs/rhaco/
   pre_ci_boot:
-    image_name: cmelab/orca
+    image_name: cmelab/planckton
     image_tag: 0.0.2
     pull: true
   ci:
