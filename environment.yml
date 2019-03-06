@@ -1,4 +1,4 @@
-name: rhaco_test
+name: rhaco
 channels:
 - glotzer
 - cmelab
