@@ -4,6 +4,7 @@ channels:
 - cmelab
 - mosdef
 - omnia
+- conda-forge
 - defaults
 dependencies:
 - python=3.5.3
