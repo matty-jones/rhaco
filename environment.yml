@@ -18,5 +18,8 @@ dependencies:
 - cython
 - numba  
 - pytest
+- pytest-cov
+- PyYAML
+- codecov
 - pip:
     - numpy-quaternion
