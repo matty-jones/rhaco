@@ -17,5 +17,7 @@ dependencies:
 - signac-flow
 - gsd=1.5.2
 - cython
-- numpy-quaternion
+- quaternion
 - numba  
+- pip:
+    - numpy-quaternion
