@@ -22,6 +22,11 @@ import subprocess as sp
         {"--crystal_bonds": ""},
         {"--z_reactor_size": "10.0"},
     ],
+    ids=[
+        "M1_defaults", "stoichiometry_check", "dimension_check",
+        "plane_separation_check", "corundum_unit_cell_size_check",
+        "NiMnGa_forcefield_check", "crystal_bond_visualisation_check", "z_size_check",
+    ],
 )
 def create_morph(request):
     cmd = ["rhaco-create-morph"]
