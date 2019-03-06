@@ -7,7 +7,6 @@ channels:
 - defaults
 dependencies:
 - python=3.5.3
-- hoomd_dybond
 - mbuild=0.8.0
 - foyer=0.4.0
 - scipy=0.19.1
@@ -18,5 +17,6 @@ dependencies:
 - gsd=1.5.2
 - cython
 - numba  
+- pytest
 - pip:
     - numpy-quaternion

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 if [ -d /opt/conda/envs/rhaco ] && [ $BRANCH != 'master' ]; then
-	echo "Using Cache";
+    rm -rf /opt/conda/envs/rhaco
+	conda env create -f environment.yml;
 	source activate rhaco
 else
 	echo "Rebuilding Conda Env";
