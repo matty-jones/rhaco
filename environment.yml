@@ -1,4 +1,4 @@
-name: rhaco
+name: rhaco_test
 channels:
 - glotzer
 - cmelab
@@ -21,6 +21,7 @@ dependencies:
 - pytest
 - pytest-cov
 - PyYAML
+- coverage>=4.4
 - codecov
 - pip:
     - numpy-quaternion
