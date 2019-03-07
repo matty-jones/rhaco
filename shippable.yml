@@ -1,0 +1,31 @@
+#### CI CONFIG
+
+language: python
+
+python:
+  - "3.5"
+
+branches:
+  only:
+    - master
+    - dev
+
+env:
+  global:
+    - TRAVIS=False
+    - secure: wn45HQAnZAQLTxcCgB2FM5CV42smEUeSjNWSdyEWJ7wV//8KohOuSMjqmOyyL4qqCdLr06bWdygygZEZ1Rttf9+58tjT0NV/v6SkrjC3HfnrgLX6lf1WcFGYeN1LnFV/Wr0ogGktSw6LymYFM6K9o/aVtwSa9DMJJtvj6BkQ2AlIYItQ4dxh8a4WKfQUpTzKneHcP0WnPhmxJ0Fdz6p+HtQGcLxyiKLgEk4/7Jv0EibUIVXIOA6gIkt8cylCrHHTMDrySYnETiqnNhBwewtuSAgp+FBFdyPzmenr1VNmljNw+sQPN96MWZTqEJ4EBAs/AG1EAXGJtL9dMeedzDQ53Q==
+
+build:
+  cache: true
+  cache_dir_list:
+    - /opt/conda/envs/rhaco/
+  pre_ci_boot:
+    image_name: cmelab/planckton
+    image_tag: 0.0.2
+    pull: true
+  ci:
+    - source conda_cache_check.bash
+    - pip install -e .
+    - PYTEST_ADDOPTS="-c pytest-shippable.ini" pytest
+  on_success:
+    - bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN || echo "Codecov upload failed, coverage reports not updated!"
