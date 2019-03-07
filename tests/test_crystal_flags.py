@@ -19,7 +19,7 @@ import subprocess as sp
             "--crystal_y": "0.546", "--crystal_z": "0.658", "--dimensions": "10x10x2",
             "--integrate_crystal": "", "--forcefield": "NiMnGa_FF.xml",
         },
-        {"--crystal_bonds": ""},
+        {"--crystal_bonds": "", "--dimensions": "3x3x1"},
         {"--z_reactor_size": "10.0"},
     ],
     ids=[
