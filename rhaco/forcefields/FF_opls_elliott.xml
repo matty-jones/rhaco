@@ -9,6 +9,7 @@
   <Type name="V" class="V" element="V" mass="50.9415"  def="V" desc="elliott vanadium" doi="10.25950/962b4967"/>
   <Type name="He" class="HE" element="He" mass="4.0026"  def="He" desc="elliott helium" doi="10.25950/962b4967"/>
   <Type name="Al" class="AL" element="Al" mass="26.9815"  def="Al" desc="elliott aluminium" doi="10.25950/962b4967"/>
+  <Type name="Ag" class="AG" element="Ag" mass="107.8682"  def="Ag" desc="elliott silver" doi="10.25950/962b4967"/>
  </AtomTypes>
  <HarmonicBondForce>
   <Bond class1="CT" class2="HC" length="0.109" k="284512.0"/>
@@ -31,5 +32,6 @@
   <Atom type="V" charge="0.00" sigma="0.2726" epsilon="265.5748"/>
   <Atom type="He" charge="0.00" sigma="0.0499" epsilon="0.0909"/>
   <Atom type="Al" charge="0.00" sigma="0.2156" epsilon="260.5750"/>
+  <Atom type="Ag" charge="0.00" sigma="0.2584" epsilon="159.1776"/>
  </NonbondedForce>
 </ForceField>
