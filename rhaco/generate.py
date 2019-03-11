@@ -697,15 +697,29 @@ def calculate_box_exclusions(top_half, bottom_half, exclusions):
 
 
 def calculate_critical_points(large_box, exclusions):
+    # RHACO v1.5 UPDATE: I'm changing the way this works to make it easier to implement
+    # and reduce the issues with edge cases.
+    # Now, just look at all of the exclusions and create one box that encompasses all
+    # of them, then create the critical_list from that. Multiple exclusion boxes in
+    # the criticals list just causes all sorts of headaches.
+    agg_mins = np.amin(np.array([box.mins for box in exclusions]), axis=0)
+    agg_maxs = np.amax(np.array([box.maxs for box in exclusions]), axis=0)
+    master_exclusion_box = mb.Box(mins=agg_mins, maxs=agg_maxs)
     critical_list = []
     for axis in range(3):
         critical_points = [large_box.mins[axis]]
-        for box in exclusions:
-            if (box.mins[axis] > large_box.mins[axis]) and (
-                box.maxs[axis] < large_box.maxs[axis]
-            ):
-                critical_points.append(box.mins[axis])
-                critical_points.append(box.maxs[axis])
+        # Only add the exclusion box in if the exclusion box exists with the confines
+        # of the "large_box"
+        if (
+            (master_exclusion_box.mins[axis] > large_box.mins[axis])
+            and (master_exclusion_box.mins[axis] < large_box.maxs[axis])
+        ):
+            critical_points.append(master_exclusion_box.mins[axis])
+        if (
+            (master_exclusion_box.maxs[axis] > large_box.mins[axis])
+            and (master_exclusion_box.maxs[axis] < large_box.maxs[axis])
+        ):
+            critical_points.append(master_exclusion_box.maxs[axis])
         critical_points.append(large_box.maxs[axis])
         critical_list.append(sorted(critical_points))
     return critical_list
@@ -717,6 +731,12 @@ def calculate_cubelets(criticals):
     for x_index in range(len(criticals[0]) - 1):
         for y_index in range(len(criticals[1]) - 1):
             for z_index in range(len(criticals[2]) - 1):
+                min_x = criticals[0][x_index]
+                max_x = criticals[0][x_index + 1]
+                min_y = criticals[1][y_index]
+                max_y = criticals[1][y_index + 1]
+                min_z = criticals[2][z_index]
+                max_z = criticals[2][z_index + 1]
                 # Since each critical point is of the form:
                 # [solvent_box_start, solvent_box_end, solvent_box_start,...] along
                 # each axis, if x_index, y_index, and z_index are ALL odd, then we are
@@ -724,12 +744,21 @@ def calculate_cubelets(criticals):
                 # skip it
                 if (x_index % 2) + (y_index % 2) + (z_index % 2) == 3:
                     continue
-                min_x = criticals[0][x_index]
-                max_x = criticals[0][x_index + 1]
-                min_y = criticals[1][y_index]
-                max_y = criticals[1][y_index + 1]
-                min_z = criticals[2][z_index]
-                max_z = criticals[2][z_index + 1]
+                # In the case that some exclusions have the same coordinates along a
+                # certain axis, we should also skip those too
+                # For instance:
+                #
+                #      XXXXX     XXXXX
+                #      XXXXX     XXXXX
+                #      XXXXX     XXXXX
+                #
+                # CCCCCCCCCCCCCCCCCCCCCCCCCC
+                if (
+                    (np.isclose(min_x, max_x)) or (np.isclose(min_y, max_y))
+                    or (np.isclose(min_z, max_z))
+                ):
+                    continue
+
                 cubelets.append(
                     mb.Box(mins=[min_x, min_y, min_z], maxs=[max_x, max_y, max_z])
                 )
