@@ -1437,7 +1437,10 @@ def main():
                         (10.1007/s11244-006-0068-8))\n
                         For example: -xz 0.400321.\n""",
     )
-    args = parser.parse_args()
+    args, unknown_args = parser.parse_known_args()
+    if len(unknown_args) > 0:
+        print("UNKNOWN ARGUMENTS PASSED:", unknown_args)
+        print("Continuing...")
     if args.gecko:
         print(
             zlib.decompress(
