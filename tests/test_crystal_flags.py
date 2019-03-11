@@ -46,8 +46,8 @@ def create_morph(request):
             cmd.append(val)
     create_morph_job = sp.Popen(cmd, stdout=sp.PIPE)
     shell_output = create_morph_job.communicate()
+    print(shell_output)
     output_file_name_line = shell_output[0].decode("utf-8").split("\n")[-3]
-    print(output_file_name_line)
     output_file = output_file_name_line.split("XML file written to ")[1][:-1]
     return os.path.abspath(output_file)
 
