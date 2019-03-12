@@ -448,22 +448,6 @@ def create_morphology(args):
         print("Positional reactant will be ignored.")
         positional_reactant = None
 
-    # Deal with the positional reactants
-    positional_bounding_boxes = []
-    if args.reactant_position is not None:
-        for _, position in enumerate(args.reactant_position):
-            positional_reactant_compound = mbuild_template(
-                positional_reactant,
-                positional_reactant in args.reactant_rigid,
-                rolling_rigid_body_index,
-            )
-            positional_reactant_compound.translate_to(np.array(position))
-            positional_bounding_boxes.append(positional_reactant_compound.boundingbox)
-            system.add(positional_reactant_compound)
-            rolling_rigid_body_index += int(positional_reactant in args.reactant_rigid)
-        if positional_reactant_compound.rigid_positions is not None:
-            rigid_positions.append(positional_reactant_compound.rigid_positions)
-
     # Define the regions that the hydrocarbons can go in, so we don't end
     # up with them between layers (or inside the positional reactant). I also add a
     # buffer in the z direction of a couple of angstroms to prevent reactants from
@@ -501,9 +485,27 @@ def create_morphology(args):
         ],
     )
 
-    top_regions, bottom_regions = calculate_box_exclusions(
-        top_half, bottom_half, positional_bounding_boxes
-    )
+    # Deal with the positional reactants
+    positional_bounding_boxes = []
+    if args.reactant_position is not None:
+        for _, position in enumerate(args.reactant_position):
+            positional_reactant_compound = mbuild_template(
+                positional_reactant,
+                positional_reactant in args.reactant_rigid,
+                rolling_rigid_body_index,
+            )
+            positional_reactant_compound.translate_to(np.array(position))
+            positional_bounding_boxes.append(positional_reactant_compound.boundingbox)
+            system.add(positional_reactant_compound)
+            rolling_rigid_body_index += int(positional_reactant in args.reactant_rigid)
+        if positional_reactant_compound.rigid_positions is not None:
+            rigid_positions.append(positional_reactant_compound.rigid_positions)
+        top_regions, bottom_regions = calculate_box_exclusions(
+            top_half, bottom_half, positional_bounding_boxes
+        )
+    else:
+        top_regions = [top_half]
+        bottom_regions = [bottom_half]
 
     top_reactant_n, bottom_reactant_n = calculate_reactant_quantities(
         args,
