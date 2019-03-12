@@ -148,6 +148,7 @@ def set_coeffs(
                 print("Constructing new zeroed-out EAM file to account for additional"
                       " atom types, using the specified {}".format(forcefield_loc),
                       "as a base...")
+                print(system.particles.types)
                 new_forcefield = update_EAM_forcefield(
                     forcefield_loc, list(system.particles.types)
                 )
