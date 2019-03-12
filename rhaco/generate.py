@@ -495,7 +495,13 @@ def create_morphology(args):
                 rolling_rigid_body_index,
             )
             positional_reactant_compound.translate_to(np.array(position))
-            positional_bounding_boxes.append(positional_reactant_compound.boundingbox)
+            tight_bb = positional_reactant_compound.boundingbox
+            # Create a loose bounding box with a buffer of 3A along every axis
+            loose_bb = mb.Box(
+                mins = tight_bb.mins - 0.3,
+                maxs = tight_bb.maxs + 0.3,
+            )
+            positional_bounding_boxes.append(loose_bb)
             system.add(positional_reactant_compound)
             rolling_rigid_body_index += int(positional_reactant in args.reactant_rigid)
         if positional_reactant_compound.rigid_positions is not None:
@@ -716,6 +722,12 @@ def calculate_critical_points(large_box, exclusions):
     # the criticals list just causes all sorts of headaches.
     agg_mins = np.amin(np.array([box.mins for box in exclusions]), axis=0)
     agg_maxs = np.amax(np.array([box.maxs for box in exclusions]), axis=0)
+    # Truncate the agg box so that it doesn't span larger than the large_box
+    for axis in range(3):
+        if agg_mins[axis] < large_box.mins[axis]:
+            agg_mins[axis] = large_box.mins[axis]
+        if agg_maxs[axis] > large_box.maxs[axis]:
+            agg_maxs[axis] = large_box.maxs[axis]
     master_exclusion_box = mb.Box(mins=agg_mins, maxs=agg_maxs)
     critical_list = []
     for axis in range(3):
@@ -723,13 +735,13 @@ def calculate_critical_points(large_box, exclusions):
         # Only add the exclusion box in if the exclusion box exists with the confines
         # of the "large_box"
         if (
-            (master_exclusion_box.mins[axis] > large_box.mins[axis])
-            and (master_exclusion_box.mins[axis] < large_box.maxs[axis])
+            (master_exclusion_box.mins[axis] >= large_box.mins[axis])
+            and (master_exclusion_box.mins[axis] <= large_box.maxs[axis])
         ):
             critical_points.append(master_exclusion_box.mins[axis])
         if (
-            (master_exclusion_box.maxs[axis] > large_box.mins[axis])
-            and (master_exclusion_box.maxs[axis] < large_box.maxs[axis])
+            (master_exclusion_box.maxs[axis] >= large_box.mins[axis])
+            and (master_exclusion_box.maxs[axis] <= large_box.maxs[axis])
         ):
             critical_points.append(master_exclusion_box.maxs[axis])
         critical_points.append(large_box.maxs[axis])
