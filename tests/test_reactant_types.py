@@ -94,6 +94,8 @@ class TestCreateMorphology():
                     "Expected the file ",
                     str(file_name),
                     " to exist, but it doesn't.",
+                    " Current directory file list: ",
+                    repr(os.listdir(directory)),
                 ]
             )
-            #os.remove(file_name)
+            os.remove(file_name)
