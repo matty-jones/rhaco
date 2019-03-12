@@ -6,25 +6,26 @@ import subprocess as sp
 @pytest.fixture(
     scope="module",
     params=[
-        #{"--dimensions": "3x3x1", "--z_reactor_size": "15.0", "--crystal_separation": "9.0", "--reactant_composition": "{'C2H6': 1.0}", "--reactant_num_mol": "10", "--forcefield": "FF_opls_uff"},
-        #{"--dimensions": "3x3x1", "--z_reactor_size": "15.0", "--crystal_separation": "9.0", "--reactant_composition": "{'C2H6': 1.0}", "--reactant_density": "0.005", "--forcefield": "FF_opls_uff"},
-        #{"--dimensions": "3x3x1", "--z_reactor_size": "15.0", "--crystal_separation": "9.0", "--reactant_composition": "{'perylene': 1.0}", "--reactant_density": "0.05", "--reactant_rigid": "['perylene']", "--forcefield": "FF_opls_uff_aromatic"},
-        #{"--dimensions": "3x3x1", "--z_reactor_size": "15.0", "--crystal_separation": "9.0", "--reactant_composition": "{'Ag_5nm': 'pos'}", "--reactant_position": "[[0.0, 0.0, 3.5]]", "--forcefield": "FF_opls_uff_aromatic"},
-        #{"--dimensions": "3x3x1", "--z_reactor_size": "15.0", "--crystal_separation": "9.0", "--reactant_composition": "{'C2H6': 1.0, 'perylene': 1.0}", "--reactant_density": "0.05", "--reactant_rigid": "['perylene']", "--forcefield": "FF_opls_uff_aromatic"},
-        #{"--dimensions": "3x3x1", "--z_reactor_size": "15.0", "--crystal_separation": "9.0", "--reactant_composition": "{'C2H6': 1.0, 'Ag_5nm': 'pos'}", "--reactant_density": "0.05", "--reactant_position": "[[0.0, 0.0, 3.5]]", "--forcefield": "FF_opls_uff_aromatic"},
-        #{"--dimensions": "3x3x1", "--z_reactor_size": "15.0", "--crystal_separation": "9.0", "--reactant_composition": "{'perylene': 1.0, 'Ag_5nm': 'pos'}", "--reactant_density": "0.05", "--reactant_rigid": "['perylene']", "--reactant_position": "[[0.0, 0.0, 3.5]]", "--forcefield": "FF_opls_uff_aromatic"},
-        #{"--dimensions": "3x3x1", "--z_reactor_size": "15.0", "--crystal_separation": "9.0", "--reactant_composition": "{'C2H6': 1.0, 'perylene': 1.0, 'Ag_5nm': 'pos'}", "--reactant_density": "0.05", "--reactant_rigid": "['perylene']", "--reactant_position": "[[0.0, 0.0, 3.5]]", "--forcefield": "FF_opls_uff_aromatic"},
-        #{"--dimensions": "7x3x1", "--z_reactor_size": "15.0", "--crystal_separation": "9.0", "--reactant_composition": "{'C2H6': 1.0, 'perylene': 1.0, 'Ag_5nm': 'pos'}", "--reactant_density": "0.05", "--reactant_rigid": "['perylene']", "--reactant_position": "[[-3.0, 0.0, 3.5], [3.0, 0.0, 3.5]]", "--forcefield": "FF_opls_uff_aromatic"},
-        #{"--template": "Ag_surface.pdb", "--dimensions": "10x10x1", "--z_reactor_size": "15.0", "--crystal_separation": "9.0", "--reactant_composition": "{'Ag_5nm': 'pos'}", "--reactant_position": "[[0.0, 0.0, 4.5]]", "--forcefield": "Ag_Zhou04.eam.alloy", "--crystal_x": "0.781", "--crystal_y": "0.781", "--crystal_z": "0.644"},
-        #{"--template": "corundum.pdb", "--dimensions": "15x15x1", "--z_reactor_size": "15.0", "--crystal_separation": "15.0", "--reactant_composition": "{'Ag_5nm': 'pos'}", "--reactant_position": "[[0.0, 0.0, 4.5]]", "--forcefield": "Ag_Zhou04.eam.alloy", "--crystal_x": "0.4759", "--crystal_y": "0.4759", "--crystal_z": "1.299"},
+        {"--dimensions": "3x3x1", "--z_reactor_size": "15.0", "--crystal_separation": "9.0", "--reactant_composition": "{'C2H6': 1.0}", "--reactant_num_mol": "10", "--forcefield": "FF_opls_uff"},
+        {"--dimensions": "3x3x1", "--z_reactor_size": "15.0", "--crystal_separation": "9.0", "--reactant_composition": "{'C2H6': 1.0}", "--reactant_density": "0.005", "--forcefield": "FF_opls_uff"},
+        {"--dimensions": "3x3x1", "--z_reactor_size": "15.0", "--crystal_separation": "9.0", "--reactant_composition": "{'perylene': 1.0}", "--reactant_density": "0.05", "--reactant_rigid": "['perylene']", "--forcefield": "FF_opls_uff_aromatic"},
+        {"--dimensions": "3x3x1", "--z_reactor_size": "15.0", "--crystal_separation": "9.0", "--reactant_composition": "{'Ag_5nm': 'pos'}", "--reactant_position": "[[0.0, 0.0, 3.5]]", "--forcefield": "FF_opls_uff_aromatic"},
+        {"--dimensions": "3x3x1", "--z_reactor_size": "15.0", "--crystal_separation": "9.0", "--reactant_composition": "{'C2H6': 1.0, 'perylene': 1.0}", "--reactant_density": "0.05", "--reactant_rigid": "['perylene']", "--forcefield": "FF_opls_uff_aromatic"},
+        {"--dimensions": "3x3x1", "--z_reactor_size": "15.0", "--crystal_separation": "9.0", "--reactant_composition": "{'C2H6': 1.0, 'Ag_5nm': 'pos'}", "--reactant_density": "0.05", "--reactant_position": "[[0.0, 0.0, 3.5]]", "--forcefield": "FF_opls_uff_aromatic"},
+        {"--dimensions": "3x3x1", "--z_reactor_size": "15.0", "--crystal_separation": "9.0", "--reactant_composition": "{'perylene': 1.0, 'Ag_5nm': 'pos'}", "--reactant_density": "0.05", "--reactant_rigid": "['perylene']", "--reactant_position": "[[0.0, 0.0, 3.5]]", "--forcefield": "FF_opls_uff_aromatic"},
+        {"--dimensions": "3x3x1", "--z_reactor_size": "15.0", "--crystal_separation": "9.0", "--reactant_composition": "{'C2H6': 1.0, 'perylene': 1.0, 'Ag_5nm': 'pos'}", "--reactant_density": "0.05", "--reactant_rigid": "['perylene']", "--reactant_position": "[[0.0, 0.0, 3.5]]", "--forcefield": "FF_opls_uff_aromatic"},
+        {"--dimensions": "7x3x1", "--z_reactor_size": "15.0", "--crystal_separation": "9.0", "--reactant_composition": "{'C2H6': 1.0, 'perylene': 1.0, 'Ag_5nm': 'pos'}", "--reactant_density": "0.05", "--reactant_rigid": "['perylene']", "--reactant_position": "[[-3.0, 0.0, 3.5], [3.0, 0.0, 3.5]]", "--forcefield": "FF_opls_uff_aromatic"},
+        {"--template": "Ag_surface.pdb", "--dimensions": "10x10x1", "--z_reactor_size": "15.0", "--crystal_separation": "9.0", "--reactant_composition": "{'Ag_5nm': 'pos'}", "--reactant_position": "[[0.0, 0.0, 4.5]]", "--forcefield": "Ag_Zhou04.eam.alloy", "--crystal_x": "0.781", "--crystal_y": "0.781", "--crystal_z": "0.644"},
+        {"--template": "corundum.pdb", "--dimensions": "15x15x1", "--z_reactor_size": "15.0", "--crystal_separation": "15.0", "--reactant_composition": "{'Ag_5nm': 'pos'}", "--reactant_position": "[[0.0, 0.0, 4.5]]", "--forcefield": "Ag_Zhou04.eam.alloy", "--crystal_x": "0.4759", "--crystal_y": "0.4759", "--crystal_z": "1.299"},
         {"--template": "corundum.pdb", "--dimensions": "15x15x1", "--z_reactor_size": "15.0", "--crystal_separation": "15.0", "--reactant_composition": "{'Ag_5nm': 'pos', 'C2H6': 1}", "--reactant_position": "[[0.0, 0.0, 4.5]]", "--reactant_density": "0.05", "--forcefield": "['Ag_Zhou04.eam.alloy', 'FF_opls_elliott.xml']", "--crystal_x": "0.4759", "--crystal_y": "0.4759", "--crystal_z": "1.299", "--omit_lj": "['Ag-Ag']"},
+        #{"--template": "corundum.pdb", "--dimensions": "15x15x1", "--z_reactor_size": "15.0", "--crystal_separation": "15.0", "--reactant_composition": "{'Ag_5nm': 'pos', 'perylene': 1}", "--reactant_position": "[[0.0, 0.0, 4.5]]", "--reactant_density": "0.05", "--reactant_rigid": "['perylene']", "--forcefield": "['Ag_Zhou04.eam.alloy', 'FF_opls_elliott_aromatic.xml']", "--crystal_x": "0.4759", "--crystal_y": "0.4759", "--crystal_z": "1.299", "--omit_lj": "['Ag-Ag']"},
     ],
-    # ids=[
-    #     "M1_flex_num", "M1_flex_dens", "M1_rig", "M1_pos", "M1_flex_rig",
-    #     "M1_flex_pos", "M1_rigid_pos", "M1_flex_rig_pos", "M1_flex_rig_pos_large",
-    #"EAM_complete",
-    #     "EAM_incomplete", "EAM_UFF_flex", "EAM_UFF_rig",
-    # ],
+    ids=[
+        "M1_flex_num", "M1_flex_dens", "M1_rig", "M1_pos", "M1_flex_rig",
+        "M1_flex_pos", "M1_rigid_pos", "M1_flex_rig_pos", "M1_flex_rig_pos_large",
+        "EAM_complete", "EAM_incomplete", "EAM_UFF_flex",
+        #"EAM_UFF_rig",
+    ],
 )
 def create_morph(request):
     cmd = ["rhaco-create-morph"]
