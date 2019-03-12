@@ -465,12 +465,17 @@ def create_morphology(args):
             rigid_positions.append(positional_reactant_compound.rigid_positions)
 
     # Define the regions that the hydrocarbons can go in, so we don't end
-    # up with them between layers (or inside the positional reactant)
+    # up with them between layers (or inside the positional reactant). I also add a
+    # buffer in the z direction of a couple of angstroms to prevent reactants from
+    # appearing inside the surface.
     top_half = mb.Box(
         mins=[
             -(args.crystal_x * args.dimensions[0]) / 2.0,
             -(args.crystal_y * args.dimensions[1]) / 2.0,
-            args.crystal_separation / 20.0 + (args.crystal_z * args.dimensions[2]),
+            (
+                (args.crystal_separation / 20.0)
+                + ((args.dimensions[2] * args.crystal_z) / 2.0) + 0.3
+            ),
         ],
         maxs=[
             (args.crystal_x * args.dimensions[0]) / 2.0,
@@ -487,7 +492,12 @@ def create_morphology(args):
         maxs=[
             (args.crystal_x * args.dimensions[0]) / 2.0,
             (args.crystal_y * args.dimensions[1]) / 2.0,
-            -args.crystal_separation / 20.0 - (args.crystal_z * args.dimensions[2]),
+            (
+                -(
+                    (args.crystal_separation / 20.0)
+                    + ((args.dimensions[2] * args.crystal_z) / 2.0) + 0.3
+                )
+            )
         ],
     )
 
