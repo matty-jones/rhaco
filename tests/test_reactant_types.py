@@ -38,15 +38,18 @@ def create_morph(request):
             cmd.append(val)
     create_morph_job = sp.Popen(cmd, stdout=sp.PIPE)
     shell_output = create_morph_job.communicate()
-    print(cmd)
-    print(shell_output)
+    cmd_string = ""
+    for element in cmd:
+        if " " in element:
+            cmd_string = " ".join([cmd_string, repr(element)])
+        else:
+            cmd_string = " ".join([cmd_string, element])
+    print(cmd_string)
+    print(shell_output[0].decode("utf-8"))
     output_file_name_line = shell_output[0].decode("utf-8").split("\n")[-3]
     output_file = output_file_name_line.split("XML file written to ")[1][:-1]
     simulate_arguments = None
-    print("\n\n\n --== FLAGS DICT ==--")
-    print(flags_dict)
     if "--omit_lj" in flags_dict.keys():
-        print(flags_dict["--omit_lj"])
         simulate_arguments = {"--omit_lj": flags_dict["--omit_lj"]}
     return os.path.abspath(output_file), simulate_arguments
 
