@@ -1468,6 +1468,16 @@ def main():
             ).decode("utf-8")
         )
         exit()
+    if (len(args.reactant_rigid) > 0) and (len(args.forcefield[1]) > 0):
+        print("*** ERROR ***")
+        print(
+            "It is not currently possible to combine EAM forcefields with rigid"
+            " reactants"
+        )
+        raise SystemError(
+            "Please use only flexible reactants when specifying an external (EAM)"
+            " forcefield."
+        )
     print("The run arguments for this job are:")
     print(print(args))
     create_morphology(args)
