@@ -20,6 +20,7 @@
 
 ## Version History
 
+v1.5.0 - Created unit tests and made several bug fixes for production use
 v1.4.1 - Merged in the ad-hoc "create_forcefield" script to the rhaco simulate pipeline so that the required EAM forcefield can be produced at runtime
 v1.4.0 - Combinations of positional, rigid, and flexible reactants can now be specified in the system. The --reactant_composition and --reactant_rigid options have been improved to reflect the new functionality.
 v1.3.0 - Added functionality for rigid bodies in HOOMD 2 (including orientation quaternions and moments of inertia tensor eigenvalues)
