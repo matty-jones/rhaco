@@ -99,3 +99,7 @@ class TestCreateMorphology():
                 ]
             )
             os.remove(file_name)
+        optional_cleanup_files = ["err.txt", "log.txt"]
+        for file_name in optional_cleanup_files:
+            if os.path.isfile(file_name):
+                os.remove(file_name)
