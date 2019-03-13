@@ -20,9 +20,29 @@ AMU_TO_KG = 1.6605E-27
 ANG_TO_M = 1E-10
 
 
+def parse_interactions(omit_string):
+    omit_list = []
+    if (omit_string[0] == "[") and (omit_string[-1] == "]"):
+        omit_string = omit_string[1:-1]
+    if "," in omit_string:
+        omit_string = "".join(omit_string.split(" "))
+        omit_string = omit_string.split(",")
+    else:
+        omit_string = omit_string.split()
+    for interaction in omit_string:
+        if (interaction[0] == "'") and (interaction[-1] == "'"):
+            omit_list.append(interaction[1:-1])
+        elif (interaction[0] == '"') and (interaction[-1] == '"'):
+            omit_list.append(interaction[1:-1])
+        else:
+            omit_list.append(interaction)
+    return omit_list
+
+
 def set_coeffs(
     file_name,
     system,
+    omit_lj,
     distance_scaling,
     energy_scaling,
     nl_type,
@@ -59,9 +79,12 @@ def set_coeffs(
         for type1 in coeffs_dict["pair_coeffs"]:
             for type2 in coeffs_dict["pair_coeffs"]:
                 if (
-                    not generate_arguments["integrate_crystal"]
-                    and type1[0][:2] == "X_"
-                    and type2[0][:2] == "X_"
+                    (
+                        not generate_arguments["integrate_crystal"]
+                        and type1[0][:2] == "X_"
+                        and type2[0][:2] == "X_"
+                    )
+                    or ("-".join([type1[0], type2[0]]) in omit_lj)
                 ):
                     lj_r_cut = 0.0
                 else:
@@ -125,6 +148,7 @@ def set_coeffs(
                 print("Constructing new zeroed-out EAM file to account for additional"
                       " atom types, using the specified {}".format(forcefield_loc),
                       "as a base...")
+                print(system.particles.types)
                 new_forcefield = update_EAM_forcefield(
                     forcefield_loc, list(system.particles.types)
                 )
@@ -310,6 +334,8 @@ def rename_crystal_types(snapshot, generate_arguments):
     ):
         print("Renaming crystal atoms to remove the X_ for EAM...")
         snapshot.particles.types = new_types
+        for AAID, old_type in enumerate(snapshot.particles.typeid):
+            snapshot.particles.typeid[AAID] = mapping[old_type]
     print("The catalyst group is", catalyst)
     print("The gas group is", gas)
     return snapshot, catalyst, gas
@@ -638,6 +664,13 @@ def main():
         help="""The thermostat coupling to use when running
                         the NVT MD simulation.\n""",
     )
+    parser.add_argument('-o', '--omit_lj',
+                        type=parse_interactions,
+                        default=[],
+                        required=False,
+                        help='''A list of lj interactions to omit from the
+                        rhaco-generated input hoomdxml (useful when using EAM).\n
+                        If unspecified, all interactions are considered''')
     parser.add_argument(
         "-e",
         "--energy_scale_unit",
@@ -748,6 +781,7 @@ def main():
         system, log_quantities = set_coeffs(
             file_name,
             system,
+            args.omit_lj,
             args.distance_scale_unit,
             args.energy_scale_unit,
             args.nl_type,

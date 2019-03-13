@@ -448,29 +448,18 @@ def create_morphology(args):
         print("Positional reactant will be ignored.")
         positional_reactant = None
 
-    # Deal with the positional reactants
-    positional_bounding_boxes = []
-    if args.reactant_position is not None:
-        for _, position in enumerate(args.reactant_position):
-            positional_reactant_compound = mbuild_template(
-                positional_reactant,
-                positional_reactant in args.reactant_rigid,
-                rolling_rigid_body_index,
-            )
-            positional_reactant_compound.translate_to(np.array(position))
-            positional_bounding_boxes.append(positional_reactant_compound.boundingbox)
-            system.add(positional_reactant_compound)
-            rolling_rigid_body_index += int(positional_reactant in args.reactant_rigid)
-        if positional_reactant_compound.rigid_positions is not None:
-            rigid_positions.append(positional_reactant_compound.rigid_positions)
-
     # Define the regions that the hydrocarbons can go in, so we don't end
-    # up with them between layers (or inside the positional reactant)
+    # up with them between layers (or inside the positional reactant). I also add a
+    # buffer in the z direction of a couple of angstroms to prevent reactants from
+    # appearing inside the surface.
     top_half = mb.Box(
         mins=[
             -(args.crystal_x * args.dimensions[0]) / 2.0,
             -(args.crystal_y * args.dimensions[1]) / 2.0,
-            args.crystal_separation / 20.0 + (args.crystal_z * args.dimensions[2]),
+            (
+                (args.crystal_separation / 20.0)
+                + ((args.dimensions[2] * args.crystal_z) / 2.0) + 0.3
+            ),
         ],
         maxs=[
             (args.crystal_x * args.dimensions[0]) / 2.0,
@@ -487,13 +476,42 @@ def create_morphology(args):
         maxs=[
             (args.crystal_x * args.dimensions[0]) / 2.0,
             (args.crystal_y * args.dimensions[1]) / 2.0,
-            -args.crystal_separation / 20.0 - (args.crystal_z * args.dimensions[2]),
+            (
+                -(
+                    (args.crystal_separation / 20.0)
+                    + ((args.dimensions[2] * args.crystal_z) / 2.0) + 0.3
+                )
+            )
         ],
     )
 
-    top_regions, bottom_regions = calculate_box_exclusions(
-        top_half, bottom_half, positional_bounding_boxes
-    )
+    # Deal with the positional reactants
+    positional_bounding_boxes = []
+    if args.reactant_position is not None:
+        for _, position in enumerate(args.reactant_position):
+            positional_reactant_compound = mbuild_template(
+                positional_reactant,
+                positional_reactant in args.reactant_rigid,
+                rolling_rigid_body_index,
+            )
+            positional_reactant_compound.translate_to(np.array(position))
+            tight_bb = positional_reactant_compound.boundingbox
+            # Create a loose bounding box with a buffer of 3A along every axis
+            loose_bb = mb.Box(
+                mins = tight_bb.mins - 0.3,
+                maxs = tight_bb.maxs + 0.3,
+            )
+            positional_bounding_boxes.append(loose_bb)
+            system.add(positional_reactant_compound)
+            rolling_rigid_body_index += int(positional_reactant in args.reactant_rigid)
+        if positional_reactant_compound.rigid_positions is not None:
+            rigid_positions.append(positional_reactant_compound.rigid_positions)
+        top_regions, bottom_regions = calculate_box_exclusions(
+            top_half, bottom_half, positional_bounding_boxes
+        )
+    else:
+        top_regions = [top_half]
+        bottom_regions = [bottom_half]
 
     top_reactant_n, bottom_reactant_n = calculate_reactant_quantities(
         args,
@@ -697,15 +715,35 @@ def calculate_box_exclusions(top_half, bottom_half, exclusions):
 
 
 def calculate_critical_points(large_box, exclusions):
+    # RHACO v1.5 UPDATE: I'm changing the way this works to make it easier to implement
+    # and reduce the issues with edge cases.
+    # Now, just look at all of the exclusions and create one box that encompasses all
+    # of them, then create the critical_list from that. Multiple exclusion boxes in
+    # the criticals list just causes all sorts of headaches.
+    agg_mins = np.amin(np.array([box.mins for box in exclusions]), axis=0)
+    agg_maxs = np.amax(np.array([box.maxs for box in exclusions]), axis=0)
+    # Truncate the agg box so that it doesn't span larger than the large_box
+    for axis in range(3):
+        if agg_mins[axis] < large_box.mins[axis]:
+            agg_mins[axis] = large_box.mins[axis]
+        if agg_maxs[axis] > large_box.maxs[axis]:
+            agg_maxs[axis] = large_box.maxs[axis]
+    master_exclusion_box = mb.Box(mins=agg_mins, maxs=agg_maxs)
     critical_list = []
     for axis in range(3):
         critical_points = [large_box.mins[axis]]
-        for box in exclusions:
-            if (box.mins[axis] > large_box.mins[axis]) and (
-                box.maxs[axis] < large_box.maxs[axis]
-            ):
-                critical_points.append(box.mins[axis])
-                critical_points.append(box.maxs[axis])
+        # Only add the exclusion box in if the exclusion box exists with the confines
+        # of the "large_box"
+        if (
+            (master_exclusion_box.mins[axis] >= large_box.mins[axis])
+            and (master_exclusion_box.mins[axis] <= large_box.maxs[axis])
+        ):
+            critical_points.append(master_exclusion_box.mins[axis])
+        if (
+            (master_exclusion_box.maxs[axis] >= large_box.mins[axis])
+            and (master_exclusion_box.maxs[axis] <= large_box.maxs[axis])
+        ):
+            critical_points.append(master_exclusion_box.maxs[axis])
         critical_points.append(large_box.maxs[axis])
         critical_list.append(sorted(critical_points))
     return critical_list
@@ -717,6 +755,12 @@ def calculate_cubelets(criticals):
     for x_index in range(len(criticals[0]) - 1):
         for y_index in range(len(criticals[1]) - 1):
             for z_index in range(len(criticals[2]) - 1):
+                min_x = criticals[0][x_index]
+                max_x = criticals[0][x_index + 1]
+                min_y = criticals[1][y_index]
+                max_y = criticals[1][y_index + 1]
+                min_z = criticals[2][z_index]
+                max_z = criticals[2][z_index + 1]
                 # Since each critical point is of the form:
                 # [solvent_box_start, solvent_box_end, solvent_box_start,...] along
                 # each axis, if x_index, y_index, and z_index are ALL odd, then we are
@@ -724,12 +768,21 @@ def calculate_cubelets(criticals):
                 # skip it
                 if (x_index % 2) + (y_index % 2) + (z_index % 2) == 3:
                     continue
-                min_x = criticals[0][x_index]
-                max_x = criticals[0][x_index + 1]
-                min_y = criticals[1][y_index]
-                max_y = criticals[1][y_index + 1]
-                min_z = criticals[2][z_index]
-                max_z = criticals[2][z_index + 1]
+                # In the case that some exclusions have the same coordinates along a
+                # certain axis, we should also skip those too
+                # For instance:
+                #
+                #      XXXXX     XXXXX
+                #      XXXXX     XXXXX
+                #      XXXXX     XXXXX
+                #
+                # CCCCCCCCCCCCCCCCCCCCCCCCCC
+                if (
+                    (np.isclose(min_x, max_x)) or (np.isclose(min_y, max_y))
+                    or (np.isclose(min_z, max_z))
+                ):
+                    continue
+
                 cubelets.append(
                     mb.Box(mins=[min_x, min_y, min_z], maxs=[max_x, max_y, max_z])
                 )
@@ -1408,7 +1461,10 @@ def main():
                         (10.1007/s11244-006-0068-8))\n
                         For example: -xz 0.400321.\n""",
     )
-    args = parser.parse_args()
+    args, unknown_args = parser.parse_known_args()
+    if len(unknown_args) > 0:
+        print("UNKNOWN ARGUMENTS PASSED:", unknown_args)
+        print("Continuing...")
     if args.gecko:
         print(
             zlib.decompress(
@@ -1426,6 +1482,16 @@ def main():
             ).decode("utf-8")
         )
         exit()
+    if (len(args.reactant_rigid) > 0) and (len(args.forcefield[1]) > 0):
+        print("*** ERROR ***")
+        print(
+            "It is not currently possible to combine EAM forcefields with rigid"
+            " reactants"
+        )
+        raise SystemError(
+            "Please use only flexible reactants when specifying an external (EAM)"
+            " forcefield."
+        )
     print("The run arguments for this job are:")
     print(print(args))
     create_morphology(args)

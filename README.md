@@ -1,3 +1,7 @@
+[![DOI](https://zenodo.org/badge/129162973.svg)](https://zenodo.org/badge/latestdoi/129162973)
+[![Run Status](https://api.shippable.com/projects/5ae1ee2b30ed4d07005f4017/badge?branch=dev)](https://app.shippable.com/bitbucket/cmelab/rhaco)
+[![Coverage Status](https://codecov.io/bb/cmelab/rhaco/branch/dev/graph/badge.svg)](https://codecov.io/bb/cmelab/rhaco)
+
 ## Installing Rhaco
 
 1) Make sure conda is installed and active on your system (miniconda recommended from https://conda.io/miniconda.html)
@@ -16,6 +20,7 @@
 
 ## Version History
 
+v1.5.0 - Created unit tests and made several bug fixes for production use
 v1.4.1 - Merged in the ad-hoc "create_forcefield" script to the rhaco simulate pipeline so that the required EAM forcefield can be produced at runtime
 v1.4.0 - Combinations of positional, rigid, and flexible reactants can now be specified in the system. The --reactant_composition and --reactant_rigid options have been improved to reflect the new functionality.
 v1.3.0 - Added functionality for rigid bodies in HOOMD 2 (including orientation quaternions and moments of inertia tensor eigenvalues)
