@@ -334,6 +334,8 @@ def rename_crystal_types(snapshot, generate_arguments):
     ):
         print("Renaming crystal atoms to remove the X_ for EAM...")
         snapshot.particles.types = new_types
+        for AAID, old_type in enumerate(snapshot.particles.typeid):
+            snapshot.particles.typeid[AAID] = mapping[old_type]
     print("The catalyst group is", catalyst)
     print("The gas group is", gas)
     return snapshot, catalyst, gas
