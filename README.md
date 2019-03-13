@@ -1,3 +1,7 @@
+[![DOI](https://zenodo.org/badge/129162973.svg)](https://zenodo.org/badge/latestdoi/129162973)
+[![Run Status](https://api.shippable.com/projects/5ae1ee2b30ed4d07005f4017/badge?branch=dev)](https://app.shippable.com/bitbucket/cmelab/rhaco)
+[![Coverage Status](https://codecov.io/bb/cmelab/rhaco/branch/dev/graph/badge.svg)](https://codecov.io/bb/cmelab/rhaco)
+
 ## Installing Rhaco
 
 1) Make sure conda is installed and active on your system (miniconda recommended from https://conda.io/miniconda.html)
