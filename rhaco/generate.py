@@ -447,7 +447,14 @@ def create_morphology(args):
         )
         print("Positional reactant will be ignored.")
         positional_reactant = None
-
+    if (
+            ((args.reactant_num_mol is not None) or (args.reactant_density is not None)) and
+            (len([ratio for ratio in args.reactant_composition if ratio.lower != "pos"]) == 0)
+            ):
+        raise SystemError(
+        "-rn or -rd have been specified, but no flexible or rigid reactants are specified"
+        " in -rc. Please modify your input parameters accordingly."
+        )
     # Define the regions that the hydrocarbons can go in, so we don't end
     # up with them between layers (or inside the positional reactant). I also add a
     # buffer in the z direction of a couple of angstroms to prevent reactants from
